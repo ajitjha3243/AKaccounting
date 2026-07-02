@@ -1,0 +1,5 @@
+json{
+  "mimeTypes": {
+    ".json": "application/json"
+  }
+}
