@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pro Equity & MF Dashboard (Cloud Sync)</title>
     
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
     <!-- Firebase Cloud Database SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
@@ -65,7 +63,6 @@
         
         .summary-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
         .card { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 5px solid var(--primary); }
-        .card.sales { border-left-color: var(--success); }
         .card.expenses { border-left-color: var(--warning); }
         .card.income { border-left-color: var(--info); }
         .card.pnl { border-left-color: var(--purple); } 
@@ -75,7 +72,6 @@
         .main-grid { display: grid; grid-template-columns: 1fr; gap: 25px; margin-bottom: 25px; }
         .reports-grid { display: grid; grid-template-columns: 1fr; gap: 25px; }
         @media(min-width: 900px) { 
-            .main-grid { grid-template-columns: 350px 1fr; } 
             .reports-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
         }
         
@@ -125,7 +121,6 @@
         .pnl-positive { color: var(--success); font-weight: bold; }
         .pnl-negative { color: var(--danger); font-weight: bold; }
         .pnl-neutral { color: var(--text-color); font-weight: bold; }
-        .chart-container { height: 180px; width: 100%; max-width: 250px; margin: 0 auto; display: flex; justify-content: center;}
     </style>
 </head>
 <body>
@@ -157,8 +152,6 @@
     </div>
 
     <div class="summary-container">
-        <div class="card"><h3>Invested (Purchases)</h3><p id="total-purchases">0.00</p></div>
-        <div class="card sales"><h3>Realized (Sales)</h3><p id="total-sales">0.00</p></div>
         <div class="card income"><h3>Other Income</h3><p id="total-income">0.00</p></div>
         <div class="card expenses"><h3>Other Expenses</h3><p id="total-expenses">0.00</p></div>
         <div class="card pnl"><h3>Realized P&L (Net)</h3><p id="realized-pnl">0.00</p></div>
@@ -184,11 +177,6 @@
                     <button type="button" id="cancel-edit-btn" style="display:none; margin-top: 10px; background:#64748b;" class="btn-primary" onclick="cancelEdit()">Cancel Edit</button>
                 </form>
             </div>
-        </div>
-
-        <div class="panel" style="margin-bottom: 0;">
-            <h2>Asset Allocation</h2>
-            <div class="chart-container"><canvas id="allocationChart"></canvas></div>
         </div>
     </div>
 
@@ -251,7 +239,6 @@
     // --- STATE VARIABLES ---
     let currentUser = null; 
     let currentTxs = [];    
-    let myChart = null; 
     let allUsersList = [];
 
     // --- AUTHENTICATION ---
@@ -566,8 +553,7 @@
         ledgerBody.innerHTML = ''; holdingsBody.innerHTML = ''; brokerInvestmentBody.innerHTML = ''; pnlBody.innerHTML = ''; brokerPnlBody.innerHTML = ''; monthlyPnlBody.innerHTML = '';
         
         // Metrics
-        let metrics = { pur: 0, sal: 0, exp: 0, inc: 0 };
-        let chartData = { 'Equity': 0, 'Mutual Fund': 0 };
+        let metrics = { exp: 0, inc: 0 };
         let inventory = {}; 
         let brokerPnLMap = {}; 
         let brokerInvestmentMap = {};
@@ -599,10 +585,7 @@
             if (tx.txType === 'Purchase') {
                 inventory[key].qty += tx.qty;
                 inventory[key].cost += tx.total;
-                chartData[tx.assetClass] += tx.total; 
-                metrics.pur += tx.total;
             } else if (tx.txType === 'Sale') {
-                metrics.sal += tx.total;
                 let avgCost = inventory[key].qty > 0 ? (inventory[key].cost / inventory[key].qty) : 0;
                 let cogs = avgCost * tx.qty;
                 let tradePnL = tx.total - cogs; 
@@ -613,7 +596,6 @@
                 
                 inventory[key].qty -= tx.qty;
                 inventory[key].cost -= cogs;
-                if(chartData[tx.assetClass] >= cogs) chartData[tx.assetClass] -= cogs;
             } else if (tx.txType === 'Expense') {
                 overallPnL -= tx.total;
                 inventory[key].pnl -= tx.total;
@@ -672,26 +654,12 @@
             ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td>${tx.broker}</td><td>${tx.assetClass}</td><td><span class="badge ${tx.txType.toLowerCase()}">${tx.txType}</span></td><td><strong>${tx.symbol}</strong></td><td>${tx.qty}</td><td>${tx.price.toFixed(2)}</td><td><strong>${tx.total.toFixed(2)}</strong></td><td><button class="btn-edit-tx" onclick="editTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteTx('${tx.id}')">Del</button></td></tr>`;
         });
 
-        document.getElementById('total-purchases').innerText = metrics.pur.toFixed(2);
-        document.getElementById('total-sales').innerText = metrics.sal.toFixed(2);
         document.getElementById('total-expenses').innerText = metrics.exp.toFixed(2);
         document.getElementById('total-income').innerText = metrics.inc.toFixed(2);
         
         let pnlEl = document.getElementById('realized-pnl');
         pnlEl.innerText = (overallPnL > 0 ? '+' : '') + overallPnL.toFixed(2);
         pnlEl.className = overallPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
-
-        renderChart(chartData);
-    }
-
-    function renderChart(dataObj) {
-        const ctx = document.getElementById('allocationChart').getContext('2d');
-        if (myChart) myChart.destroy();
-        myChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: { labels: Object.keys(dataObj), datasets: [{ data: Object.values(dataObj), backgroundColor: ['#2563eb', '#10b981'], borderWidth: 1 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-        });
     }
 
     checkAuth();
