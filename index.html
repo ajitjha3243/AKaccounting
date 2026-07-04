@@ -109,11 +109,15 @@
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
         th, td { padding: 10px; border-bottom: 1px solid var(--border); }
         th { background-color: #f8fafc; font-weight: 600; white-space: nowrap; }
+        
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
         .badge.purchase { background: #dcfce7; color: #15803d; }
         .badge.sale { background: #dbeafe; color: #1d4ed8; }
         .badge.expense { background: #fef3c7; color: #b45309; }
         .badge.income { background: #e0e7ff; color: #4338ca; }
+        .badge.cash-addition { background: #d1fae5; color: #065f46; }
+        .badge.cash-withdrawal { background: #fee2e2; color: #991b1b; }
+        
         .btn-edit-tx { background: none; border: none; color: var(--primary); cursor: pointer; font-weight: 500; margin-right: 8px; }
         .btn-edit-tx:hover { text-decoration: underline; }
         .btn-delete { background: none; border: none; color: var(--danger); cursor: pointer; font-weight: 500; }
@@ -169,7 +173,17 @@
                     <div class="form-group"><label>Date</label><input type="date" id="date" required></div>
                     <div class="form-group"><label>Broker / Platform</label><input type="text" id="broker-input" list="broker-list" required style="text-transform: capitalize;"><datalist id="broker-list"></datalist></div>
                     <div class="form-group"><label>Asset Class</label><select id="asset-class" required><option value="Equity">Equity</option><option value="Mutual Fund">Mutual Fund</option></select></div>
-                    <div class="form-group"><label>Transaction Type</label><select id="tx-type" required><option value="Purchase">Purchase</option><option value="Sale">Sale</option><option value="Income">Income</option><option value="Expense">Expense</option></select></div>
+                    <div class="form-group">
+                        <label>Transaction Type</label>
+                        <select id="tx-type" required onchange="handleTxTypeChange()">
+                            <option value="Purchase">Purchase</option>
+                            <option value="Sale">Sale</option>
+                            <option value="Income">Income</option>
+                            <option value="Expense">Expense</option>
+                            <option value="Cash Addition">Cash Addition</option>
+                            <option value="Cash Withdrawal">Cash Withdrawal</option>
+                        </select>
+                    </div>
                     <div class="form-group"><label>Symbol / Name</label><input type="text" id="symbol-input" list="symbol-list" required style="text-transform: uppercase;"><datalist id="symbol-list"></datalist></div>
                     <div class="form-group"><label>Quantity / Units</label><input type="number" id="qty" step="any" min="0" value="0" required></div>
                     <div class="form-group"><label>Price / NAV / Amount</label><input type="number" id="price" step="any" min="0" value="0" required></div>
@@ -196,24 +210,30 @@
                 </div>
             </div>
             <div class="table-container"><h3>Investment by Broker</h3><table><thead><tr><th>Broker</th><th>Current Investment</th></tr></thead><tbody id="broker-investment-body"></tbody></table></div>
+            <div class="table-container"><h3>Broker Ledger (Cash) Balance</h3><table><thead><tr><th>Broker</th><th>Available Balance</th></tr></thead><tbody id="broker-ledger-body"></tbody></table></div>
             <div class="table-container"><h3>Realized P&L by Script</h3><table><thead><tr><th>Symbol</th><th>Broker</th><th>Class</th><th>Realized P&L</th></tr></thead><tbody id="pnl-body"></tbody></table></div>
-            <div class="table-container"><h3>P&L by Month & Year</h3><table><thead><tr><th>Period</th><th>P&L</th></tr></thead><tbody id="monthly-pnl-body"></tbody></table></div>
             <div class="table-container"><h3>Realized P&L by Broker</h3><table><thead><tr><th>Broker</th><th>Realized P&L</th></tr></thead><tbody id="broker-pnl-body"></tbody></table></div>
+            <div class="table-container"><h3>P&L by Month & Year</h3><table><thead><tr><th>Period</th><th>P&L</th></tr></thead><tbody id="monthly-pnl-body"></tbody></table></div>
         </div>
     </div>
 
-    <div class="panel">
-        <h2>Raw Transaction Ledger</h2>
-        <div class="controls-row">
-            <div class="form-group"><label>Broker</label><select id="filter-broker" onchange="renderApp()"><option value="All">All Brokers</option></select></div>
-            <div class="form-group"><label>Asset</label><select id="filter-asset" onchange="renderApp()"><option value="All">All Assets</option><option value="Equity">Equity</option><option value="Mutual Fund">Mutual Fund</option></select></div>
-            <div class="form-group"><label>Symbol</label><select id="filter-symbol" onchange="renderApp()"><option value="All">All Symbols</option></select></div>
-            <div class="form-group"><label>Start Date</label><input type="date" id="filter-start" onchange="renderApp()"></div>
-            <div class="form-group"><label>End Date</label><input type="date" id="filter-end" onchange="renderApp()"></div>
-            <button class="btn-export" onclick="exportCSV()">Download CSV</button>
+    <div class="panel" style="padding-top: 10px;">
+        <div class="panel-header" onclick="toggleLedger()">
+            <h2>Raw Transaction Ledger</h2>
+            <span id="ledger-icon">▲</span>
         </div>
-        <div class="table-container">
-            <table><thead><tr><th>Date</th><th>Broker</th><th>Asset</th><th>Type</th><th>Symbol</th><th>Qty</th><th>Price</th><th>Total</th><th>Action</th></tr></thead><tbody id="ledger-body"></tbody></table>
+        <div id="ledger-content" class="collapsible-table-content active">
+            <div class="controls-row">
+                <div class="form-group"><label>Broker</label><select id="filter-broker" onchange="renderApp()"><option value="All">All Brokers</option></select></div>
+                <div class="form-group"><label>Asset</label><select id="filter-asset" onchange="renderApp()"><option value="All">All Assets</option><option value="Equity">Equity</option><option value="Mutual Fund">Mutual Fund</option></select></div>
+                <div class="form-group"><label>Symbol</label><select id="filter-symbol" onchange="renderApp()"><option value="All">All Symbols</option></select></div>
+                <div class="form-group"><label>Start Date</label><input type="date" id="filter-start" onchange="renderApp()"></div>
+                <div class="form-group"><label>End Date</label><input type="date" id="filter-end" onchange="renderApp()"></div>
+                <button class="btn-export" onclick="exportCSV()">Download CSV</button>
+            </div>
+            <div class="table-container">
+                <table><thead><tr><th>Date</th><th>Broker</th><th>Asset</th><th>Type</th><th>Symbol</th><th>Qty</th><th>Price</th><th>Total</th><th>Action</th></tr></thead><tbody id="ledger-body"></tbody></table>
+            </div>
         </div>
     </div>
 </div>
@@ -375,6 +395,26 @@
         }
     }
 
+    function toggleLedger(forceOpen = false) {
+        const content = document.getElementById('ledger-content');
+        const icon = document.getElementById('ledger-icon');
+        if (forceOpen || !content.classList.contains('active')) {
+            content.classList.add('active'); icon.innerText = '▲';
+        } else {
+            content.classList.remove('active'); icon.innerText = '▼';
+        }
+    }
+
+    function handleTxTypeChange() {
+        const type = document.getElementById('tx-type').value;
+        if (type === 'Cash Addition' || type === 'Cash Withdrawal') {
+            document.getElementById('symbol-input').value = 'CASH';
+            document.getElementById('qty').value = '0';
+        } else if (document.getElementById('symbol-input').value === 'CASH') {
+            document.getElementById('symbol-input').value = '';
+        }
+    }
+
     document.getElementById('date').valueAsDate = new Date();
 
     document.getElementById('tx-form').addEventListener('submit', async function(e) {
@@ -386,7 +426,9 @@
         
         let finalSymbol = document.getElementById('symbol-input').value.toUpperCase().trim();
         let finalBroker = document.getElementById('broker-input').value.trim();
-        const isFlatAmount = (txType === 'Expense' || txType === 'Income');
+        
+        // Include cash addition/withdrawal as flat amounts so qty doesn't multiply
+        const isFlatAmount = ['Expense', 'Income', 'Cash Addition', 'Cash Withdrawal'].includes(txType);
 
         const txData = {
             userId: currentUser.id,
@@ -546,17 +588,19 @@
         const ledgerBody = document.getElementById('ledger-body');
         const holdingsBody = document.getElementById('holdings-body');
         const brokerInvestmentBody = document.getElementById('broker-investment-body');
+        const brokerLedgerBody = document.getElementById('broker-ledger-body');
         const pnlBody = document.getElementById('pnl-body');
         const brokerPnlBody = document.getElementById('broker-pnl-body');
         const monthlyPnlBody = document.getElementById('monthly-pnl-body');
         
-        ledgerBody.innerHTML = ''; holdingsBody.innerHTML = ''; brokerInvestmentBody.innerHTML = ''; pnlBody.innerHTML = ''; brokerPnlBody.innerHTML = ''; monthlyPnlBody.innerHTML = '';
+        ledgerBody.innerHTML = ''; holdingsBody.innerHTML = ''; brokerInvestmentBody.innerHTML = ''; brokerLedgerBody.innerHTML = ''; pnlBody.innerHTML = ''; brokerPnlBody.innerHTML = ''; monthlyPnlBody.innerHTML = '';
         
         // Metrics
         let metrics = { exp: 0, inc: 0 };
         let inventory = {}; 
         let brokerPnLMap = {}; 
         let brokerInvestmentMap = {};
+        let brokerLedgerMap = {}; // Tracks cash balance per broker
         let monthlyPnL = {}; // YYYY-MM -> P&L
         let overallPnL = 0;
 
@@ -581,10 +625,12 @@
             
             if (!monthlyPnL[monthKey]) monthlyPnL[monthKey] = 0;
             if (!inventory[key]) inventory[key] = { symbol: tx.symbol, broker: b, qty: 0, cost: 0, type: tx.assetClass, pnl: 0 };
+            if (!brokerLedgerMap[b]) brokerLedgerMap[b] = 0;
             
             if (tx.txType === 'Purchase') {
                 inventory[key].qty += tx.qty;
                 inventory[key].cost += tx.total;
+                brokerLedgerMap[b] -= tx.total; // Cash outflow
             } else if (tx.txType === 'Sale') {
                 let avgCost = inventory[key].qty > 0 ? (inventory[key].cost / inventory[key].qty) : 0;
                 let cogs = avgCost * tx.qty;
@@ -596,16 +642,23 @@
                 
                 inventory[key].qty -= tx.qty;
                 inventory[key].cost -= cogs;
+                brokerLedgerMap[b] += tx.total; // Cash inflow
             } else if (tx.txType === 'Expense') {
                 overallPnL -= tx.total;
                 inventory[key].pnl -= tx.total;
                 monthlyPnL[monthKey] -= tx.total;
                 metrics.exp += tx.total;
+                brokerLedgerMap[b] -= tx.total; // Cash outflow
             } else if (tx.txType === 'Income') {
                 overallPnL += tx.total;
                 inventory[key].pnl += tx.total;
                 monthlyPnL[monthKey] += tx.total;
                 metrics.inc += tx.total;
+                brokerLedgerMap[b] += tx.total; // Cash inflow
+            } else if (tx.txType === 'Cash Addition') {
+                brokerLedgerMap[b] += tx.total; // Cash inflow to broker
+            } else if (tx.txType === 'Cash Withdrawal') {
+                brokerLedgerMap[b] -= tx.total; // Cash outflow from broker
             }
         });
 
@@ -619,6 +672,7 @@
             if (!brokerPnLMap[item.broker]) brokerPnLMap[item.broker] = 0;
             brokerPnLMap[item.broker] += item.pnl;
 
+            // Only show in holdings if qty > 0 (this naturally filters out "CASH" entries which have 0 qty)
             if (item.qty > 0.0001) { 
                 if (!brokerInvestmentMap[item.broker]) brokerInvestmentMap[item.broker] = 0;
                 brokerInvestmentMap[item.broker] += item.cost;
@@ -631,6 +685,13 @@
         });
 
         Object.keys(brokerInvestmentMap).sort().forEach(b => brokerInvestmentBody.innerHTML += `<tr><td><strong>${b}</strong></td><td>${brokerInvestmentMap[b].toFixed(2)}</td></tr>`);
+        
+        Object.keys(brokerLedgerMap).sort().forEach(b => {
+            let bal = brokerLedgerMap[b];
+            let c = bal > 0 ? 'pnl-positive' : (bal < 0 ? 'pnl-negative' : 'pnl-neutral');
+            brokerLedgerBody.innerHTML += `<tr><td><strong>${b}</strong></td><td class="${c}">${bal > 0 ? '+' : ''}${bal.toFixed(2)}</td></tr>`;
+        });
+
         Object.keys(brokerPnLMap).sort().forEach(b => {
             let p = brokerPnLMap[b];
             if (p !== 0) brokerPnlBody.innerHTML += `<tr><td><strong>${b}</strong></td><td class="${p>0?'pnl-positive':'pnl-negative'}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`;
@@ -651,7 +712,9 @@
             if(fEnd && new Date(tx.date) > new Date(fEnd)) match = false;
             return match;
         }).forEach(tx => {
-            ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td>${tx.broker}</td><td>${tx.assetClass}</td><td><span class="badge ${tx.txType.toLowerCase()}">${tx.txType}</span></td><td><strong>${tx.symbol}</strong></td><td>${tx.qty}</td><td>${tx.price.toFixed(2)}</td><td><strong>${tx.total.toFixed(2)}</strong></td><td><button class="btn-edit-tx" onclick="editTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteTx('${tx.id}')">Del</button></td></tr>`;
+            // Replace spaces with hyphens so the CSS classes "cash-addition" work correctly
+            let badgeClass = tx.txType.toLowerCase().replace(' ', '-');
+            ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td>${tx.broker}</td><td>${tx.assetClass}</td><td><span class="badge ${badgeClass}">${tx.txType}</span></td><td><strong>${tx.symbol}</strong></td><td>${tx.qty}</td><td>${tx.price.toFixed(2)}</td><td><strong>${tx.total.toFixed(2)}</strong></td><td><button class="btn-edit-tx" onclick="editTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteTx('${tx.id}')">Del</button></td></tr>`;
         });
 
         document.getElementById('total-expenses').innerText = metrics.exp.toFixed(2);
