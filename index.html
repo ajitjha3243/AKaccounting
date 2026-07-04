@@ -427,7 +427,6 @@
         let finalSymbol = document.getElementById('symbol-input').value.toUpperCase().trim();
         let finalBroker = document.getElementById('broker-input').value.trim();
         
-        // Include cash addition/withdrawal as flat amounts so qty doesn't multiply
         const isFlatAmount = ['Expense', 'Income', 'Cash Addition', 'Cash Withdrawal'].includes(txType);
 
         const txData = {
@@ -568,6 +567,11 @@
         const symbolDatalist = document.getElementById('symbol-list');
         const brokerDatalist = document.getElementById('broker-list');
 
+        // 1. Save currently selected options before rebuilding the list
+        const currentSymbol = symbolFilterSelect.value;
+        const currentReportBroker = brokerReportFilter.value;
+        const currentLedgerBroker = brokerLedgerFilter.value;
+
         const uniqueSymbols = [...new Set(currentTxs.map(tx => tx.symbol))].sort();
         const uniqueBrokers = [...new Set(currentTxs.map(tx => tx.broker || 'N/A'))].sort();
 
@@ -580,6 +584,16 @@
         const brokerOptions = '<option value="All">All Brokers</option>' + uniqueBrokers.map(b => `<option value="${b}">${b}</option>`).join('');
         brokerReportFilter.innerHTML = brokerOptions;
         brokerLedgerFilter.innerHTML = brokerOptions;
+
+        // 2. Restore selected options so they don't snap back to "All"
+        if (currentSymbol) symbolFilterSelect.value = currentSymbol;
+        if (currentReportBroker) brokerReportFilter.value = currentReportBroker;
+        if (currentLedgerBroker) brokerLedgerFilter.value = currentLedgerBroker;
+        
+        // Safety fallback if a user deletes the only transaction for a specific filter
+        if (!symbolFilterSelect.value) symbolFilterSelect.value = 'All';
+        if (!brokerReportFilter.value) brokerReportFilter.value = 'All';
+        if (!brokerLedgerFilter.value) brokerLedgerFilter.value = 'All';
     }
 
     function renderApp() {
@@ -600,8 +614,8 @@
         let inventory = {}; 
         let brokerPnLMap = {}; 
         let brokerInvestmentMap = {};
-        let brokerLedgerMap = {}; // Tracks cash balance per broker
-        let monthlyPnL = {}; // YYYY-MM -> P&L
+        let brokerLedgerMap = {}; 
+        let monthlyPnL = {}; 
         let overallPnL = 0;
 
         let sortedTxs = [...currentTxs].sort((a,b) => new Date(a.date) - new Date(b.date));
@@ -630,7 +644,7 @@
             if (tx.txType === 'Purchase') {
                 inventory[key].qty += tx.qty;
                 inventory[key].cost += tx.total;
-                brokerLedgerMap[b] -= tx.total; // Cash outflow
+                brokerLedgerMap[b] -= tx.total; 
             } else if (tx.txType === 'Sale') {
                 let avgCost = inventory[key].qty > 0 ? (inventory[key].cost / inventory[key].qty) : 0;
                 let cogs = avgCost * tx.qty;
@@ -642,23 +656,23 @@
                 
                 inventory[key].qty -= tx.qty;
                 inventory[key].cost -= cogs;
-                brokerLedgerMap[b] += tx.total; // Cash inflow
+                brokerLedgerMap[b] += tx.total; 
             } else if (tx.txType === 'Expense') {
                 overallPnL -= tx.total;
                 inventory[key].pnl -= tx.total;
                 monthlyPnL[monthKey] -= tx.total;
                 metrics.exp += tx.total;
-                brokerLedgerMap[b] -= tx.total; // Cash outflow
+                brokerLedgerMap[b] -= tx.total; 
             } else if (tx.txType === 'Income') {
                 overallPnL += tx.total;
                 inventory[key].pnl += tx.total;
                 monthlyPnL[monthKey] += tx.total;
                 metrics.inc += tx.total;
-                brokerLedgerMap[b] += tx.total; // Cash inflow
+                brokerLedgerMap[b] += tx.total; 
             } else if (tx.txType === 'Cash Addition') {
-                brokerLedgerMap[b] += tx.total; // Cash inflow to broker
+                brokerLedgerMap[b] += tx.total; 
             } else if (tx.txType === 'Cash Withdrawal') {
-                brokerLedgerMap[b] -= tx.total; // Cash outflow from broker
+                brokerLedgerMap[b] -= tx.total; 
             }
         });
 
@@ -672,7 +686,6 @@
             if (!brokerPnLMap[item.broker]) brokerPnLMap[item.broker] = 0;
             brokerPnLMap[item.broker] += item.pnl;
 
-            // Only show in holdings if qty > 0 (this naturally filters out "CASH" entries which have 0 qty)
             if (item.qty > 0.0001) { 
                 if (!brokerInvestmentMap[item.broker]) brokerInvestmentMap[item.broker] = 0;
                 brokerInvestmentMap[item.broker] += item.cost;
@@ -712,7 +725,6 @@
             if(fEnd && new Date(tx.date) > new Date(fEnd)) match = false;
             return match;
         }).forEach(tx => {
-            // Replace spaces with hyphens so the CSS classes "cash-addition" work correctly
             let badgeClass = tx.txType.toLowerCase().replace(' ', '-');
             ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td>${tx.broker}</td><td>${tx.assetClass}</td><td><span class="badge ${badgeClass}">${tx.txType}</span></td><td><strong>${tx.symbol}</strong></td><td>${tx.qty}</td><td>${tx.price.toFixed(2)}</td><td><strong>${tx.total.toFixed(2)}</strong></td><td><button class="btn-edit-tx" onclick="editTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteTx('${tx.id}')">Del</button></td></tr>`;
         });
