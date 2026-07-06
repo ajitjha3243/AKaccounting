@@ -3,63 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Equity & MF Dashboard (Cloud Sync)</title>
+    <title>Pro Equity & MF Dashboard (Secure)</title>
     
-    <!-- Firebase Cloud Database SDKs -->
+    <!-- Firebase Cloud Database & Auth SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
 
     <style>
         :root {
-            --bg-color: #f4f6f9;
-            --card-bg: #ffffff;
-            --text-color: #333333;
-            --primary: #2563eb;
-            --success: #16a34a;
-            --danger: #dc2626;
-            --warning: #f59e0b;
-            --info: #0ea5e9;
-            --purple: #8b5cf6;
-            --border: #e5e7eb;
+            --bg-color: #f4f6f9; --card-bg: #ffffff; --text-color: #333333;
+            --primary: #2563eb; --success: #16a34a; --danger: #dc2626;
+            --warning: #f59e0b; --info: #0ea5e9; --purple: #8b5cf6; --border: #e5e7eb;
         }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: 0 auto; }
         
-        /* --- AUTHENTICATION OVERLAY --- */
-        #auth-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg-color); z-index: 9999; display: flex;
-            align-items: center; justify-content: center; flex-direction: column;
-        }
-        .auth-box {
-            background: var(--card-bg); padding: 30px; border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 350px;
-            text-align: center; border-top: 5px solid var(--primary);
-        }
-        .auth-box h2 { margin-top: 0; color: var(--text-color); }
-        .auth-box input[type="password"] {
-            width: 100%; padding: 12px; margin: 20px 0; border: 1px solid var(--border);
-            border-radius: 4px; box-sizing: border-box; font-size: 1rem;
-        }
+        /* --- SECURE AUTHENTICATION OVERLAY --- */
+        #auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .auth-box { background: var(--card-bg); padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; border-top: 5px solid var(--primary); }
+        .auth-box h2 { margin-top: 0; color: var(--text-color); margin-bottom: 20px;}
+        .auth-box input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
+        .auth-buttons { display: flex; gap: 10px; margin-bottom: 15px; }
+        .auth-buttons button { flex: 1; }
+        .btn-google { background: #ea4335; color: white; width: 100%; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+        .btn-google:hover { background: #c5221f; }
         
         .header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 15px;}
-        .user-controls { display: flex; align-items: center; gap: 10px; background: #e2e8f0; padding: 10px 15px; border-radius: 8px; }
-        .user-controls input[type="text"] { padding: 8px; border-radius: 4px; border: 1px solid #cbd5e1; font-weight: bold; min-width: 180px;}
-        .btn-icon { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 0 5px; opacity: 0.7; transition: 0.2s;}
-        .btn-icon:hover { opacity: 1; transform: scale(1.1); }
+        .user-controls { display: flex; align-items: center; gap: 15px; background: #e2e8f0; padding: 8px 15px; border-radius: 8px; font-weight: 500; font-size: 0.95rem; }
+        .btn-logout { background: #64748b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
+        .btn-logout:hover { background: #475569; }
 
         h1 { margin: 0; font-weight: 700; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 1.5rem;}
         .header-actions { display: flex; gap: 10px; }
         .btn-backup { background: var(--purple); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
-        .btn-backup:hover { background: #7c3aed; }
         .btn-restore { background: #475569; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
-        .btn-restore:hover { background: #334155; }
         
         .summary-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
         .card { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 5px solid var(--primary); }
@@ -70,31 +48,20 @@
         .card p { margin: 0; font-size: 1.5rem; font-weight: bold; }
         
         .main-grid { display: grid; grid-template-columns: 1fr; gap: 25px; margin-bottom: 25px; align-items: start; }
-        @media(min-width: 900px) { 
-            /* Makes the Log Tx panel narrow (350px) and gives the rest of the space to the new dash */
-            .main-grid { grid-template-columns: 350px 1fr; }
-        }
-
+        @media(min-width: 900px) { .main-grid { grid-template-columns: 350px 1fr; } }
         .reports-grid { display: grid; grid-template-columns: 1fr; gap: 25px; }
-        @media(min-width: 900px) { 
-            .reports-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-        }
+        @media(min-width: 900px) { .reports-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
         
         .panel { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 25px; }
         .panel h2 { margin-top: 0; font-size: 1.2rem; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-        .panel h3 { font-size: 1.05rem; margin-top: 0; margin-bottom: 15px; color: var(--primary); }
         
         .panel-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; user-select: none; transition: color 0.2s; }
         .panel-header:hover { color: var(--primary); }
         .panel-header h2 { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
         
-        /* Collapsible Table Header Styles */
         .table-header-toggle { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; margin-bottom: 15px; transition: color 0.2s; }
-        .table-header-toggle:hover { color: var(--primary); }
-        .table-header-toggle h3 { margin-bottom: 0; }
         .collapsible-table-content { display: none; }
         .collapsible-table-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
-
         .tx-form-container { display: none; }
         .tx-form-container.active { display: block; animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
@@ -102,19 +69,15 @@
         .form-group { margin-bottom: 12px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; }
         .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; }
-        
-        /* Better styling for multi-select dropdowns */
         select[multiple] { height: 90px; border: 1px solid var(--border); border-radius: 4px; padding: 4px; outline: none; }
-        select[multiple] option { padding: 6px; margin-bottom: 2px; border-radius: 4px; cursor: pointer; }
-        select[multiple] option:checked { background: var(--primary) !important; color: white !important; }
-
+        
         button.btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: 0.2s; }
         button.btn-primary:hover { background: #1d4ed8; }
+        button.btn-secondary { width: 100%; background: #64748b; color: white; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; }
         
         .controls-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid var(--border); }
         .controls-row .form-group { margin-bottom: 0; flex: 1; min-width: 150px; }
         button.btn-export { background: var(--success); color: white; border: none; padding: 9px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; }
-        button.btn-export:hover { background: #15803d; }
         
         .table-container { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
@@ -130,9 +93,7 @@
         .badge.cash-withdrawal { background: #fee2e2; color: #991b1b; }
         
         .btn-edit-tx { background: none; border: none; color: var(--primary); cursor: pointer; font-weight: 500; margin-right: 8px; }
-        .btn-edit-tx:hover { text-decoration: underline; }
         .btn-delete { background: none; border: none; color: var(--danger); cursor: pointer; font-weight: 500; }
-        .btn-delete:hover { text-decoration: underline; }
         .pnl-positive { color: var(--success); font-weight: bold; }
         .pnl-negative { color: var(--danger); font-weight: bold; }
         .pnl-neutral { color: var(--text-color); font-weight: bold; }
@@ -140,11 +101,19 @@
 </head>
 <body>
 
+<!-- SECURE AUTHENTICATION OVERLAY -->
 <div id="auth-overlay">
     <div class="auth-box">
-        <h2 id="auth-title">Dashboard Login</h2>
-        <input type="password" id="auth-password" placeholder="Enter Password">
-        <button id="auth-action-btn" class="btn-primary">Unlock</button>
+        <h2>Dashboard Login</h2>
+        <button id="btn-google-login" class="btn-google" onclick="signInWithGoogle()">Sign in with Google</button>
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border);">
+        <input type="email" id="auth-email" placeholder="Email Address">
+        <input type="password" id="auth-password" placeholder="Password">
+        <div class="auth-buttons">
+            <button class="btn-primary" onclick="signInWithEmail()">Log In</button>
+            <button class="btn-secondary" onclick="signUpWithEmail()">Sign Up</button>
+        </div>
+        <p id="auth-error" style="color: var(--danger); font-size: 0.85rem; margin: 0; display: none;"></p>
     </div>
 </div>
 
@@ -152,12 +121,8 @@
     <div class="header-top">
         <h1>Personal Accounting Dashboard</h1>
         <div class="user-controls">
-            <label for="user-input">User:</label>
-            <input type="text" id="user-input" list="user-list" placeholder="Type a user name..." 
-                   onchange="handleUserChange()" 
-                   onkeydown="if(event.key === 'Enter') { event.preventDefault(); this.blur(); }">
-            <datalist id="user-list"></datalist>
-            <button class="btn-icon" onclick="renameUser()" title="Rename current user">✏️</button>
+            <span id="display-user-email">user@example.com</span>
+            <button class="btn-logout" onclick="signOut()">Log Out</button>
         </div>
         <div class="header-actions">
             <button class="btn-backup" onclick="backupData()">💾 Backup to JSON</button>
@@ -166,6 +131,7 @@
         </div>
     </div>
 
+    <!-- Metrics Cards -->
     <div class="summary-container">
         <div class="card income"><h3>Other Income</h3><p id="total-income">0.00</p></div>
         <div class="card expenses"><h3>Other Expenses</h3><p id="total-expenses">0.00</p></div>
@@ -173,7 +139,7 @@
     </div>
 
     <div class="main-grid">
-        <!-- Log Transaction Panel (Takes up 350px on desktop) -->
+        <!-- Log Transaction Panel -->
         <div class="panel" style="margin-bottom: 0; padding-top: 10px;">
             <div class="panel-header" onclick="toggleLogTx()">
                 <h2>Log Transaction</h2>
@@ -205,14 +171,13 @@
             </div>
         </div>
 
-        <!-- NEW: Script Analysis Dashboard Panel (Takes up remaining space) -->
+        <!-- Script Analysis Dashboard -->
         <div class="panel" style="margin-bottom: 0; padding-top: 10px;">
             <div class="panel-header" onclick="toggleScriptDash()">
                 <h2>Script Analysis Dashboard</h2>
                 <span id="script-dash-icon">▲</span>
             </div>
             <div id="script-dash-content" class="collapsible-table-content active">
-                
                 <div class="controls-row">
                     <div class="form-group">
                         <label>Select Script(s) <small style="color: #64748b;">(Ctrl/Cmd + Click for multiple)</small></label>
@@ -223,7 +188,6 @@
                         <select id="dash-year" multiple onchange="renderScriptDash()"></select>
                     </div>
                 </div>
-
                 <div id="script-dash-data" style="display: none;">
                     <div class="reports-grid" style="grid-template-columns: 1fr 1fr;">
                         <div>
@@ -247,11 +211,11 @@
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
 
+    <!-- Reports Grids -->
     <div class="panel">
         <h2>Script-wise Reports</h2>
         <div class="controls-row">
@@ -275,6 +239,7 @@
         </div>
     </div>
 
+    <!-- Raw Ledger -->
     <div class="panel" style="padding-top: 10px;">
         <div class="panel-header" onclick="toggleLedger()">
             <h2>Raw Transaction Ledger</h2>
@@ -310,168 +275,78 @@
       measurementId: "G-7XHQXMX6PR"
     };
 
-    // Initialize Firebase Cloud Database
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const auth = firebase.auth();
 
     // --- STATE VARIABLES ---
     let currentUser = null; 
     let currentTxs = [];    
-    let allUsersList = [];
 
-    // --- AUTHENTICATION ---
-    const APP_PWD_KEY = 'accounting_app_pwd';
-    function checkAuth() {
-        const savedPwd = localStorage.getItem(APP_PWD_KEY);
-        const overlay = document.getElementById('auth-overlay');
-        const authActionBtn = document.getElementById('auth-action-btn');
-        const pwdInput = document.getElementById('auth-password');
-
-        pwdInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); authActionBtn.click(); } });
-
-        if (!savedPwd) {
-            document.getElementById('auth-title').innerText = "Set Dashboard Password";
-            authActionBtn.innerText = "Save & Continue";
-            authActionBtn.onclick = () => {
-                if (pwdInput.value.length < 4) return alert("Password must be at least 4 characters.");
-                localStorage.setItem(APP_PWD_KEY, btoa(pwdInput.value));
-                overlay.style.display = 'none';
-                document.getElementById('app-container').style.display = 'block';
-                initUsers();
-            };
-        } else {
-            authActionBtn.onclick = () => {
-                if (btoa(pwdInput.value) === savedPwd) {
-                    overlay.style.display = 'none';
-                    document.getElementById('app-container').style.display = 'block';
-                    initUsers();
-                } else {
-                    alert("Incorrect password!");
-                    pwdInput.value = '';
-                }
-            };
-        }
-    }
-
-    // --- CLOUD USER MANAGEMENT ---
-    async function initUsers() {
-        const snapshot = await db.collection('users').get();
-        allUsersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        const savedUserId = localStorage.getItem('accounting_current_userId');
-
-        if (allUsersList.length === 0) {
-            const docRef = await db.collection('users').add({ name: 'Default User' });
-            currentUser = { id: docRef.id, name: 'Default User' };
-            allUsersList.push(currentUser);
-        } else {
-            let found = allUsersList.find(u => u.id === savedUserId);
-            currentUser = found ? found : allUsersList[0];
-        }
-
-        localStorage.setItem('accounting_current_userId', currentUser.id);
-        populateUserList();
-        await loadTransactions();
-    }
-
-    function populateUserList() {
-        const datalist = document.getElementById('user-list');
-        datalist.innerHTML = '';
-        allUsersList.forEach(u => {
-            const opt = document.createElement('option');
-            opt.value = u.name;
-            datalist.appendChild(opt);
-        });
-        document.getElementById('user-input').value = currentUser.name;
-    }
-
-    async function handleUserChange() {
-        const inputVal = document.getElementById('user-input').value.trim();
-        if (!inputVal) {
-            document.getElementById('user-input').value = currentUser.name;
-            return;
-        }
-
-        let existingUser = allUsersList.find(u => u.name.toLowerCase() === inputVal.toLowerCase());
-        
-        if (existingUser) {
-            if (currentUser.id !== existingUser.id) {
-                currentUser = existingUser;
-                localStorage.setItem('accounting_current_userId', currentUser.id);
-                document.getElementById('user-input').value = existingUser.name; 
-                cancelEdit();
-                await loadTransactions();
-            }
-        } else {
-            const docRef = await db.collection('users').add({ name: inputVal });
-            currentUser = { id: docRef.id, name: inputVal };
-            allUsersList.push(currentUser);
-            localStorage.setItem('accounting_current_userId', currentUser.id);
-            populateUserList();
-            cancelEdit();
-            await loadTransactions();
-        }
-    }
-
-    async function renameUser() {
-        const newName = prompt("Rename current user:", currentUser.name);
-        if (newName && newName.trim() && newName.trim() !== currentUser.name) {
-            await db.collection('users').doc(currentUser.id).update({ name: newName.trim() });
-            currentUser.name = newName.trim();
+    // --- SECURE AUTHENTICATION SYSTEM ---
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            currentUser = user;
+            document.getElementById('auth-overlay').style.display = 'none';
+            document.getElementById('app-container').style.display = 'block';
+            document.getElementById('display-user-email').innerText = user.email || "Logged in via Google";
             
-            const snapshot = await db.collection('users').get();
-            allUsersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            populateUserList();
+            // Auto-create user profile document if it doesn't exist
+            db.collection('users').doc(user.uid).set({ 
+                email: user.email, 
+                lastLogin: firebase.firestore.FieldValue.serverTimestamp() 
+            }, { merge: true });
+
+            loadTransactions();
+        } else {
+            currentUser = null;
+            document.getElementById('app-container').style.display = 'none';
+            document.getElementById('auth-overlay').style.display = 'flex';
         }
+    });
+
+    function showError(msg) {
+        const errEl = document.getElementById('auth-error');
+        errEl.innerText = msg;
+        errEl.style.display = 'block';
+    }
+
+    function signInWithGoogle() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch(error => showError(error.message));
+    }
+
+    function signInWithEmail() {
+        const email = document.getElementById('auth-email').value;
+        const pwd = document.getElementById('auth-password').value;
+        if(!email || !pwd) return showError("Please enter email and password.");
+        auth.signInWithEmailAndPassword(email, pwd).catch(error => showError(error.message));
+    }
+
+    function signUpWithEmail() {
+        const email = document.getElementById('auth-email').value;
+        const pwd = document.getElementById('auth-password').value;
+        if(!email || !pwd) return showError("Please enter email and password.");
+        auth.createUserWithEmailAndPassword(email, pwd).catch(error => showError(error.message));
+    }
+
+    function signOut() {
+        auth.signOut();
     }
 
     // --- CLOUD DATA LAYER ---
     async function loadTransactions() {
-        const snapshot = await db.collection('transactions').where("userId", "==", currentUser.id).get();
+        if(!currentUser) return;
+        const snapshot = await db.collection('transactions').where("userId", "==", currentUser.uid).get();
         currentTxs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderApp();
     }
 
     // --- UI INTERACTIONS ---
-    function toggleLogTx(forceOpen = false) {
-        const content = document.getElementById('log-tx-content');
-        const icon = document.getElementById('log-tx-icon');
-        if (forceOpen || !content.classList.contains('active')) {
-            content.classList.add('active'); icon.innerText = '▲';
-        } else {
-            content.classList.remove('active'); icon.innerText = '▼';
-        }
-    }
-    
-    function toggleScriptDash(forceOpen = false) {
-        const content = document.getElementById('script-dash-content');
-        const icon = document.getElementById('script-dash-icon');
-        if (forceOpen || !content.classList.contains('active')) {
-            content.classList.add('active'); icon.innerText = '▲';
-        } else {
-            content.classList.remove('active'); icon.innerText = '▼';
-        }
-    }
-
-    function toggleHoldings() {
-        const content = document.getElementById('holdings-content');
-        const icon = document.getElementById('holdings-icon');
-        if (!content.classList.contains('active')) {
-            content.classList.add('active'); icon.innerText = '▲'; 
-        } else {
-            content.classList.remove('active'); icon.innerText = '▼'; 
-        }
-    }
-
-    function toggleLedger(forceOpen = false) {
-        const content = document.getElementById('ledger-content');
-        const icon = document.getElementById('ledger-icon');
-        if (forceOpen || !content.classList.contains('active')) {
-            content.classList.add('active'); icon.innerText = '▲';
-        } else {
-            content.classList.remove('active'); icon.innerText = '▼';
-        }
-    }
+    function toggleLogTx(forceOpen = false) { const content = document.getElementById('log-tx-content'); const icon = document.getElementById('log-tx-icon'); if (forceOpen || !content.classList.contains('active')) { content.classList.add('active'); icon.innerText = '▲'; } else { content.classList.remove('active'); icon.innerText = '▼'; } }
+    function toggleScriptDash(forceOpen = false) { const content = document.getElementById('script-dash-content'); const icon = document.getElementById('script-dash-icon'); if (forceOpen || !content.classList.contains('active')) { content.classList.add('active'); icon.innerText = '▲'; } else { content.classList.remove('active'); icon.innerText = '▼'; } }
+    function toggleHoldings() { const content = document.getElementById('holdings-content'); const icon = document.getElementById('holdings-icon'); if (!content.classList.contains('active')) { content.classList.add('active'); icon.innerText = '▲'; } else { content.classList.remove('active'); icon.innerText = '▼'; } }
+    function toggleLedger(forceOpen = false) { const content = document.getElementById('ledger-content'); const icon = document.getElementById('ledger-icon'); if (forceOpen || !content.classList.contains('active')) { content.classList.add('active'); icon.innerText = '▲'; } else { content.classList.remove('active'); icon.innerText = '▼'; } }
 
     function handleTxTypeChange() {
         const type = document.getElementById('tx-type').value;
@@ -494,11 +369,11 @@
         
         let finalSymbol = document.getElementById('symbol-input').value.toUpperCase().trim();
         let finalBroker = document.getElementById('broker-input').value.trim();
-        
         const isFlatAmount = ['Expense', 'Income', 'Cash Addition', 'Cash Withdrawal'].includes(txType);
 
+        // SECURE: Attached to the actual authenticated user UID
         const txData = {
-            userId: currentUser.id,
+            userId: currentUser.uid,
             date: document.getElementById('date').value,
             broker: finalBroker,
             assetClass: document.getElementById('asset-class').value,
@@ -575,12 +450,10 @@
     }
 
     async function backupData() {
-        const usersSnap = await db.collection('users').get();
-        const txsSnap = await db.collection('transactions').get();
-        
+        if(!currentUser) return;
+        const txsSnap = await db.collection('transactions').where("userId", "==", currentUser.uid).get();
         const backupPayload = { 
-            format: "firestore-export", 
-            users: usersSnap.docs.map(d => ({id: d.id, ...d.data()})), 
+            format: "firestore-export-secure", 
             transactions: txsSnap.docs.map(d => ({id: d.id, ...d.data()})) 
         };
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupPayload));
@@ -594,29 +467,26 @@
 
     function restoreData(event) {
         const file = event.target.files[0];
-        if (!file) return;
+        if (!file || !currentUser) return;
         const reader = new FileReader();
         reader.onload = async function(e) {
             try {
                 const data = JSON.parse(e.target.result);
-                if (data.format === "firestore-export" || data.format === "indexeddb-export") {
-                    if (confirm("Proceeding will restore all users and transactions to the Cloud Database. Continue?")) {
+                if (data.format === "firestore-export" || data.format === "indexeddb-export" || data.format === "firestore-export-secure") {
+                    if (confirm("Proceeding will restore all transactions to your secure account. Continue?")) {
                         
-                        for(let u of data.users) {
-                            if (u.id) {
-                                await db.collection('users').doc(u.id.toString()).set({ name: u.name });
-                            }
-                        }
                         for(let t of data.transactions) {
                             let docId = t.id ? t.id.toString() : null;
                             delete t.id;
-                            t.userId = t.userId.toString(); 
+                            
+                            // FORCE the userId to be the currently authenticated secure user
+                            t.userId = currentUser.uid; 
                             
                             if(docId) await db.collection('transactions').doc(docId).set(t);
                             else await db.collection('transactions').add(t);
                         }
                         
-                        alert("Database restored successfully!");
+                        alert("Database restored securely!");
                         window.location.reload(); 
                     }
                 }
@@ -636,7 +506,6 @@
         const dashScriptSelect = document.getElementById('dash-script');
         const dashYearSelect = document.getElementById('dash-year');
 
-        // 1. Save currently selected options before rebuilding the lists
         const currentSymbol = symbolFilterSelect.value;
         const currentReportBroker = brokerReportFilter.value;
         const currentLedgerBroker = brokerLedgerFilter.value;
@@ -660,17 +529,12 @@
         dashScriptSelect.innerHTML = uniqueSymbols.filter(s => s !== "CASH").map(s => `<option value="${s}">${s}</option>`).join('');
         dashYearSelect.innerHTML = uniqueYears.map(y => `<option value="${y}">${y}</option>`).join('');
 
-        // 2. Restore selected options
         if (currentSymbol) symbolFilterSelect.value = currentSymbol;
         if (currentReportBroker) brokerReportFilter.value = currentReportBroker;
         if (currentLedgerBroker) brokerLedgerFilter.value = currentLedgerBroker;
         
-        Array.from(dashScriptSelect.options).forEach(opt => {
-            if (currentDashScripts.includes(opt.value)) opt.selected = true;
-        });
-        Array.from(dashYearSelect.options).forEach(opt => {
-            if (currentDashYears.includes(opt.value)) opt.selected = true;
-        });
+        Array.from(dashScriptSelect.options).forEach(opt => { if (currentDashScripts.includes(opt.value)) opt.selected = true; });
+        Array.from(dashYearSelect.options).forEach(opt => { if (currentDashYears.includes(opt.value)) opt.selected = true; });
         
         if (!symbolFilterSelect.value) symbolFilterSelect.value = 'All';
         if (!brokerReportFilter.value) brokerReportFilter.value = 'All';
@@ -685,15 +549,11 @@
         const selectedScripts = Array.from(dashScriptSelect.selectedOptions).map(o => o.value);
         const selectedYears = Array.from(dashYearSelect.selectedOptions).map(o => o.value);
 
-        if (selectedScripts.length === 0) {
-            dataContainer.style.display = 'none';
-            return;
-        } else {
-            dataContainer.style.display = 'block';
-        }
+        if (selectedScripts.length === 0) { dataContainer.style.display = 'none'; return; } 
+        else { dataContainer.style.display = 'block'; }
 
-        let inventory = {}; // key format: "symbol::broker"
-        let monthlyPnL = {}; // key format: "YYYY-MM"
+        let inventory = {}; 
+        let monthlyPnL = {}; 
         let totalPnL = 0;
 
         let sortedTxs = [...currentTxs].sort((a,b) => new Date(a.date) - new Date(b.date));
@@ -701,62 +561,43 @@
         sortedTxs.forEach(tx => {
             if (!selectedScripts.includes(tx.symbol)) return;
 
-            let b = tx.broker || 'N/A';
-            let s = tx.symbol;
-            let key = `${s}::${b}`;
-            
-            let dateObj = new Date(tx.date);
-            let year = tx.date.substring(0, 4);
+            let b = tx.broker || 'N/A'; let s = tx.symbol; let key = `${s}::${b}`;
+            let dateObj = new Date(tx.date); let year = tx.date.substring(0, 4);
             let monthKey = `${year}-${(dateObj.getMonth()+1).toString().padStart(2, '0')}`;
 
             if (!inventory[key]) inventory[key] = { symbol: s, broker: b, qty: 0, cost: 0 };
             if (!monthlyPnL[monthKey]) monthlyPnL[monthKey] = 0;
 
             if (tx.txType === 'Purchase') {
-                inventory[key].qty += tx.qty;
-                inventory[key].cost += tx.total;
+                inventory[key].qty += tx.qty; inventory[key].cost += tx.total;
             } else if (tx.txType === 'Sale') {
                 let avgCost = inventory[key].qty > 0 ? (inventory[key].cost / inventory[key].qty) : 0;
                 let cogs = avgCost * tx.qty;
                 let tradePnL = tx.total - cogs;
-
-                inventory[key].qty -= tx.qty;
-                inventory[key].cost -= cogs;
-
+                inventory[key].qty -= tx.qty; inventory[key].cost -= cogs;
                 monthlyPnL[monthKey] += tradePnL;
             }
         });
 
-        // 1. Render Holdings
         const holdingsBody = document.getElementById('dash-holdings-body');
         holdingsBody.innerHTML = '';
         Object.keys(inventory).sort().forEach(key => {
             let item = inventory[key];
-            if (item.qty > 0.0001) {
-                holdingsBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${item.broker}</td><td>${item.qty.toFixed(4)}</td><td>${(item.cost/item.qty).toFixed(2)}</td><td>${item.cost.toFixed(2)}</td></tr>`;
-            }
+            if (item.qty > 0.0001) { holdingsBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${item.broker}</td><td>${item.qty.toFixed(4)}</td><td>${(item.cost/item.qty).toFixed(2)}</td><td>${item.cost.toFixed(2)}</td></tr>`; }
         });
-        if(holdingsBody.innerHTML === '') holdingsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#666; padding: 15px;">No current holdings found for selected script(s)</td></tr>`;
+        if(holdingsBody.innerHTML === '') holdingsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#666; padding: 15px;">No current holdings</td></tr>`;
 
-        // 2. Render P&L
         const pnlBody = document.getElementById('dash-pnl-body');
         pnlBody.innerHTML = '';
         
-        // Filter keys if years are selected
         let keysToRender = Object.keys(monthlyPnL).sort().reverse();
-        if (selectedYears.length > 0) {
-            keysToRender = keysToRender.filter(m => selectedYears.includes(m.substring(0, 4)));
-        }
+        if (selectedYears.length > 0) keysToRender = keysToRender.filter(m => selectedYears.includes(m.substring(0, 4)));
 
         keysToRender.forEach(m => {
-            let p = monthlyPnL[m];
-            totalPnL += p;
-            if (p !== 0) {
-                let c = p > 0 ? 'pnl-positive' : 'pnl-negative';
-                pnlBody.innerHTML += `<tr><td><strong>${m}</strong></td><td class="${c}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`;
-            }
+            let p = monthlyPnL[m]; totalPnL += p;
+            if (p !== 0) { let c = p > 0 ? 'pnl-positive' : 'pnl-negative'; pnlBody.innerHTML += `<tr><td><strong>${m}</strong></td><td class="${c}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`; }
         });
-        if(pnlBody.innerHTML === '') pnlBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#666; padding: 15px;">No Realized P&L in the selected period</td></tr>`;
+        if(pnlBody.innerHTML === '') pnlBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#666; padding: 15px;">No Realized P&L in period</td></tr>`;
 
         const totalEl = document.getElementById('dash-pnl-total');
         totalEl.innerText = (totalPnL > 0 ? '+' : '') + totalPnL.toFixed(2);
@@ -766,90 +607,40 @@
     function renderApp() {
         populateFilterDropdowns();
 
-        const ledgerBody = document.getElementById('ledger-body');
-        const holdingsBody = document.getElementById('holdings-body');
-        const brokerInvestmentBody = document.getElementById('broker-investment-body');
-        const brokerLedgerBody = document.getElementById('broker-ledger-body');
-        const pnlBody = document.getElementById('pnl-body');
-        const brokerPnlBody = document.getElementById('broker-pnl-body');
-        const monthlyPnlBody = document.getElementById('monthly-pnl-body');
-        
+        const ledgerBody = document.getElementById('ledger-body'); const holdingsBody = document.getElementById('holdings-body'); const brokerInvestmentBody = document.getElementById('broker-investment-body'); const brokerLedgerBody = document.getElementById('broker-ledger-body'); const pnlBody = document.getElementById('pnl-body'); const brokerPnlBody = document.getElementById('broker-pnl-body'); const monthlyPnlBody = document.getElementById('monthly-pnl-body');
         ledgerBody.innerHTML = ''; holdingsBody.innerHTML = ''; brokerInvestmentBody.innerHTML = ''; brokerLedgerBody.innerHTML = ''; pnlBody.innerHTML = ''; brokerPnlBody.innerHTML = ''; monthlyPnlBody.innerHTML = '';
         
-        // Metrics
-        let metrics = { exp: 0, inc: 0 };
-        let inventory = {}; 
-        let brokerPnLMap = {}; 
-        let brokerInvestmentMap = {};
-        let brokerLedgerMap = {}; 
-        let monthlyPnL = {}; 
-        let overallPnL = 0;
-
+        let metrics = { exp: 0, inc: 0 }; let inventory = {}; let brokerPnLMap = {}; let brokerInvestmentMap = {}; let brokerLedgerMap = {}; let monthlyPnL = {}; let overallPnL = 0;
         let sortedTxs = [...currentTxs].sort((a,b) => new Date(a.date) - new Date(b.date));
 
-        // Filters
-        const fBroker = document.getElementById('filter-broker').value;
-        const fAsset = document.getElementById('filter-asset').value;
-        const fSymbol = document.getElementById('filter-symbol').value; 
-        const fStart = document.getElementById('filter-start').value;
-        const fEnd = document.getElementById('filter-end').value;
-        
-        const rBroker = document.getElementById('report-filter-broker').value;
-        const rAsset = document.getElementById('report-filter-asset').value;
+        const fBroker = document.getElementById('filter-broker').value; const fAsset = document.getElementById('filter-asset').value; const fSymbol = document.getElementById('filter-symbol').value; const fStart = document.getElementById('filter-start').value; const fEnd = document.getElementById('filter-end').value;
+        const rBroker = document.getElementById('report-filter-broker').value; const rAsset = document.getElementById('report-filter-asset').value;
 
-        // Calculation Loop
         sortedTxs.forEach(tx => {
-            let b = tx.broker || 'N/A';
-            let key = `${tx.symbol}::${b}`;
-            let dateObj = new Date(tx.date);
-            let monthKey = `${dateObj.getFullYear()}-${(dateObj.getMonth()+1).toString().padStart(2, '0')}`;
+            let b = tx.broker || 'N/A'; let key = `${tx.symbol}::${b}`;
+            let dateObj = new Date(tx.date); let monthKey = `${dateObj.getFullYear()}-${(dateObj.getMonth()+1).toString().padStart(2, '0')}`;
             
             if (!monthlyPnL[monthKey]) monthlyPnL[monthKey] = 0;
             if (!inventory[key]) inventory[key] = { symbol: tx.symbol, broker: b, qty: 0, cost: 0, type: tx.assetClass, pnl: 0 };
             if (!brokerLedgerMap[b]) brokerLedgerMap[b] = 0;
             
-            if (tx.txType === 'Purchase') {
-                inventory[key].qty += tx.qty;
-                inventory[key].cost += tx.total;
-                brokerLedgerMap[b] -= tx.total; 
-            } else if (tx.txType === 'Sale') {
+            if (tx.txType === 'Purchase') { inventory[key].qty += tx.qty; inventory[key].cost += tx.total; brokerLedgerMap[b] -= tx.total; } 
+            else if (tx.txType === 'Sale') {
                 let avgCost = inventory[key].qty > 0 ? (inventory[key].cost / inventory[key].qty) : 0;
-                let cogs = avgCost * tx.qty;
-                let tradePnL = tx.total - cogs; 
-                
-                inventory[key].pnl += tradePnL;
-                overallPnL += tradePnL;
-                monthlyPnL[monthKey] += tradePnL;
-                
-                inventory[key].qty -= tx.qty;
-                inventory[key].cost -= cogs;
-                brokerLedgerMap[b] += tx.total; 
-            } else if (tx.txType === 'Expense') {
-                overallPnL -= tx.total;
-                inventory[key].pnl -= tx.total;
-                monthlyPnL[monthKey] -= tx.total;
-                metrics.exp += tx.total;
-                brokerLedgerMap[b] -= tx.total; 
-            } else if (tx.txType === 'Income') {
-                overallPnL += tx.total;
-                inventory[key].pnl += tx.total;
-                monthlyPnL[monthKey] += tx.total;
-                metrics.inc += tx.total;
-                brokerLedgerMap[b] += tx.total; 
-            } else if (tx.txType === 'Cash Addition') {
-                brokerLedgerMap[b] += tx.total; 
-            } else if (tx.txType === 'Cash Withdrawal') {
-                brokerLedgerMap[b] -= tx.total; 
-            }
+                let cogs = avgCost * tx.qty; let tradePnL = tx.total - cogs; 
+                inventory[key].pnl += tradePnL; overallPnL += tradePnL; monthlyPnL[monthKey] += tradePnL;
+                inventory[key].qty -= tx.qty; inventory[key].cost -= cogs; brokerLedgerMap[b] += tx.total; 
+            } 
+            else if (tx.txType === 'Expense') { overallPnL -= tx.total; inventory[key].pnl -= tx.total; monthlyPnL[monthKey] -= tx.total; metrics.exp += tx.total; brokerLedgerMap[b] -= tx.total; } 
+            else if (tx.txType === 'Income') { overallPnL += tx.total; inventory[key].pnl += tx.total; monthlyPnL[monthKey] += tx.total; metrics.inc += tx.total; brokerLedgerMap[b] += tx.total; } 
+            else if (tx.txType === 'Cash Addition') { brokerLedgerMap[b] += tx.total; } 
+            else if (tx.txType === 'Cash Withdrawal') { brokerLedgerMap[b] -= tx.total; }
         });
 
-        // Render Reports
         Object.keys(inventory).sort().forEach(key => {
             let item = inventory[key];
-            
             if (rAsset !== 'All' && item.type !== rAsset) return;
             if (rBroker !== 'All' && item.broker !== rBroker) return;
-
             if (!brokerPnLMap[item.broker]) brokerPnLMap[item.broker] = 0;
             brokerPnLMap[item.broker] += item.pnl;
 
@@ -858,31 +649,14 @@
                 brokerInvestmentMap[item.broker] += item.cost;
                 holdingsBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${item.broker}</td><td>${item.type}</td><td>${item.qty.toFixed(4)}</td><td>${(item.cost/item.qty).toFixed(2)}</td><td>${item.cost.toFixed(2)}</td></tr>`;
             }
-            if (item.pnl !== 0) {
-                let c = item.pnl > 0 ? 'pnl-positive' : (item.pnl < 0 ? 'pnl-negative' : 'pnl-neutral');
-                pnlBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${item.broker}</td><td>${item.type}</td><td class="${c}">${item.pnl>0?'+':''}${item.pnl.toFixed(2)}</td></tr>`;
-            }
+            if (item.pnl !== 0) { let c = item.pnl > 0 ? 'pnl-positive' : (item.pnl < 0 ? 'pnl-negative' : 'pnl-neutral'); pnlBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${item.broker}</td><td>${item.type}</td><td class="${c}">${item.pnl>0?'+':''}${item.pnl.toFixed(2)}</td></tr>`; }
         });
 
         Object.keys(brokerInvestmentMap).sort().forEach(b => brokerInvestmentBody.innerHTML += `<tr><td><strong>${b}</strong></td><td>${brokerInvestmentMap[b].toFixed(2)}</td></tr>`);
-        
-        Object.keys(brokerLedgerMap).sort().forEach(b => {
-            let bal = brokerLedgerMap[b];
-            let c = bal > 0 ? 'pnl-positive' : (bal < 0 ? 'pnl-negative' : 'pnl-neutral');
-            brokerLedgerBody.innerHTML += `<tr><td><strong>${b}</strong></td><td class="${c}">${bal > 0 ? '+' : ''}${bal.toFixed(2)}</td></tr>`;
-        });
+        Object.keys(brokerLedgerMap).sort().forEach(b => { let bal = brokerLedgerMap[b]; let c = bal > 0 ? 'pnl-positive' : (bal < 0 ? 'pnl-negative' : 'pnl-neutral'); brokerLedgerBody.innerHTML += `<tr><td><strong>${b}</strong></td><td class="${c}">${bal > 0 ? '+' : ''}${bal.toFixed(2)}</td></tr>`; });
+        Object.keys(brokerPnLMap).sort().forEach(b => { let p = brokerPnLMap[b]; if (p !== 0) brokerPnlBody.innerHTML += `<tr><td><strong>${b}</strong></td><td class="${p>0?'pnl-positive':'pnl-negative'}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`; });
+        Object.keys(monthlyPnL).sort().reverse().forEach(m => { let p = monthlyPnL[m]; if (p !== 0) monthlyPnlBody.innerHTML += `<tr><td><strong>${m}</strong></td><td class="${p>0?'pnl-positive':'pnl-negative'}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`; });
 
-        Object.keys(brokerPnLMap).sort().forEach(b => {
-            let p = brokerPnLMap[b];
-            if (p !== 0) brokerPnlBody.innerHTML += `<tr><td><strong>${b}</strong></td><td class="${p>0?'pnl-positive':'pnl-negative'}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`;
-        });
-        
-        Object.keys(monthlyPnL).sort().reverse().forEach(m => {
-            let p = monthlyPnL[m];
-            if (p !== 0) monthlyPnlBody.innerHTML += `<tr><td><strong>${m}</strong></td><td class="${p>0?'pnl-positive':'pnl-negative'}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`;
-        });
-
-        // Ledger
         currentTxs.filter(tx => {
             let match = true;
             if(fBroker !== 'All' && tx.broker !== fBroker) match = false;
@@ -903,11 +677,8 @@
         pnlEl.innerText = (overallPnL > 0 ? '+' : '') + overallPnL.toFixed(2);
         pnlEl.className = overallPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
 
-        // Finally, re-render the Script dash with any changes
         renderScriptDash();
     }
-
-    checkAuth();
 </script>
 
 </body>
