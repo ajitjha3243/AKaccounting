@@ -69,7 +69,12 @@
         .card h3 { margin: 0 0 10px 0; font-size: 0.85rem; text-transform: uppercase; color: #666; }
         .card p { margin: 0; font-size: 1.5rem; font-weight: bold; }
         
-        .main-grid { display: grid; grid-template-columns: 1fr; gap: 25px; margin-bottom: 25px; }
+        .main-grid { display: grid; grid-template-columns: 1fr; gap: 25px; margin-bottom: 25px; align-items: start; }
+        @media(min-width: 900px) { 
+            /* Makes the Log Tx panel narrow (350px) and gives the rest of the space to the new dash */
+            .main-grid { grid-template-columns: 350px 1fr; }
+        }
+
         .reports-grid { display: grid; grid-template-columns: 1fr; gap: 25px; }
         @media(min-width: 900px) { 
             .reports-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
@@ -97,6 +102,12 @@
         .form-group { margin-bottom: 12px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; }
         .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; }
+        
+        /* Better styling for multi-select dropdowns */
+        select[multiple] { height: 90px; border: 1px solid var(--border); border-radius: 4px; padding: 4px; outline: none; }
+        select[multiple] option { padding: 6px; margin-bottom: 2px; border-radius: 4px; cursor: pointer; }
+        select[multiple] option:checked { background: var(--primary) !important; color: white !important; }
+
         button.btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: 0.2s; }
         button.btn-primary:hover { background: #1d4ed8; }
         
@@ -162,12 +173,13 @@
     </div>
 
     <div class="main-grid">
+        <!-- Log Transaction Panel (Takes up 350px on desktop) -->
         <div class="panel" style="margin-bottom: 0; padding-top: 10px;">
             <div class="panel-header" onclick="toggleLogTx()">
                 <h2>Log Transaction</h2>
                 <span id="log-tx-icon">▼</span>
             </div>
-            <div id="log-tx-content" class="tx-form-container">
+            <div id="log-tx-content" class="tx-form-container active">
                 <form id="tx-form">
                     <input type="hidden" id="tx-id">
                     <div class="form-group"><label>Date</label><input type="date" id="date" required></div>
@@ -190,6 +202,52 @@
                     <button type="submit" id="submit-btn" class="btn-primary">Add Transaction</button>
                     <button type="button" id="cancel-edit-btn" style="display:none; margin-top: 10px; background:#64748b;" class="btn-primary" onclick="cancelEdit()">Cancel Edit</button>
                 </form>
+            </div>
+        </div>
+
+        <!-- NEW: Script Analysis Dashboard Panel (Takes up remaining space) -->
+        <div class="panel" style="margin-bottom: 0; padding-top: 10px;">
+            <div class="panel-header" onclick="toggleScriptDash()">
+                <h2>Script Analysis Dashboard</h2>
+                <span id="script-dash-icon">▲</span>
+            </div>
+            <div id="script-dash-content" class="collapsible-table-content active">
+                
+                <div class="controls-row">
+                    <div class="form-group">
+                        <label>Select Script(s) <small style="color: #64748b;">(Ctrl/Cmd + Click for multiple)</small></label>
+                        <select id="dash-script" multiple onchange="renderScriptDash()"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Year(s) <small style="color: #64748b;">(Ctrl/Cmd + Click for multiple)</small></label>
+                        <select id="dash-year" multiple onchange="renderScriptDash()"></select>
+                    </div>
+                </div>
+
+                <div id="script-dash-data" style="display: none;">
+                    <div class="reports-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div>
+                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px;">Current Holdings</h3>
+                            <div class="table-container">
+                                <table>
+                                    <thead><tr><th>Script</th><th>Broker</th><th>Qty</th><th>Avg Price</th><th>Invested</th></tr></thead>
+                                    <tbody id="dash-holdings-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px;">Month-wise P&L</h3>
+                            <div class="table-container">
+                                <table>
+                                    <thead><tr><th>Month</th><th>P&L</th></tr></thead>
+                                    <tbody id="dash-pnl-body"></tbody>
+                                    <tfoot><tr><th style="background-color: var(--card-bg);">Total Realized</th><th id="dash-pnl-total" style="background-color: var(--card-bg);">0.00</th></tr></tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -385,6 +443,16 @@
         }
     }
     
+    function toggleScriptDash(forceOpen = false) {
+        const content = document.getElementById('script-dash-content');
+        const icon = document.getElementById('script-dash-icon');
+        if (forceOpen || !content.classList.contains('active')) {
+            content.classList.add('active'); icon.innerText = '▲';
+        } else {
+            content.classList.remove('active'); icon.innerText = '▼';
+        }
+    }
+
     function toggleHoldings() {
         const content = document.getElementById('holdings-content');
         const icon = document.getElementById('holdings-icon');
@@ -534,17 +602,15 @@
                 if (data.format === "firestore-export" || data.format === "indexeddb-export") {
                     if (confirm("Proceeding will restore all users and transactions to the Cloud Database. Continue?")) {
                         
-                        // Restore Users
                         for(let u of data.users) {
                             if (u.id) {
                                 await db.collection('users').doc(u.id.toString()).set({ name: u.name });
                             }
                         }
-                        // Restore Transactions
                         for(let t of data.transactions) {
                             let docId = t.id ? t.id.toString() : null;
-                            delete t.id; // Remove ID from payload
-                            t.userId = t.userId.toString(); // Ensure userID matches
+                            delete t.id;
+                            t.userId = t.userId.toString(); 
                             
                             if(docId) await db.collection('transactions').doc(docId).set(t);
                             else await db.collection('transactions').add(t);
@@ -566,14 +632,20 @@
         const brokerLedgerFilter = document.getElementById('filter-broker');
         const symbolDatalist = document.getElementById('symbol-list');
         const brokerDatalist = document.getElementById('broker-list');
+        
+        const dashScriptSelect = document.getElementById('dash-script');
+        const dashYearSelect = document.getElementById('dash-year');
 
-        // 1. Save currently selected options before rebuilding the list
+        // 1. Save currently selected options before rebuilding the lists
         const currentSymbol = symbolFilterSelect.value;
         const currentReportBroker = brokerReportFilter.value;
         const currentLedgerBroker = brokerLedgerFilter.value;
+        const currentDashScripts = Array.from(dashScriptSelect.selectedOptions).map(o => o.value);
+        const currentDashYears = Array.from(dashYearSelect.selectedOptions).map(o => o.value);
 
         const uniqueSymbols = [...new Set(currentTxs.map(tx => tx.symbol))].sort();
         const uniqueBrokers = [...new Set(currentTxs.map(tx => tx.broker || 'N/A'))].sort();
+        const uniqueYears = [...new Set(currentTxs.map(tx => tx.date.substring(0, 4)))].sort().reverse();
 
         symbolDatalist.innerHTML = uniqueSymbols.map(s => `<option value="${s}">`).join('');
         brokerDatalist.innerHTML = uniqueBrokers.filter(b => b!=='N/A').map(b => `<option value="${b}">`).join('');
@@ -585,15 +657,110 @@
         brokerReportFilter.innerHTML = brokerOptions;
         brokerLedgerFilter.innerHTML = brokerOptions;
 
-        // 2. Restore selected options so they don't snap back to "All"
+        dashScriptSelect.innerHTML = uniqueSymbols.filter(s => s !== "CASH").map(s => `<option value="${s}">${s}</option>`).join('');
+        dashYearSelect.innerHTML = uniqueYears.map(y => `<option value="${y}">${y}</option>`).join('');
+
+        // 2. Restore selected options
         if (currentSymbol) symbolFilterSelect.value = currentSymbol;
         if (currentReportBroker) brokerReportFilter.value = currentReportBroker;
         if (currentLedgerBroker) brokerLedgerFilter.value = currentLedgerBroker;
         
-        // Safety fallback if a user deletes the only transaction for a specific filter
+        Array.from(dashScriptSelect.options).forEach(opt => {
+            if (currentDashScripts.includes(opt.value)) opt.selected = true;
+        });
+        Array.from(dashYearSelect.options).forEach(opt => {
+            if (currentDashYears.includes(opt.value)) opt.selected = true;
+        });
+        
         if (!symbolFilterSelect.value) symbolFilterSelect.value = 'All';
         if (!brokerReportFilter.value) brokerReportFilter.value = 'All';
         if (!brokerLedgerFilter.value) brokerLedgerFilter.value = 'All';
+    }
+
+    function renderScriptDash() {
+        const dashScriptSelect = document.getElementById('dash-script');
+        const dashYearSelect = document.getElementById('dash-year');
+        const dataContainer = document.getElementById('script-dash-data');
+        
+        const selectedScripts = Array.from(dashScriptSelect.selectedOptions).map(o => o.value);
+        const selectedYears = Array.from(dashYearSelect.selectedOptions).map(o => o.value);
+
+        if (selectedScripts.length === 0) {
+            dataContainer.style.display = 'none';
+            return;
+        } else {
+            dataContainer.style.display = 'block';
+        }
+
+        let inventory = {}; // key format: "symbol::broker"
+        let monthlyPnL = {}; // key format: "YYYY-MM"
+        let totalPnL = 0;
+
+        let sortedTxs = [...currentTxs].sort((a,b) => new Date(a.date) - new Date(b.date));
+
+        sortedTxs.forEach(tx => {
+            if (!selectedScripts.includes(tx.symbol)) return;
+
+            let b = tx.broker || 'N/A';
+            let s = tx.symbol;
+            let key = `${s}::${b}`;
+            
+            let dateObj = new Date(tx.date);
+            let year = tx.date.substring(0, 4);
+            let monthKey = `${year}-${(dateObj.getMonth()+1).toString().padStart(2, '0')}`;
+
+            if (!inventory[key]) inventory[key] = { symbol: s, broker: b, qty: 0, cost: 0 };
+            if (!monthlyPnL[monthKey]) monthlyPnL[monthKey] = 0;
+
+            if (tx.txType === 'Purchase') {
+                inventory[key].qty += tx.qty;
+                inventory[key].cost += tx.total;
+            } else if (tx.txType === 'Sale') {
+                let avgCost = inventory[key].qty > 0 ? (inventory[key].cost / inventory[key].qty) : 0;
+                let cogs = avgCost * tx.qty;
+                let tradePnL = tx.total - cogs;
+
+                inventory[key].qty -= tx.qty;
+                inventory[key].cost -= cogs;
+
+                monthlyPnL[monthKey] += tradePnL;
+            }
+        });
+
+        // 1. Render Holdings
+        const holdingsBody = document.getElementById('dash-holdings-body');
+        holdingsBody.innerHTML = '';
+        Object.keys(inventory).sort().forEach(key => {
+            let item = inventory[key];
+            if (item.qty > 0.0001) {
+                holdingsBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${item.broker}</td><td>${item.qty.toFixed(4)}</td><td>${(item.cost/item.qty).toFixed(2)}</td><td>${item.cost.toFixed(2)}</td></tr>`;
+            }
+        });
+        if(holdingsBody.innerHTML === '') holdingsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#666; padding: 15px;">No current holdings found for selected script(s)</td></tr>`;
+
+        // 2. Render P&L
+        const pnlBody = document.getElementById('dash-pnl-body');
+        pnlBody.innerHTML = '';
+        
+        // Filter keys if years are selected
+        let keysToRender = Object.keys(monthlyPnL).sort().reverse();
+        if (selectedYears.length > 0) {
+            keysToRender = keysToRender.filter(m => selectedYears.includes(m.substring(0, 4)));
+        }
+
+        keysToRender.forEach(m => {
+            let p = monthlyPnL[m];
+            totalPnL += p;
+            if (p !== 0) {
+                let c = p > 0 ? 'pnl-positive' : 'pnl-negative';
+                pnlBody.innerHTML += `<tr><td><strong>${m}</strong></td><td class="${c}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`;
+            }
+        });
+        if(pnlBody.innerHTML === '') pnlBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#666; padding: 15px;">No Realized P&L in the selected period</td></tr>`;
+
+        const totalEl = document.getElementById('dash-pnl-total');
+        totalEl.innerText = (totalPnL > 0 ? '+' : '') + totalPnL.toFixed(2);
+        totalEl.className = totalPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
     }
 
     function renderApp() {
@@ -735,6 +902,9 @@
         let pnlEl = document.getElementById('realized-pnl');
         pnlEl.innerText = (overallPnL > 0 ? '+' : '') + overallPnL.toFixed(2);
         pnlEl.className = overallPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
+
+        // Finally, re-render the Script dash with any changes
+        renderScriptDash();
     }
 
     checkAuth();
