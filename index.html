@@ -3,112 +3,705 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Equity Dashboard (Cleaned)</title>
+    <title>Pro Equity & MF Dashboard (Secure)</title>
+    
+    <!-- Firebase Cloud Database & Auth SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        :root { --bg-color: #f4f6f9; --card-bg: #ffffff; --primary: #2563eb; --border: #e5e7eb; }
-        body { font-family: sans-serif; background-color: var(--bg-color); padding: 20px; }
+        :root {
+            --bg-color: #f4f6f9; --card-bg: #ffffff; --text-color: #333333;
+            --primary: #2563eb; --success: #16a34a; --danger: #dc2626;
+            --warning: #f59e0b; --info: #0ea5e9; --purple: #8b5cf6; --border: #e5e7eb;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: 0 auto; }
-        .panel { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .main-grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
-        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
-        th, td { padding: 10px; border-bottom: 1px solid var(--border); text-align: left; }
-        .pagination { margin-top: 15px; display: flex; gap: 10px; align-items: center; }
-        button { padding: 8px 16px; cursor: pointer; }
+        
+        /* --- SECURE AUTHENTICATION OVERLAY --- */
+        #auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .auth-box { background: var(--card-bg); padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; border-top: 5px solid var(--primary); }
+        .auth-box h2 { margin-top: 0; color: var(--text-color); margin-bottom: 20px;}
+        .auth-box input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
+        .auth-buttons { display: flex; gap: 10px; margin-bottom: 15px; }
+        .auth-buttons button { flex: 1; }
+        .btn-google { background: #ea4335; color: white; width: 100%; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+        .btn-google:hover { background: #c5221f; }
+        
+        .header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 15px;}
+        .user-controls { display: flex; align-items: center; gap: 15px; background: #e2e8f0; padding: 8px 15px; border-radius: 8px; font-weight: 500; font-size: 0.95rem; }
+        .btn-logout { background: #64748b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
+        .btn-logout:hover { background: #475569; }
+
+        h1 { margin: 0; font-weight: 700; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 1.5rem;}
+        .header-actions { display: flex; gap: 10px; }
+        .btn-backup { background: var(--purple); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
+        .btn-restore { background: #475569; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
+        
+        .summary-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .card { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 5px solid var(--primary); }
+        .card.expenses { border-left-color: var(--warning); }
+        .card.income { border-left-color: var(--info); }
+        .card.pnl { border-left-color: var(--purple); } 
+        .card h3 { margin: 0 0 10px 0; font-size: 0.85rem; text-transform: uppercase; color: #666; }
+        .card p { margin: 0; font-size: 1.5rem; font-weight: bold; }
+        
+        .main-grid { display: grid; grid-template-columns: 1fr; gap: 25px; margin-bottom: 25px; align-items: start; }
+        @media(min-width: 900px) { .main-grid { grid-template-columns: 350px 1fr; } }
+        .reports-grid { display: grid; grid-template-columns: 1fr; gap: 25px; }
+        @media(min-width: 900px) { .reports-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
+        
+        .panel { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 25px; }
+        .panel h2 { margin-top: 0; font-size: 1.2rem; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        
+        .panel-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; user-select: none; transition: color 0.2s; }
+        .panel-header:hover { color: var(--primary); }
+        .panel-header h2 { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+        
+        .table-header-toggle { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; margin-bottom: 15px; transition: color 0.2s; }
+        .collapsible-table-content { display: none; }
+        .collapsible-table-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        .tx-form-container { display: none; }
+        .tx-form-container.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; }
+        select[multiple] { height: 90px; border: 1px solid var(--border); border-radius: 4px; padding: 4px; outline: none; }
+        
+        button.btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+        button.btn-primary:hover { background: #1d4ed8; }
+        button.btn-secondary { width: 100%; background: #64748b; color: white; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; }
+        
+        .controls-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid var(--border); }
+        .controls-row .form-group { margin-bottom: 0; flex: 1; min-width: 150px; }
+        button.btn-export { background: var(--success); color: white; border: none; padding: 9px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; }
+        
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
+        th, td { padding: 10px; border-bottom: 1px solid var(--border); }
+        th { background-color: #f8fafc; font-weight: 600; white-space: nowrap; }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+        .badge.purchase { background: #dcfce7; color: #15803d; }
+        .badge.sale { background: #dbeafe; color: #1d4ed8; }
+        .badge.expense { background: #fef3c7; color: #b45309; }
+        .badge.income { background: #e0e7ff; color: #4338ca; }
+        .badge.cash-addition { background: #d1fae5; color: #065f46; }
+        .badge.cash-withdrawal { background: #fee2e2; color: #991b1b; }
+        
+        .btn-edit-tx { background: none; border: none; color: var(--primary); cursor: pointer; font-weight: 500; margin-right: 8px; }
+        .btn-delete { background: none; border: none; color: var(--danger); cursor: pointer; font-weight: 500; }
+        .pnl-positive { color: var(--success); font-weight: bold; }
+        .pnl-negative { color: var(--danger); font-weight: bold; }
+        .pnl-neutral { color: var(--text-color); font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="main-grid">
-        <!-- Log Transaction -->
-        <div class="panel">
-            <h2>Log Transaction</h2>
-            <form id="tx-form">
-                <div class="form-group"><label>Date</label><input type="date" id="date" required></div>
-                <div class="form-group"><label>Type</label><select id="tx-type"><option>Purchase</option><option>Sale</option></select></div>
-                <div class="form-group"><label>Symbol</label><input type="text" id="symbol" required></div>
-                <div class="form-group"><label>Qty</label><input type="number" id="qty" step="any" required></div>
-                <div class="form-group"><label>Price</label><input type="number" id="price" step="any" required></div>
-                <button type="submit" style="width:100%; background:var(--primary); color:white; border:none; border-radius:4px; padding:10px;">Add Transaction</button>
-            </form>
+<!-- SECURE AUTHENTICATION OVERLAY -->
+<div id="auth-overlay">
+    <div class="auth-box">
+        <h2>Dashboard Login</h2>
+        <button id="btn-google-login" class="btn-google" onclick="signInWithGoogle()">Sign in with Google</button>
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border);">
+        <input type="email" id="auth-email" placeholder="Email Address">
+        <input type="password" id="auth-password" placeholder="Password">
+        <div class="auth-buttons">
+            <button class="btn-primary" onclick="signInWithEmail()">Log In</button>
+            <button class="btn-secondary" onclick="signUpWithEmail()">Sign Up</button>
         </div>
+        <p id="auth-error" style="color: var(--danger); font-size: 0.85rem; margin: 0; display: none;"></p>
+    </div>
+</div>
 
-        <!-- Monthly P&L Chart -->
-        <div class="panel">
-            <h2>Monthly Realised P&L</h2>
-            <canvas id="pnlChart" height="100"></canvas>
+<div class="container" id="app-container" style="display: none;">
+    <div class="header-top">
+        <h1>Personal Accounting Dashboard</h1>
+        <div class="user-controls">
+            <span id="display-user-email">user@example.com</span>
+            <button class="btn-logout" onclick="signOut()">Log Out</button>
+        </div>
+        <div class="header-actions">
+            <button class="btn-backup" onclick="backupData()">💾 Backup to JSON</button>
+            <button class="btn-restore" onclick="document.getElementById('import-file').click()">📂 Restore JSON</button>
+            <input type="file" id="import-file" style="display:none" accept=".json" onchange="restoreData(event)">
         </div>
     </div>
 
-    <!-- Paginated Ledger -->
+    <!-- Metrics Cards -->
+    <div class="summary-container">
+        <div class="card income"><h3>Other Income</h3><p id="total-income">0.00</p></div>
+        <div class="card expenses"><h3>Other Expenses</h3><p id="total-expenses">0.00</p></div>
+        <div class="card pnl"><h3>Realized P&L (Net)</h3><p id="realized-pnl">0.00</p></div>
+    </div>
+
+    <div class="main-grid">
+        <!-- Log Transaction Panel -->
+        <div class="panel" style="margin-bottom: 0; padding-top: 10px;">
+            <div class="panel-header" onclick="toggleLogTx()">
+                <h2>Log Transaction</h2>
+                <span id="log-tx-icon">▼</span>
+            </div>
+            <div id="log-tx-content" class="tx-form-container active">
+                <form id="tx-form">
+                    <input type="hidden" id="tx-id">
+                    <div class="form-group"><label>Date</label><input type="date" id="date" required></div>
+                    <div class="form-group"><label>Broker / Platform</label><input type="text" id="broker-input" list="broker-list" required style="text-transform: capitalize;"><datalist id="broker-list"></datalist></div>
+                    <div class="form-group"><label>Asset Class</label><select id="asset-class" required><option value="Equity">Equity</option><option value="Mutual Fund">Mutual Fund</option></select></div>
+                    <div class="form-group">
+                        <label>Transaction Type</label>
+                        <select id="tx-type" required onchange="handleTxTypeChange()">
+                            <option value="Purchase">Purchase</option>
+                            <option value="Sale">Sale</option>
+                            <option value="Income">Income</option>
+                            <option value="Expense">Expense</option>
+                            <option value="Cash Addition">Cash Addition</option>
+                            <option value="Cash Withdrawal">Cash Withdrawal</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Symbol / Name</label><input type="text" id="symbol-input" list="symbol-list" required style="text-transform: uppercase;"><datalist id="symbol-list"></datalist></div>
+                    <div class="form-group"><label>Quantity / Units</label><input type="number" id="qty" step="any" min="0" value="0" required></div>
+                    <div class="form-group"><label>Price / NAV / Amount</label><input type="number" id="price" step="any" min="0" value="0" required></div>
+                    <button type="submit" id="submit-btn" class="btn-primary">Add Transaction</button>
+                    <button type="button" id="cancel-edit-btn" style="display:none; margin-top: 10px; background:#64748b;" class="btn-primary" onclick="cancelEdit()">Cancel Edit</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Script Analysis Dashboard -->
+        <div class="panel" style="margin-bottom: 0; padding-top: 10px;">
+            <div class="panel-header" onclick="toggleScriptDash()">
+                <h2>Script Analysis Dashboard</h2>
+                <span id="script-dash-icon">▲</span>
+            </div>
+            <div id="script-dash-content" class="collapsible-table-content active">
+                <div class="controls-row">
+                    <div class="form-group">
+                        <label>Select Script(s) <small style="color: #64748b;">(Ctrl/Cmd + Click for multiple)</small></label>
+                        <select id="dash-script" multiple onchange="renderScriptDash()"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Year(s) <small style="color: #64748b;">(Ctrl/Cmd + Click for multiple)</small></label>
+                        <select id="dash-year" multiple onchange="renderScriptDash()"></select>
+                    </div>
+                </div>
+                <div id="script-dash-data" style="display: none;">
+                    <div class="reports-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div>
+                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px;">Current Holdings</h3>
+                            <div class="table-container">
+                                <table>
+                                    <thead><tr><th>Script</th><th>Broker</th><th>Qty</th><th>Avg Price</th><th>Invested</th></tr></thead>
+                                    <tbody id="dash-holdings-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px;">Month-wise P&L</h3>
+                            <div class="table-container">
+                                <table>
+                                    <thead><tr><th>Month</th><th>P&L</th></tr></thead>
+                                    <tbody id="dash-pnl-body"></tbody>
+                                    <tfoot><tr><th style="background-color: var(--card-bg);">Total Realized</th><th id="dash-pnl-total" style="background-color: var(--card-bg);">0.00</th></tr></tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reports Grids -->
     <div class="panel">
-        <h2>Raw Transaction Ledger</h2>
-        <table id="ledger-table">
-            <thead><tr><th>Date</th><th>Symbol</th><th>Type</th><th>Total</th></tr></thead>
-            <tbody id="ledger-body"></tbody>
-        </table>
-        <div class="pagination">
-            <button onclick="changePage(-1)">Previous</button>
-            <span id="page-info">Page 1</span>
-            <button onclick="changePage(1)">Next</button>
+        <h2>Script-wise Reports</h2>
+        <div class="controls-row">
+            <div class="form-group"><label>Filter By Broker:</label><select id="report-filter-broker" onchange="renderApp()"><option value="All">All Brokers</option></select></div>
+            <div class="form-group"><label>Filter By Asset Class:</label><select id="report-filter-asset" onchange="renderApp()"><option value="All">All Assets</option><option value="Equity">Equity</option><option value="Mutual Fund">Mutual Fund</option></select></div>
+        </div>
+        <div class="reports-grid">
+            <div class="table-container">
+                <div class="table-header-toggle" onclick="toggleHoldings()">
+                    <h3>Current Holdings (Balance)</h3><span id="holdings-icon">▲</span>
+                </div>
+                <div id="holdings-content" class="collapsible-table-content active">
+                    <table><thead><tr><th>Symbol</th><th>Broker</th><th>Class</th><th>Qty</th><th>Avg Price</th><th>Invested</th></tr></thead><tbody id="holdings-body"></tbody></table>
+                </div>
+            </div>
+            <div class="table-container"><h3>Investment by Broker</h3><table><thead><tr><th>Broker</th><th>Current Investment</th></tr></thead><tbody id="broker-investment-body"></tbody></table></div>
+            <div class="table-container"><h3>Broker Ledger (Cash) Balance</h3><table><thead><tr><th>Broker</th><th>Available Balance</th></tr></thead><tbody id="broker-ledger-body"></tbody></table></div>
+            <div class="table-container"><h3>Realized P&L by Script</h3><table><thead><tr><th>Symbol</th><th>Broker</th><th>Class</th><th>Realized P&L</th></tr></thead><tbody id="pnl-body"></tbody></table></div>
+            <div class="table-container"><h3>Realized P&L by Broker</h3><table><thead><tr><th>Broker</th><th>Realized P&L</th></tr></thead><tbody id="broker-pnl-body"></tbody></table></div>
+            <div class="table-container"><h3>P&L by Month & Year</h3><table><thead><tr><th>Period</th><th>P&L</th></tr></thead><tbody id="monthly-pnl-body"></tbody></table></div>
+        </div>
+    </div>
+
+    <!-- Raw Ledger -->
+    <div class="panel" style="padding-top: 10px;">
+        <div class="panel-header" onclick="toggleLedger()">
+            <h2>Raw Transaction Ledger</h2>
+            <span id="ledger-icon">▲</span>
+        </div>
+        <div id="ledger-content" class="collapsible-table-content active">
+            <div class="controls-row">
+                <div class="form-group"><label>Broker</label><select id="filter-broker" onchange="renderApp()"><option value="All">All Brokers</option></select></div>
+                <div class="form-group"><label>Asset</label><select id="filter-asset" onchange="renderApp()"><option value="All">All Assets</option><option value="Equity">Equity</option><option value="Mutual Fund">Mutual Fund</option></select></div>
+                <div class="form-group"><label>Symbol</label><select id="filter-symbol" onchange="renderApp()"><option value="All">All Symbols</option></select></div>
+                <div class="form-group"><label>Start Date</label><input type="date" id="filter-start" onchange="renderApp()"></div>
+                <div class="form-group"><label>End Date</label><input type="date" id="filter-end" onchange="renderApp()"></div>
+                <button class="btn-export" onclick="exportCSV()">Download CSV</button>
+            </div>
+            <div class="table-container">
+                <table><thead><tr><th>Date</th><th>Broker</th><th>Asset</th><th>Type</th><th>Symbol</th><th>Qty</th><th>Price</th><th>Total</th><th>Action</th></tr></thead><tbody id="ledger-body"></tbody></table>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    let currentTxs = [];
-    let currentPage = 1;
-    const pageSize = 15;
-    let myChart = null;
+    // ==========================================
+    // Firebase Configuration
+    // ==========================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyBgQ08BOvTb60ZpPM72733sQUcpgy9ujQY",
+      authDomain: "equitydashboard-47f8c.firebaseapp.com",
+      projectId: "equitydashboard-47f8c",
+      storageBucket: "equitydashboard-47f8c.firebasestorage.app",
+      messagingSenderId: "313210184210",
+      appId: "1:313210184210:web:0d2492eab6d8e3a5f0aecb",
+      measurementId: "G-7XHQXMX6PR"
+    };
 
-    // --- PAGINATION & RENDERING ---
-    function renderApp() {
-        // 1. Pagination Logic for Ledger
-        const start = (currentPage - 1) * pageSize;
-        const pageTxs = currentTxs.slice(start, start + pageSize);
-        const lBody = document.getElementById('ledger-body');
-        lBody.innerHTML = pageTxs.map(t => `<tr><td>${t.date}</td><td>${t.symbol}</td><td>${t.txType}</td><td>${t.total}</td></tr>`).join('');
-        document.getElementById('page-info').innerText = `Page ${currentPage}`;
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
 
-        // 2. Update Chart
-        updateChart();
+    // --- STATE VARIABLES ---
+    let currentUser = null; 
+    let currentTxs = [];    
+
+    // --- SECURE AUTHENTICATION SYSTEM ---
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            currentUser = user;
+            document.getElementById('auth-overlay').style.display = 'none';
+            document.getElementById('app-container').style.display = 'block';
+            document.getElementById('display-user-email').innerText = user.email || "Logged in via Google";
+            
+            // Auto-create user profile document if it doesn't exist
+            db.collection('users').doc(user.uid).set({ 
+                email: user.email, 
+                lastLogin: firebase.firestore.FieldValue.serverTimestamp() 
+            }, { merge: true });
+
+            loadTransactions();
+        } else {
+            currentUser = null;
+            document.getElementById('app-container').style.display = 'none';
+            document.getElementById('auth-overlay').style.display = 'flex';
+        }
+    });
+
+    function showError(msg) {
+        const errEl = document.getElementById('auth-error');
+        errEl.innerText = msg;
+        errEl.style.display = 'block';
     }
 
-    function updateChart() {
-        const ctx = document.getElementById('pnlChart').getContext('2d');
-        if(myChart) myChart.destroy();
-        
-        // Simplified monthly grouping logic
-        myChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr'],
-                datasets: [{ 
-                    label: 'Realised P&L', 
-                    data: [1200, -500, 800, 200], 
-                    backgroundColor: (ctx) => ctx.raw >= 0 ? '#16a34a' : '#dc2626'
-                }]
-            }
-        });
+    function signInWithGoogle() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch(error => showError(error.message));
     }
 
-    function changePage(dir) {
-        if(currentPage + dir > 0 && (currentPage + dir - 1) * pageSize < currentTxs.length) {
-            currentPage += dir;
-            renderApp();
+    function signInWithEmail() {
+        const email = document.getElementById('auth-email').value;
+        const pwd = document.getElementById('auth-password').value;
+        if(!email || !pwd) return showError("Please enter email and password.");
+        auth.signInWithEmailAndPassword(email, pwd).catch(error => showError(error.message));
+    }
+
+    function signUpWithEmail() {
+        const email = document.getElementById('auth-email').value;
+        const pwd = document.getElementById('auth-password').value;
+        if(!email || !pwd) return showError("Please enter email and password.");
+        auth.createUserWithEmailAndPassword(email, pwd).catch(error => showError(error.message));
+    }
+
+    function signOut() {
+        auth.signOut();
+    }
+
+    // --- CLOUD DATA LAYER ---
+    async function loadTransactions() {
+        if(!currentUser) return;
+        const snapshot = await db.collection('transactions').where("userId", "==", currentUser.uid).get();
+        currentTxs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderApp();
+    }
+
+    // --- UI INTERACTIONS ---
+    function toggleLogTx(forceOpen = false) { const content = document.getElementById('log-tx-content'); const icon = document.getElementById('log-tx-icon'); if (forceOpen || !content.classList.contains('active')) { content.classList.add('active'); icon.innerText = '▲'; } else { content.classList.remove('active'); icon.innerText = '▼'; } }
+    function toggleScriptDash(forceOpen = false) { const content = document.getElementById('script-dash-content'); const icon = document.getElementById('script-dash-icon'); if (forceOpen || !content.classList.contains('active')) { content.classList.add('active'); icon.innerText = '▲'; } else { content.classList.remove('active'); icon.innerText = '▼'; } }
+    function toggleHoldings() { const content = document.getElementById('holdings-content'); const icon = document.getElementById('holdings-icon'); if (!content.classList.contains('active')) { content.classList.add('active'); icon.innerText = '▲'; } else { content.classList.remove('active'); icon.innerText = '▼'; } }
+    function toggleLedger(forceOpen = false) { const content = document.getElementById('ledger-content'); const icon = document.getElementById('ledger-icon'); if (forceOpen || !content.classList.contains('active')) { content.classList.add('active'); icon.innerText = '▲'; } else { content.classList.remove('active'); icon.innerText = '▼'; } }
+
+    function handleTxTypeChange() {
+        const type = document.getElementById('tx-type').value;
+        if (type === 'Cash Addition' || type === 'Cash Withdrawal') {
+            document.getElementById('symbol-input').value = 'CASH';
+            document.getElementById('qty').value = '0';
+        } else if (document.getElementById('symbol-input').value === 'CASH') {
+            document.getElementById('symbol-input').value = '';
         }
     }
 
-    // Mock initial load - Replace with your actual firebase fetch
-    renderApp();
+    document.getElementById('date').valueAsDate = new Date();
+
+    document.getElementById('tx-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const txId = document.getElementById('tx-id').value; 
+        const txType = document.getElementById('tx-type').value;
+        const qty = parseFloat(document.getElementById('qty').value);
+        const price = parseFloat(document.getElementById('price').value);
+        
+        let finalSymbol = document.getElementById('symbol-input').value.toUpperCase().trim();
+        let finalBroker = document.getElementById('broker-input').value.trim();
+        const isFlatAmount = ['Expense', 'Income', 'Cash Addition', 'Cash Withdrawal'].includes(txType);
+
+        // SECURE: Attached to the actual authenticated user UID
+        const txData = {
+            userId: currentUser.uid,
+            date: document.getElementById('date').value,
+            broker: finalBroker,
+            assetClass: document.getElementById('asset-class').value,
+            txType: txType,
+            symbol: finalSymbol,
+            qty: isFlatAmount ? 0 : qty,
+            price: price,
+            total: isFlatAmount ? price : (qty * price)
+        };
+
+        if (txId) {
+            await db.collection('transactions').doc(txId).update(txData);
+            cancelEdit();
+        } else {
+            await db.collection('transactions').add(txData);
+            document.getElementById('symbol-input').value = '';
+            document.getElementById('qty').value = '0';
+            document.getElementById('price').value = '0';
+        }
+        await loadTransactions();
+    });
+
+    async function editTx(id) {
+        const docRef = await db.collection('transactions').doc(id).get();
+        if (!docRef.exists) return;
+        const tx = docRef.data();
+
+        document.getElementById('tx-id').value = id;
+        document.getElementById('date').value = tx.date;
+        document.getElementById('broker-input').value = tx.broker;
+        document.getElementById('asset-class').value = tx.assetClass;
+        document.getElementById('tx-type').value = tx.txType;
+        document.getElementById('symbol-input').value = tx.symbol;
+        document.getElementById('qty').value = tx.qty;
+        document.getElementById('price').value = tx.price;
+
+        document.getElementById('submit-btn').innerText = 'Update Transaction';
+        document.getElementById('cancel-edit-btn').style.display = 'block';
+        toggleLogTx(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelEdit() {
+        document.getElementById('tx-id').value = '';
+        document.getElementById('submit-btn').innerText = 'Add Transaction';
+        document.getElementById('cancel-edit-btn').style.display = 'none';
+        document.getElementById('tx-form').reset();
+        document.getElementById('date').valueAsDate = new Date();
+    }
+
+    async function deleteTx(id) {
+        if (confirm("Are you sure you want to delete this transaction?")) {
+            await db.collection('transactions').doc(id).delete();
+            if (document.getElementById('tx-id').value === id) cancelEdit();
+            await loadTransactions();
+        }
+    }
+
+    function exportCSV() {
+        if (currentTxs.length === 0) return alert("No data to export.");
+        let csvContent = "data:text/csv;charset=utf-8,";
+        const headers = ["ID", "Date", "Broker", "Asset Class", "Transaction Type", "Symbol", "Quantity", "Price", "Total Amount"];
+        csvContent += headers.join(",") + "\n";
+        currentTxs.forEach(tx => {
+            csvContent += [tx.id, tx.date, `"${tx.broker}"`, `"${tx.assetClass}"`, `"${tx.txType}"`, `"${tx.symbol}"`, tx.qty, tx.price, tx.total].join(",") + "\n";
+        });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Export_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    async function backupData() {
+        if(!currentUser) return;
+        const txsSnap = await db.collection('transactions').where("userId", "==", currentUser.uid).get();
+        const backupPayload = { 
+            format: "firestore-export-secure", 
+            transactions: txsSnap.docs.map(d => ({id: d.id, ...d.data()})) 
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupPayload));
+        const link = document.createElement("a");
+        link.setAttribute("href", dataStr);
+        link.setAttribute("download", `Cloud_Backup_${new Date().toISOString().split('T')[0]}.json`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function restoreData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        if (!currentUser) {
+            alert("Error: You must be logged in to restore data.");
+            event.target.value = ''; // Reset input
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                
+                // Verify the file actually has transaction data
+                if (!data.transactions || !Array.isArray(data.transactions)) {
+                    alert("Error: The selected file does not contain valid transaction data.");
+                    event.target.value = '';
+                    return;
+                }
+
+                if (confirm(`Found ${data.transactions.length} transactions in backup. Proceeding will import them to your secure account. Continue?`)) {
+                    
+                    let successCount = 0;
+                    
+                    for(let t of data.transactions) {
+                        // 1. Remove the old ID to prevent Firebase permission clashes
+                        delete t.id; 
+                        
+                        // 2. Force the transaction to belong to your new secure account
+                        t.userId = currentUser.uid; 
+                        
+                        // 3. Add as a fresh, secure document
+                        await db.collection('transactions').add(t);
+                        successCount++;
+                    }
+                    
+                    alert(`Restore complete! Successfully imported ${successCount} transactions.`);
+                    window.location.reload(); 
+                }
+            } catch (err) { 
+                alert("Error: Could not read the file. Ensure it is a valid JSON backup."); 
+                console.error(err); 
+            }
+            
+            // Clear the file input so you can select the same file again if needed
+            event.target.value = ''; 
+        };
+        reader.readAsText(file);
+    }
+
+    // --- RENDERING LOGIC ---
+    function populateFilterDropdowns() {
+        const symbolFilterSelect = document.getElementById('filter-symbol'); 
+        const brokerReportFilter = document.getElementById('report-filter-broker');
+        const brokerLedgerFilter = document.getElementById('filter-broker');
+        const symbolDatalist = document.getElementById('symbol-list');
+        const brokerDatalist = document.getElementById('broker-list');
+        
+        const dashScriptSelect = document.getElementById('dash-script');
+        const dashYearSelect = document.getElementById('dash-year');
+
+        const currentSymbol = symbolFilterSelect.value;
+        const currentReportBroker = brokerReportFilter.value;
+        const currentLedgerBroker = brokerLedgerFilter.value;
+        const currentDashScripts = Array.from(dashScriptSelect.selectedOptions).map(o => o.value);
+        const currentDashYears = Array.from(dashYearSelect.selectedOptions).map(o => o.value);
+
+        const uniqueSymbols = [...new Set(currentTxs.map(tx => tx.symbol))].sort();
+        const uniqueBrokers = [...new Set(currentTxs.map(tx => tx.broker || 'N/A'))].sort();
+        const uniqueYears = [...new Set(currentTxs.map(tx => tx.date.substring(0, 4)))].sort().reverse();
+
+        symbolDatalist.innerHTML = uniqueSymbols.map(s => `<option value="${s}">`).join('');
+        brokerDatalist.innerHTML = uniqueBrokers.filter(b => b!=='N/A').map(b => `<option value="${b}">`).join('');
+
+        const symbolOptions = '<option value="All">All Symbols</option>' + uniqueSymbols.map(s => `<option value="${s}">${s}</option>`).join('');
+        symbolFilterSelect.innerHTML = symbolOptions;
+
+        const brokerOptions = '<option value="All">All Brokers</option>' + uniqueBrokers.map(b => `<option value="${b}">${b}</option>`).join('');
+        brokerReportFilter.innerHTML = brokerOptions;
+        brokerLedgerFilter.innerHTML = brokerOptions;
+
+        dashScriptSelect.innerHTML = uniqueSymbols.filter(s => s !== "CASH").map(s => `<option value="${s}">${s}</option>`).join('');
+        dashYearSelect.innerHTML = uniqueYears.map(y => `<option value="${y}">${y}</option>`).join('');
+
+        if (currentSymbol) symbolFilterSelect.value = currentSymbol;
+        if (currentReportBroker) brokerReportFilter.value = currentReportBroker;
+        if (currentLedgerBroker) brokerLedgerFilter.value = currentLedgerBroker;
+        
+        Array.from(dashScriptSelect.options).forEach(opt => { if (currentDashScripts.includes(opt.value)) opt.selected = true; });
+        Array.from(dashYearSelect.options).forEach(opt => { if (currentDashYears.includes(opt.value)) opt.selected = true; });
+        
+        if (!symbolFilterSelect.value) symbolFilterSelect.value = 'All';
+        if (!brokerReportFilter.value) brokerReportFilter.value = 'All';
+        if (!brokerLedgerFilter.value) brokerLedgerFilter.value = 'All';
+    }
+
+    function renderScriptDash() {
+        const dashScriptSelect = document.getElementById('dash-script');
+        const dashYearSelect = document.getElementById('dash-year');
+        const dataContainer = document.getElementById('script-dash-data');
+        
+        const selectedScripts = Array.from(dashScriptSelect.selectedOptions).map(o => o.value);
+        const selectedYears = Array.from(dashYearSelect.selectedOptions).map(o => o.value);
+
+        if (selectedScripts.length === 0) { dataContainer.style.display = 'none'; return; } 
+        else { dataContainer.style.display = 'block'; }
+
+        let inventory = {}; 
+        let monthlyPnL = {}; 
+        let totalPnL = 0;
+
+        let sortedTxs = [...currentTxs].sort((a,b) => new Date(a.date) - new Date(b.date));
+
+        sortedTxs.forEach(tx => {
+            if (!selectedScripts.includes(tx.symbol)) return;
+
+            let b = tx.broker || 'N/A'; let s = tx.symbol; let key = `${s}::${b}`;
+            let dateObj = new Date(tx.date); let year = tx.date.substring(0, 4);
+            let monthKey = `${year}-${(dateObj.getMonth()+1).toString().padStart(2, '0')}`;
+
+            if (!inventory[key]) inventory[key] = { symbol: s, broker: b, qty: 0, cost: 0 };
+            if (!monthlyPnL[monthKey]) monthlyPnL[monthKey] = 0;
+
+            if (tx.txType === 'Purchase') {
+                inventory[key].qty += tx.qty; inventory[key].cost += tx.total;
+            } else if (tx.txType === 'Sale') {
+                let avgCost = inventory[key].qty > 0 ? (inventory[key].cost / inventory[key].qty) : 0;
+                let cogs = avgCost * tx.qty;
+                let tradePnL = tx.total - cogs;
+                inventory[key].qty -= tx.qty; inventory[key].cost -= cogs;
+                monthlyPnL[monthKey] += tradePnL;
+            }
+        });
+
+        const holdingsBody = document.getElementById('dash-holdings-body');
+        holdingsBody.innerHTML = '';
+        Object.keys(inventory).sort().forEach(key => {
+            let item = inventory[key];
+            if (item.qty > 0.0001) { holdingsBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${item.broker}</td><td>${item.qty.toFixed(4)}</td><td>${(item.cost/item.qty).toFixed(2)}</td><td>${item.cost.toFixed(2)}</td></tr>`; }
+        });
+        if(holdingsBody.innerHTML === '') holdingsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#666; padding: 15px;">No current holdings</td></tr>`;
+
+        const pnlBody = document.getElementById('dash-pnl-body');
+        pnlBody.innerHTML = '';
+        
+        let keysToRender = Object.keys(monthlyPnL).sort().reverse();
+        if (selectedYears.length > 0) keysToRender = keysToRender.filter(m => selectedYears.includes(m.substring(0, 4)));
+
+        keysToRender.forEach(m => {
+            let p = monthlyPnL[m]; totalPnL += p;
+            if (p !== 0) { let c = p > 0 ? 'pnl-positive' : 'pnl-negative'; pnlBody.innerHTML += `<tr><td><strong>${m}</strong></td><td class="${c}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`; }
+        });
+        if(pnlBody.innerHTML === '') pnlBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#666; padding: 15px;">No Realized P&L in period</td></tr>`;
+
+        const totalEl = document.getElementById('dash-pnl-total');
+        totalEl.innerText = (totalPnL > 0 ? '+' : '') + totalPnL.toFixed(2);
+        totalEl.className = totalPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
+    }
+
+    function renderApp() {
+        populateFilterDropdowns();
+
+        const ledgerBody = document.getElementById('ledger-body'); const holdingsBody = document.getElementById('holdings-body'); const brokerInvestmentBody = document.getElementById('broker-investment-body'); const brokerLedgerBody = document.getElementById('broker-ledger-body'); const pnlBody = document.getElementById('pnl-body'); const brokerPnlBody = document.getElementById('broker-pnl-body'); const monthlyPnlBody = document.getElementById('monthly-pnl-body');
+        ledgerBody.innerHTML = ''; holdingsBody.innerHTML = ''; brokerInvestmentBody.innerHTML = ''; brokerLedgerBody.innerHTML = ''; pnlBody.innerHTML = ''; brokerPnlBody.innerHTML = ''; monthlyPnlBody.innerHTML = '';
+        
+        let metrics = { exp: 0, inc: 0 }; let inventory = {}; let brokerPnLMap = {}; let brokerInvestmentMap = {}; let brokerLedgerMap = {}; let monthlyPnL = {}; let overallPnL = 0;
+        let sortedTxs = [...currentTxs].sort((a,b) => new Date(a.date) - new Date(b.date));
+
+        const fBroker = document.getElementById('filter-broker').value; const fAsset = document.getElementById('filter-asset').value; const fSymbol = document.getElementById('filter-symbol').value; const fStart = document.getElementById('filter-start').value; const fEnd = document.getElementById('filter-end').value;
+        const rBroker = document.getElementById('report-filter-broker').value; const rAsset = document.getElementById('report-filter-asset').value;
+
+        sortedTxs.forEach(tx => {
+            let b = tx.broker || 'N/A'; let key = `${tx.symbol}::${b}`;
+            let dateObj = new Date(tx.date); let monthKey = `${dateObj.getFullYear()}-${(dateObj.getMonth()+1).toString().padStart(2, '0')}`;
+            
+            if (!monthlyPnL[monthKey]) monthlyPnL[monthKey] = 0;
+            if (!inventory[key]) inventory[key] = { symbol: tx.symbol, broker: b, qty: 0, cost: 0, type: tx.assetClass, pnl: 0 };
+            if (!brokerLedgerMap[b]) brokerLedgerMap[b] = 0;
+            
+            if (tx.txType === 'Purchase') { inventory[key].qty += tx.qty; inventory[key].cost += tx.total; brokerLedgerMap[b] -= tx.total; } 
+            else if (tx.txType === 'Sale') {
+                let avgCost = inventory[key].qty > 0 ? (inventory[key].cost / inventory[key].qty) : 0;
+                let cogs = avgCost * tx.qty; let tradePnL = tx.total - cogs; 
+                inventory[key].pnl += tradePnL; overallPnL += tradePnL; monthlyPnL[monthKey] += tradePnL;
+                inventory[key].qty -= tx.qty; inventory[key].cost -= cogs; brokerLedgerMap[b] += tx.total; 
+            } 
+            else if (tx.txType === 'Expense') { overallPnL -= tx.total; inventory[key].pnl -= tx.total; monthlyPnL[monthKey] -= tx.total; metrics.exp += tx.total; brokerLedgerMap[b] -= tx.total; } 
+            else if (tx.txType === 'Income') { overallPnL += tx.total; inventory[key].pnl += tx.total; monthlyPnL[monthKey] += tx.total; metrics.inc += tx.total; brokerLedgerMap[b] += tx.total; } 
+            else if (tx.txType === 'Cash Addition') { brokerLedgerMap[b] += tx.total; } 
+            else if (tx.txType === 'Cash Withdrawal') { brokerLedgerMap[b] -= tx.total; }
+        });
+
+        Object.keys(inventory).sort().forEach(key => {
+            let item = inventory[key];
+            if (rAsset !== 'All' && item.type !== rAsset) return;
+            if (rBroker !== 'All' && item.broker !== rBroker) return;
+            if (!brokerPnLMap[item.broker]) brokerPnLMap[item.broker] = 0;
+            brokerPnLMap[item.broker] += item.pnl;
+
+            if (item.qty > 0.0001) { 
+                if (!brokerInvestmentMap[item.broker]) brokerInvestmentMap[item.broker] = 0;
+                brokerInvestmentMap[item.broker] += item.cost;
+                holdingsBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${item.broker}</td><td>${item.type}</td><td>${item.qty.toFixed(4)}</td><td>${(item.cost/item.qty).toFixed(2)}</td><td>${item.cost.toFixed(2)}</td></tr>`;
+            }
+            if (item.pnl !== 0) { let c = item.pnl > 0 ? 'pnl-positive' : (item.pnl < 0 ? 'pnl-negative' : 'pnl-neutral'); pnlBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${item.broker}</td><td>${item.type}</td><td class="${c}">${item.pnl>0?'+':''}${item.pnl.toFixed(2)}</td></tr>`; }
+        });
+
+        Object.keys(brokerInvestmentMap).sort().forEach(b => brokerInvestmentBody.innerHTML += `<tr><td><strong>${b}</strong></td><td>${brokerInvestmentMap[b].toFixed(2)}</td></tr>`);
+        Object.keys(brokerLedgerMap).sort().forEach(b => { let bal = brokerLedgerMap[b]; let c = bal > 0 ? 'pnl-positive' : (bal < 0 ? 'pnl-negative' : 'pnl-neutral'); brokerLedgerBody.innerHTML += `<tr><td><strong>${b}</strong></td><td class="${c}">${bal > 0 ? '+' : ''}${bal.toFixed(2)}</td></tr>`; });
+        Object.keys(brokerPnLMap).sort().forEach(b => { let p = brokerPnLMap[b]; if (p !== 0) brokerPnlBody.innerHTML += `<tr><td><strong>${b}</strong></td><td class="${p>0?'pnl-positive':'pnl-negative'}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`; });
+        Object.keys(monthlyPnL).sort().reverse().forEach(m => { let p = monthlyPnL[m]; if (p !== 0) monthlyPnlBody.innerHTML += `<tr><td><strong>${m}</strong></td><td class="${p>0?'pnl-positive':'pnl-negative'}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`; });
+
+        currentTxs.filter(tx => {
+            let match = true;
+            if(fBroker !== 'All' && tx.broker !== fBroker) match = false;
+            if(fAsset !== 'All' && tx.assetClass !== fAsset) match = false;
+            if(fSymbol !== 'All' && tx.symbol !== fSymbol) match = false;
+            if(fStart && new Date(tx.date) < new Date(fStart)) match = false;
+            if(fEnd && new Date(tx.date) > new Date(fEnd)) match = false;
+            return match;
+        }).forEach(tx => {
+            let badgeClass = tx.txType.toLowerCase().replace(' ', '-');
+            ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td>${tx.broker}</td><td>${tx.assetClass}</td><td><span class="badge ${badgeClass}">${tx.txType}</span></td><td><strong>${tx.symbol}</strong></td><td>${tx.qty}</td><td>${tx.price.toFixed(2)}</td><td><strong>${tx.total.toFixed(2)}</strong></td><td><button class="btn-edit-tx" onclick="editTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteTx('${tx.id}')">Del</button></td></tr>`;
+        });
+
+        document.getElementById('total-expenses').innerText = metrics.exp.toFixed(2);
+        document.getElementById('total-income').innerText = metrics.inc.toFixed(2);
+        
+        let pnlEl = document.getElementById('realized-pnl');
+        pnlEl.innerText = (overallPnL > 0 ? '+' : '') + overallPnL.toFixed(2);
+        pnlEl.className = overallPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
+
+        renderScriptDash();
+    }
 </script>
+
 </body>
 </html>
