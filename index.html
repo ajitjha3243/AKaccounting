@@ -467,30 +467,52 @@
 
     function restoreData(event) {
         const file = event.target.files[0];
-        if (!file || !currentUser) return;
+        if (!file) return;
+        
+        if (!currentUser) {
+            alert("Error: You must be logged in to restore data.");
+            event.target.value = ''; // Reset input
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = async function(e) {
             try {
                 const data = JSON.parse(e.target.result);
-                if (data.format === "firestore-export" || data.format === "indexeddb-export" || data.format === "firestore-export-secure") {
-                    if (confirm("Proceeding will restore all transactions to your secure account. Continue?")) {
-                        
-                        for(let t of data.transactions) {
-                            let docId = t.id ? t.id.toString() : null;
-                            delete t.id;
-                            
-                            // FORCE the userId to be the currently authenticated secure user
-                            t.userId = currentUser.uid; 
-                            
-                            if(docId) await db.collection('transactions').doc(docId).set(t);
-                            else await db.collection('transactions').add(t);
-                        }
-                        
-                        alert("Database restored securely!");
-                        window.location.reload(); 
-                    }
+                
+                // Verify the file actually has transaction data
+                if (!data.transactions || !Array.isArray(data.transactions)) {
+                    alert("Error: The selected file does not contain valid transaction data.");
+                    event.target.value = '';
+                    return;
                 }
-            } catch (err) { alert("Invalid backup file."); console.error(err); }
+
+                if (confirm(`Found ${data.transactions.length} transactions in backup. Proceeding will import them to your secure account. Continue?`)) {
+                    
+                    let successCount = 0;
+                    
+                    for(let t of data.transactions) {
+                        // 1. Remove the old ID to prevent Firebase permission clashes
+                        delete t.id; 
+                        
+                        // 2. Force the transaction to belong to your new secure account
+                        t.userId = currentUser.uid; 
+                        
+                        // 3. Add as a fresh, secure document
+                        await db.collection('transactions').add(t);
+                        successCount++;
+                    }
+                    
+                    alert(`Restore complete! Successfully imported ${successCount} transactions.`);
+                    window.location.reload(); 
+                }
+            } catch (err) { 
+                alert("Error: Could not read the file. Ensure it is a valid JSON backup."); 
+                console.error(err); 
+            }
+            
+            // Clear the file input so you can select the same file again if needed
+            event.target.value = ''; 
         };
         reader.readAsText(file);
     }
