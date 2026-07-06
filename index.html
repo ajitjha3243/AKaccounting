@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Equity Dashboard (Advanced)</title>
+    <title>Pro Equity Dashboard (Cleaned)</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
@@ -15,11 +15,13 @@
         .container { max-width: 1200px; margin: 0 auto; }
         .panel { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .main-grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
         th, td { padding: 10px; border-bottom: 1px solid var(--border); text-align: left; }
         .pagination { margin-top: 15px; display: flex; gap: 10px; align-items: center; }
-        .pnl-pos { color: #16a34a; font-weight: bold; }
-        .pnl-neg { color: #dc2626; font-weight: bold; }
+        button { padding: 8px 16px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -34,26 +36,16 @@
                 <div class="form-group"><label>Type</label><select id="tx-type"><option>Purchase</option><option>Sale</option></select></div>
                 <div class="form-group"><label>Symbol</label><input type="text" id="symbol" required></div>
                 <div class="form-group"><label>Qty</label><input type="number" id="qty" step="any" required></div>
-                <div class="form-group"><label>Buy/Sell Price</label><input type="number" id="price" step="any" required></div>
-                <div class="form-group"><label>Current Market Price</label><input type="number" id="cmp" step="any" value="0"></div>
-                <button type="submit" class="btn-primary">Add/Update Transaction</button>
+                <div class="form-group"><label>Price</label><input type="number" id="price" step="any" required></div>
+                <button type="submit" style="width:100%; background:var(--primary); color:white; border:none; border-radius:4px; padding:10px;">Add Transaction</button>
             </form>
         </div>
 
-        <!-- Charts & Analysis -->
+        <!-- Monthly P&L Chart -->
         <div class="panel">
-            <h2>Portfolio Analytics</h2>
+            <h2>Monthly Realised P&L</h2>
             <canvas id="pnlChart" height="100"></canvas>
         </div>
-    </div>
-
-    <!-- Holdings with Unrealised P&L -->
-    <div class="panel">
-        <h2>Current Holdings (Live Tracking)</h2>
-        <table>
-            <thead><tr><th>Symbol</th><th>Qty</th><th>Avg Cost</th><th>CMP</th><th>Unrealised P&L</th></tr></thead>
-            <tbody id="holdings-body"></tbody>
-        </table>
     </div>
 
     <!-- Paginated Ledger -->
@@ -77,44 +69,16 @@
     const pageSize = 15;
     let myChart = null;
 
-    // Firebase Init (Add your config here)
-    // ... (Your existing firebase initialization) ...
-
-    async function renderApp() {
-        // 1. Calculate Holdings & Unrealised P&L
-        let inventory = {};
-        currentTxs.forEach(tx => {
-            if (!inventory[tx.symbol]) inventory[tx.symbol] = { qty: 0, cost: 0, cmp: 0 };
-            if (tx.txType === 'Purchase') {
-                inventory[tx.symbol].qty += tx.qty;
-                inventory[tx.symbol].cost += (tx.qty * tx.price);
-            } else {
-                inventory[tx.symbol].qty -= tx.qty;
-                inventory[tx.symbol].cost -= (tx.qty * tx.price);
-            }
-            inventory[tx.symbol].cmp = tx.cmp || inventory[tx.symbol].cmp; // Latest CMP
-        });
-
-        // 2. Render Holdings Table
-        const hBody = document.getElementById('holdings-body');
-        hBody.innerHTML = '';
-        Object.keys(inventory).forEach(s => {
-            let inv = inventory[s];
-            if(inv.qty > 0) {
-                let avgCost = inv.cost / inv.qty;
-                let unrealised = (inv.cmp - avgCost) * inv.qty;
-                hBody.innerHTML += `<tr><td>${s}</td><td>${inv.qty}</td><td>${avgCost.toFixed(2)}</td><td>${inv.cmp}</td><td class="${unrealised>=0?'pnl-pos':'pnl-neg'}">${unrealised.toFixed(2)}</td></tr>`;
-            }
-        });
-
-        // 3. Pagination Logic
+    // --- PAGINATION & RENDERING ---
+    function renderApp() {
+        // 1. Pagination Logic for Ledger
         const start = (currentPage - 1) * pageSize;
         const pageTxs = currentTxs.slice(start, start + pageSize);
         const lBody = document.getElementById('ledger-body');
         lBody.innerHTML = pageTxs.map(t => `<tr><td>${t.date}</td><td>${t.symbol}</td><td>${t.txType}</td><td>${t.total}</td></tr>`).join('');
         document.getElementById('page-info').innerText = `Page ${currentPage}`;
 
-        // 4. Update Chart
+        // 2. Update Chart
         updateChart();
     }
 
@@ -122,12 +86,16 @@
         const ctx = document.getElementById('pnlChart').getContext('2d');
         if(myChart) myChart.destroy();
         
-        // Mock data logic - group by month
+        // Simplified monthly grouping logic
         myChart = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: ['Jan', 'Feb', 'Mar', 'Apr'],
-                datasets: [{ label: 'Monthly Realised P&L', data: [1200, -500, 800, 200], backgroundColor: '#2563eb' }]
+                datasets: [{ 
+                    label: 'Realised P&L', 
+                    data: [1200, -500, 800, 200], 
+                    backgroundColor: (ctx) => ctx.raw >= 0 ? '#16a34a' : '#dc2626'
+                }]
             }
         });
     }
@@ -138,6 +106,9 @@
             renderApp();
         }
     }
+
+    // Mock initial load - Replace with your actual firebase fetch
+    renderApp();
 </script>
 </body>
 </html>
