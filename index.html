@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pro Equity & MF Dashboard (Secure)</title>
     
-    <!-- Firebase Cloud Database & Auth SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
@@ -41,8 +40,9 @@
         
         .summary-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
         .card { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 5px solid var(--primary); }
-        .card.expenses { border-left-color: var(--warning); }
-        .card.income { border-left-color: var(--info); }
+        .card.equity { border-left-color: var(--primary); }
+        .card.mf { border-left-color: var(--warning); }
+        .card.cash { border-left-color: var(--success); }
         .card.pnl { border-left-color: var(--purple); } 
         .card h3 { margin: 0 0 10px 0; font-size: 0.85rem; text-transform: uppercase; color: #666; }
         .card p { margin: 0; font-size: 1.5rem; font-weight: bold; }
@@ -97,11 +97,17 @@
         .pnl-positive { color: var(--success); font-weight: bold; }
         .pnl-negative { color: var(--danger); font-weight: bold; }
         .pnl-neutral { color: var(--text-color); font-weight: bold; }
+
+        /* PAGINATION STYLES */
+        .pagination-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border); }
+        .pagination-controls button { padding: 8px 16px; border: 1px solid var(--border); background: var(--card-bg); cursor: pointer; border-radius: 4px; font-weight: 600; transition: background 0.2s; }
+        .pagination-controls button:hover:not(:disabled) { background: #e2e8f0; }
+        .pagination-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
+        #page-indicator { font-weight: 500; color: #64748b; font-size: 0.95rem; }
     </style>
 </head>
 <body>
 
-<!-- SECURE AUTHENTICATION OVERLAY -->
 <div id="auth-overlay">
     <div class="auth-box">
         <h2>Dashboard Login</h2>
@@ -131,15 +137,14 @@
         </div>
     </div>
 
-    <!-- Metrics Cards -->
     <div class="summary-container">
-        <div class="card income"><h3>Other Income</h3><p id="total-income">0.00</p></div>
-        <div class="card expenses"><h3>Other Expenses</h3><p id="total-expenses">0.00</p></div>
+        <div class="card equity"><h3>Equity Investment</h3><p id="equity-investment">0.00</p></div>
+        <div class="card mf"><h3>MF Investment</h3><p id="mf-investment">0.00</p></div>
+        <div class="card cash"><h3>Total Cash Balance</h3><p id="cash-balance">0.00</p></div>
         <div class="card pnl"><h3>Realized P&L (Net)</h3><p id="realized-pnl">0.00</p></div>
     </div>
 
     <div class="main-grid">
-        <!-- Log Transaction Panel -->
         <div class="panel" style="margin-bottom: 0; padding-top: 10px;">
             <div class="panel-header" onclick="toggleLogTx()">
                 <h2>Log Transaction</h2>
@@ -171,7 +176,6 @@
             </div>
         </div>
 
-        <!-- Script Analysis Dashboard -->
         <div class="panel" style="margin-bottom: 0; padding-top: 10px;">
             <div class="panel-header" onclick="toggleScriptDash()">
                 <h2>Script Analysis Dashboard</h2>
@@ -215,7 +219,6 @@
         </div>
     </div>
 
-    <!-- Reports Grids -->
     <div class="panel">
         <h2>Script-wise Reports</h2>
         <div class="controls-row">
@@ -239,7 +242,6 @@
         </div>
     </div>
 
-    <!-- Raw Ledger -->
     <div class="panel" style="padding-top: 10px;">
         <div class="panel-header" onclick="toggleLedger()">
             <h2>Raw Transaction Ledger</h2>
@@ -247,15 +249,23 @@
         </div>
         <div id="ledger-content" class="collapsible-table-content active">
             <div class="controls-row">
-                <div class="form-group"><label>Broker</label><select id="filter-broker" onchange="renderApp()"><option value="All">All Brokers</option></select></div>
-                <div class="form-group"><label>Asset</label><select id="filter-asset" onchange="renderApp()"><option value="All">All Assets</option><option value="Equity">Equity</option><option value="Mutual Fund">Mutual Fund</option></select></div>
-                <div class="form-group"><label>Symbol</label><select id="filter-symbol" onchange="renderApp()"><option value="All">All Symbols</option></select></div>
-                <div class="form-group"><label>Start Date</label><input type="date" id="filter-start" onchange="renderApp()"></div>
-                <div class="form-group"><label>End Date</label><input type="date" id="filter-end" onchange="renderApp()"></div>
+                <div class="form-group"><label>Broker</label><select id="filter-broker" onchange="resetPageAndRender()"><option value="All">All Brokers</option></select></div>
+                <div class="form-group"><label>Asset</label><select id="filter-asset" onchange="resetPageAndRender()"><option value="All">All Assets</option><option value="Equity">Equity</option><option value="Mutual Fund">Mutual Fund</option></select></div>
+                <div class="form-group"><label>Symbol</label><select id="filter-symbol" onchange="resetPageAndRender()"><option value="All">All Symbols</option></select></div>
+                <div class="form-group"><label>Start Date</label><input type="date" id="filter-start" onchange="resetPageAndRender()"></div>
+                <div class="form-group"><label>End Date</label><input type="date" id="filter-end" onchange="resetPageAndRender()"></div>
                 <button class="btn-export" onclick="exportCSV()">Download CSV</button>
             </div>
             <div class="table-container">
-                <table><thead><tr><th>Date</th><th>Broker</th><th>Asset</th><th>Type</th><th>Symbol</th><th>Qty</th><th>Price</th><th>Total</th><th>Action</th></tr></thead><tbody id="ledger-body"></tbody></table>
+                <table>
+                    <thead><tr><th>Date</th><th>Broker</th><th>Asset</th><th>Type</th><th>Symbol</th><th>Qty</th><th>Price</th><th>Total</th><th>Action</th></tr></thead>
+                    <tbody id="ledger-body"></tbody>
+                </table>
+                <div class="pagination-controls">
+                    <button id="btn-prev" onclick="changePage(-1)">Previous</button>
+                    <span id="page-indicator">Page 1 of 1</span>
+                    <button id="btn-next" onclick="changePage(1)">Next</button>
+                </div>
             </div>
         </div>
     </div>
@@ -282,6 +292,10 @@
     // --- STATE VARIABLES ---
     let currentUser = null; 
     let currentTxs = [];    
+    
+    // Pagination Variables
+    let currentPage = 1;
+    const pageSize = 15;
 
     // --- SECURE AUTHENTICATION SYSTEM ---
     auth.onAuthStateChanged(user => {
@@ -471,7 +485,7 @@
         
         if (!currentUser) {
             alert("Error: You must be logged in to restore data.");
-            event.target.value = ''; // Reset input
+            event.target.value = ''; 
             return;
         }
 
@@ -480,7 +494,6 @@
             try {
                 const data = JSON.parse(e.target.result);
                 
-                // Verify the file actually has transaction data
                 if (!data.transactions || !Array.isArray(data.transactions)) {
                     alert("Error: The selected file does not contain valid transaction data.");
                     event.target.value = '';
@@ -492,13 +505,8 @@
                     let successCount = 0;
                     
                     for(let t of data.transactions) {
-                        // 1. Remove the old ID to prevent Firebase permission clashes
                         delete t.id; 
-                        
-                        // 2. Force the transaction to belong to your new secure account
                         t.userId = currentUser.uid; 
-                        
-                        // 3. Add as a fresh, secure document
                         await db.collection('transactions').add(t);
                         successCount++;
                     }
@@ -510,11 +518,20 @@
                 alert("Error: Could not read the file. Ensure it is a valid JSON backup."); 
                 console.error(err); 
             }
-            
-            // Clear the file input so you can select the same file again if needed
             event.target.value = ''; 
         };
         reader.readAsText(file);
+    }
+
+    // --- PAGINATION HELPERS ---
+    function resetPageAndRender() {
+        currentPage = 1;
+        renderApp();
+    }
+
+    function changePage(dir) {
+        currentPage += dir;
+        renderApp();
     }
 
     // --- RENDERING LOGIC ---
@@ -632,7 +649,9 @@
         const ledgerBody = document.getElementById('ledger-body'); const holdingsBody = document.getElementById('holdings-body'); const brokerInvestmentBody = document.getElementById('broker-investment-body'); const brokerLedgerBody = document.getElementById('broker-ledger-body'); const pnlBody = document.getElementById('pnl-body'); const brokerPnlBody = document.getElementById('broker-pnl-body'); const monthlyPnlBody = document.getElementById('monthly-pnl-body');
         ledgerBody.innerHTML = ''; holdingsBody.innerHTML = ''; brokerInvestmentBody.innerHTML = ''; brokerLedgerBody.innerHTML = ''; pnlBody.innerHTML = ''; brokerPnlBody.innerHTML = ''; monthlyPnlBody.innerHTML = '';
         
-        let metrics = { exp: 0, inc: 0 }; let inventory = {}; let brokerPnLMap = {}; let brokerInvestmentMap = {}; let brokerLedgerMap = {}; let monthlyPnL = {}; let overallPnL = 0;
+        let totalEquity = 0; let totalMF = 0; let totalCash = 0;
+        let inventory = {}; let brokerPnLMap = {}; let brokerInvestmentMap = {}; let brokerLedgerMap = {}; let monthlyPnL = {}; let overallPnL = 0;
+        
         let sortedTxs = [...currentTxs].sort((a,b) => new Date(a.date) - new Date(b.date));
 
         const fBroker = document.getElementById('filter-broker').value; const fAsset = document.getElementById('filter-asset').value; const fSymbol = document.getElementById('filter-symbol').value; const fStart = document.getElementById('filter-start').value; const fEnd = document.getElementById('filter-end').value;
@@ -653,8 +672,8 @@
                 inventory[key].pnl += tradePnL; overallPnL += tradePnL; monthlyPnL[monthKey] += tradePnL;
                 inventory[key].qty -= tx.qty; inventory[key].cost -= cogs; brokerLedgerMap[b] += tx.total; 
             } 
-            else if (tx.txType === 'Expense') { overallPnL -= tx.total; inventory[key].pnl -= tx.total; monthlyPnL[monthKey] -= tx.total; metrics.exp += tx.total; brokerLedgerMap[b] -= tx.total; } 
-            else if (tx.txType === 'Income') { overallPnL += tx.total; inventory[key].pnl += tx.total; monthlyPnL[monthKey] += tx.total; metrics.inc += tx.total; brokerLedgerMap[b] += tx.total; } 
+            else if (tx.txType === 'Expense') { overallPnL -= tx.total; inventory[key].pnl -= tx.total; monthlyPnL[monthKey] -= tx.total; brokerLedgerMap[b] -= tx.total; } 
+            else if (tx.txType === 'Income') { overallPnL += tx.total; inventory[key].pnl += tx.total; monthlyPnL[monthKey] += tx.total; brokerLedgerMap[b] += tx.total; } 
             else if (tx.txType === 'Cash Addition') { brokerLedgerMap[b] += tx.total; } 
             else if (tx.txType === 'Cash Withdrawal') { brokerLedgerMap[b] -= tx.total; }
         });
@@ -667,6 +686,9 @@
             brokerPnLMap[item.broker] += item.pnl;
 
             if (item.qty > 0.0001) { 
+                if (item.type === 'Equity') totalEquity += item.cost;
+                if (item.type === 'Mutual Fund') totalMF += item.cost;
+
                 if (!brokerInvestmentMap[item.broker]) brokerInvestmentMap[item.broker] = 0;
                 brokerInvestmentMap[item.broker] += item.cost;
                 holdingsBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${item.broker}</td><td>${item.type}</td><td>${item.qty.toFixed(4)}</td><td>${(item.cost/item.qty).toFixed(2)}</td><td>${item.cost.toFixed(2)}</td></tr>`;
@@ -675,11 +697,19 @@
         });
 
         Object.keys(brokerInvestmentMap).sort().forEach(b => brokerInvestmentBody.innerHTML += `<tr><td><strong>${b}</strong></td><td>${brokerInvestmentMap[b].toFixed(2)}</td></tr>`);
-        Object.keys(brokerLedgerMap).sort().forEach(b => { let bal = brokerLedgerMap[b]; let c = bal > 0 ? 'pnl-positive' : (bal < 0 ? 'pnl-negative' : 'pnl-neutral'); brokerLedgerBody.innerHTML += `<tr><td><strong>${b}</strong></td><td class="${c}">${bal > 0 ? '+' : ''}${bal.toFixed(2)}</td></tr>`; });
+        
+        Object.keys(brokerLedgerMap).sort().forEach(b => { 
+            let bal = brokerLedgerMap[b]; 
+            totalCash += bal;
+            let c = bal > 0 ? 'pnl-positive' : (bal < 0 ? 'pnl-negative' : 'pnl-neutral'); 
+            brokerLedgerBody.innerHTML += `<tr><td><strong>${b}</strong></td><td class="${c}">${bal > 0 ? '+' : ''}${bal.toFixed(2)}</td></tr>`; 
+        });
+
         Object.keys(brokerPnLMap).sort().forEach(b => { let p = brokerPnLMap[b]; if (p !== 0) brokerPnlBody.innerHTML += `<tr><td><strong>${b}</strong></td><td class="${p>0?'pnl-positive':'pnl-negative'}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`; });
         Object.keys(monthlyPnL).sort().reverse().forEach(m => { let p = monthlyPnL[m]; if (p !== 0) monthlyPnlBody.innerHTML += `<tr><td><strong>${m}</strong></td><td class="${p>0?'pnl-positive':'pnl-negative'}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`; });
 
-        currentTxs.filter(tx => {
+        // --- FILTER & PAGINATE LEDGER ---
+        let filteredTxs = sortedTxs.reverse().filter(tx => {
             let match = true;
             if(fBroker !== 'All' && tx.broker !== fBroker) match = false;
             if(fAsset !== 'All' && tx.assetClass !== fAsset) match = false;
@@ -687,13 +717,28 @@
             if(fStart && new Date(tx.date) < new Date(fStart)) match = false;
             if(fEnd && new Date(tx.date) > new Date(fEnd)) match = false;
             return match;
-        }).forEach(tx => {
+        });
+
+        const totalPages = Math.ceil(filteredTxs.length / pageSize) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+        
+        const startIdx = (currentPage - 1) * pageSize;
+        const pageTxs = filteredTxs.slice(startIdx, startIdx + pageSize);
+
+        pageTxs.forEach(tx => {
             let badgeClass = tx.txType.toLowerCase().replace(' ', '-');
             ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td>${tx.broker}</td><td>${tx.assetClass}</td><td><span class="badge ${badgeClass}">${tx.txType}</span></td><td><strong>${tx.symbol}</strong></td><td>${tx.qty}</td><td>${tx.price.toFixed(2)}</td><td><strong>${tx.total.toFixed(2)}</strong></td><td><button class="btn-edit-tx" onclick="editTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteTx('${tx.id}')">Del</button></td></tr>`;
         });
+        
+        // Update Pagination Controls UI
+        document.getElementById('page-indicator').innerText = `Page ${currentPage} of ${totalPages}`;
+        document.getElementById('btn-prev').disabled = currentPage === 1;
+        document.getElementById('btn-next').disabled = currentPage === totalPages;
 
-        document.getElementById('total-expenses').innerText = metrics.exp.toFixed(2);
-        document.getElementById('total-income').innerText = metrics.inc.toFixed(2);
+        // Update Summary Cards
+        document.getElementById('equity-investment').innerText = totalEquity.toFixed(2);
+        document.getElementById('mf-investment').innerText = totalMF.toFixed(2);
+        document.getElementById('cash-balance').innerText = totalCash.toFixed(2);
         
         let pnlEl = document.getElementById('realized-pnl');
         pnlEl.innerText = (overallPnL > 0 ? '+' : '') + overallPnL.toFixed(2);
