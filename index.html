@@ -315,7 +315,12 @@
                             </th>
                             <th class="sortable" onclick="setSort('qty')">Qty <span class="sort-icon" id="sort-qty"></span></th>
                             <th class="sortable" onclick="setSort('price')">Price <span class="sort-icon" id="sort-price"></span></th>
-                            <th class="sortable" onclick="setSort('total')">Total <span class="sort-icon" id="sort-total"></span></th>
+                            
+                            <th class="sortable" onclick="setSort('total')" style="min-width: 100px;">
+                                Total <span class="sort-icon" id="sort-total"></span><br>
+                                <div id="flt-col-total-display" style="margin-top: 6px; padding: 4px; font-size: 0.85rem; font-weight: bold; color: var(--primary); background: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 3px; display: none; text-align: center;">0.00</div>
+                            </th>
+                            
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -442,7 +447,7 @@
         
         let finalSymbol = document.getElementById('symbol-input').value.toUpperCase().trim();
         let finalBroker = document.getElementById('broker-input').value.trim();
-        let finalRemark = document.getElementById('remark-input').value.trim(); // Capture Remark
+        let finalRemark = document.getElementById('remark-input').value.trim(); 
         const isFlatAmount = ['Expense', 'Income', 'Cash Addition', 'Cash Withdrawal'].includes(txType);
 
         const txData = {
@@ -452,7 +457,7 @@
             assetClass: document.getElementById('asset-class').value,
             txType: txType,
             symbol: finalSymbol,
-            remark: finalRemark, // Save Remark
+            remark: finalRemark,
             qty: isFlatAmount ? 0 : qty,
             price: price,
             total: isFlatAmount ? price : (qty * price)
@@ -481,7 +486,7 @@
         document.getElementById('asset-class').value = tx.assetClass;
         document.getElementById('tx-type').value = tx.txType;
         document.getElementById('symbol-input').value = tx.symbol;
-        document.getElementById('remark-input').value = tx.remark || ''; // Load Remark
+        document.getElementById('remark-input').value = tx.remark || '';
         document.getElementById('qty').value = tx.qty;
         document.getElementById('price').value = tx.price;
         document.getElementById('submit-btn').innerText = 'Update Transaction';
@@ -572,7 +577,7 @@
             sortDesc = !sortDesc;
         } else {
             sortCol = col;
-            sortDesc = col === 'date' ? true : false; // Default desc for date, asc for others
+            sortDesc = col === 'date' ? true : false; 
         }
         resetPageAndRender();
     }
@@ -582,7 +587,7 @@
         const brokerReportFilter = document.getElementById('report-filter-broker');
         const symbolDatalist = document.getElementById('symbol-list');
         const brokerDatalist = document.getElementById('broker-list');
-        const remarkDatalist = document.getElementById('remark-list'); // Remark list
+        const remarkDatalist = document.getElementById('remark-list'); 
         
         const dashScriptSelect = document.getElementById('dash-script');
         const dashYearSelect = document.getElementById('dash-year');
@@ -593,12 +598,12 @@
 
         const uniqueSymbols = [...new Set(currentTxs.map(tx => tx.symbol))].sort();
         const uniqueBrokers = [...new Set(currentTxs.map(tx => tx.broker || 'N/A'))].sort();
-        const uniqueRemarks = [...new Set(currentTxs.map(tx => tx.remark).filter(Boolean))].sort(); // Unique Remarks
+        const uniqueRemarks = [...new Set(currentTxs.map(tx => tx.remark).filter(Boolean))].sort(); 
         const uniqueYears = [...new Set(currentTxs.map(tx => tx.date.substring(0, 4)))].sort().reverse();
 
         symbolDatalist.innerHTML = uniqueSymbols.map(s => `<option value="${s}">`).join('');
         brokerDatalist.innerHTML = uniqueBrokers.filter(b => b!=='N/A').map(b => `<option value="${b}">`).join('');
-        remarkDatalist.innerHTML = uniqueRemarks.map(r => `<option value="${r}">`).join(''); // Populate options
+        remarkDatalist.innerHTML = uniqueRemarks.map(r => `<option value="${r}">`).join(''); 
 
         const brokerOptions = '<option value="All">All Brokers</option>' + uniqueBrokers.map(b => `<option value="${b}">${b}</option>`).join('');
         brokerReportFilter.innerHTML = brokerOptions;
@@ -715,15 +720,15 @@
                 let cogs = avgCost * tx.qty; let tradePnL = tx.total - cogs; 
                 inventory[key].pnl += tradePnL; overallPnL += tradePnL; 
                 inventory[key].qty -= tx.qty; inventory[key].cost -= cogs; brokerLedgerMap[b] += tx.total; 
-                addHierarchical(tx.date, tx.symbol, tradePnL); // ADD TO HIERARCHY
+                addHierarchical(tx.date, tx.symbol, tradePnL); 
             } 
             else if (tx.txType === 'Expense') { 
                 overallPnL -= tx.total; inventory[key].pnl -= tx.total; brokerLedgerMap[b] -= tx.total; 
-                addHierarchical(tx.date, tx.symbol, -tx.total); // ADD EXPENSE TO HIERARCHY
+                addHierarchical(tx.date, tx.symbol, -tx.total); 
             } 
             else if (tx.txType === 'Income') { 
                 overallPnL += tx.total; inventory[key].pnl += tx.total; brokerLedgerMap[b] += tx.total; 
-                addHierarchical(tx.date, tx.symbol, tx.total); // ADD INCOME TO HIERARCHY
+                addHierarchical(tx.date, tx.symbol, tx.total); 
             } 
             else if (tx.txType === 'Cash Addition') { brokerLedgerMap[b] += tx.total; } 
             else if (tx.txType === 'Cash Withdrawal') { brokerLedgerMap[b] -= tx.total; }
@@ -839,7 +844,7 @@
 
         const searchText = document.getElementById('ledger-search') ? document.getElementById('ledger-search').value.toLowerCase().trim() : '';
         
-        // Grab values from the new Header Filters
+        // Grab values from the Header Filters
         const fColDate = document.getElementById('flt-col-date').value.toLowerCase().trim();
         const fColBroker = document.getElementById('flt-col-broker').value.toLowerCase().trim();
         const fColAsset = document.getElementById('flt-col-asset').value.toLowerCase().trim();
@@ -870,6 +875,16 @@
             }
             return match;
         });
+
+        // Calculate and Show/Hide Dynamic Total based on specific column filters
+        const totalDisplayEl = document.getElementById('flt-col-total-display');
+        if (fColType || fColSymbol || fColRemark) {
+            let sumTotal = dynamicTxs.reduce((sum, tx) => sum + tx.total, 0);
+            totalDisplayEl.innerText = sumTotal.toFixed(2);
+            totalDisplayEl.style.display = 'block';
+        } else {
+            totalDisplayEl.style.display = 'none';
+        }
 
         // 2. Sort
         dynamicTxs.sort((a, b) => {
