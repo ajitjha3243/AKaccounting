@@ -78,13 +78,14 @@
         .controls-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid var(--border); }
         .controls-row .form-group { margin-bottom: 0; flex: 1; min-width: 150px; }
         button.btn-export { background: var(--success); color: white; border: none; padding: 9px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; }
+        button.btn-live { background: var(--info); color: white; border: none; padding: 9px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; }
+        button.btn-live:hover { background: #0284c7; }
         
         .table-container { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
         th, td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
         th { background-color: #f8fafc; font-weight: 600; white-space: nowrap; }
         
-        /* Interactive Table Headers & Filters */
         th.sortable { cursor: pointer; transition: background 0.2s; user-select: none; }
         th.sortable:hover { background-color: #e2e8f0; }
         .sort-icon { font-size: 0.8rem; margin-left: 5px; color: var(--primary); }
@@ -104,14 +105,12 @@
         .pnl-negative { color: var(--danger); font-weight: bold; }
         .pnl-neutral { color: var(--text-color); font-weight: bold; }
 
-        /* PAGINATION STYLES */
         .pagination-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border); }
         .pagination-controls button { padding: 8px 16px; border: 1px solid var(--border); background: var(--card-bg); cursor: pointer; border-radius: 4px; font-weight: 600; transition: background 0.2s; }
         .pagination-controls button:hover:not(:disabled) { background: #e2e8f0; }
         .pagination-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
         #page-indicator { font-weight: 500; color: #64748b; font-size: 0.95rem; }
 
-        /* HIERARCHICAL TREE STYLES */
         .tree-container { font-size: 0.9rem; background: #fff; }
         .tree-node { margin-bottom: 4px; }
         .tree-header { display: flex; justify-content: space-between; padding: 8px 12px; background: #f8fafc; cursor: pointer; border-radius: 4px; user-select: none; transition: all 0.2s; border: 1px solid #e2e8f0;}
@@ -188,9 +187,7 @@
                         </select>
                     </div>
                     <div class="form-group"><label>Symbol / Name</label><input type="text" id="symbol-input" list="symbol-list" required style="text-transform: uppercase;"><datalist id="symbol-list"></datalist></div>
-                    
                     <div class="form-group"><label>Remark (Optional)</label><input type="text" id="remark-input" list="remark-list" placeholder="e.g. Dividend, Bonus, SIP"><datalist id="remark-list"></datalist></div>
-                    
                     <div class="form-group"><label>Quantity / Units</label><input type="number" id="qty" step="any" min="0" value="0" required></div>
                     <div class="form-group"><label>Price / NAV / Amount</label><input type="number" id="price" step="any" min="0" value="0" required></div>
                     <button type="submit" id="submit-btn" class="btn-primary">Add Transaction</button>
@@ -207,11 +204,11 @@
             <div id="script-dash-content" class="collapsible-table-content active">
                 <div class="controls-row">
                     <div class="form-group">
-                        <label>Select Script(s) <small style="color: #64748b;">(Ctrl/Cmd + Click for multiple)</small></label>
+                        <label>Select Script(s) <small style="color: #64748b;">(Ctrl/Cmd + Click)</small></label>
                         <select id="dash-script" multiple onchange="renderScriptDash()"></select>
                     </div>
                     <div class="form-group">
-                        <label>Select Year(s) <small style="color: #64748b;">(Ctrl/Cmd + Click for multiple)</small></label>
+                        <label>Select Year(s) <small style="color: #64748b;">(Ctrl/Cmd + Click)</small></label>
                         <select id="dash-year" multiple onchange="renderScriptDash()"></select>
                     </div>
                 </div>
@@ -247,14 +244,36 @@
         <div class="controls-row">
             <div class="form-group"><label>Filter By Broker:</label><select id="report-filter-broker" onchange="renderApp()"><option value="All">All Brokers</option></select></div>
             <div class="form-group"><label>Filter By Asset Class:</label><select id="report-filter-asset" onchange="renderApp()"><option value="All">All Assets</option><option value="Equity">Equity</option><option value="Mutual Fund">Mutual Fund</option></select></div>
+            
+            <div class="form-group" style="min-width: 260px;">
+                <label>Live API Config (Finnhub/AlphaVantage or Proxy Key)</label>
+                <input type="password" id="live-api-key" placeholder="Optional Free API Key (Leaves empty for open tier)" style="padding: 7px; font-size: 0.85rem;">
+            </div>
+            <button class="btn-live" onclick="fetchLivePrices()">🔄 Fetch Live Prices</button>
         </div>
+        
         <div class="reports-grid">
-            <div class="table-container">
+            <div class="table-container" style="grid-column: 1 / -1;">
                 <div class="table-header-toggle" onclick="toggleHoldings()">
-                    <h3>Current Holdings (Balance)</h3><span id="holdings-icon">▲</span>
+                    <h3>Current Holdings (Balance & Live Market Track)</h3><span id="holdings-icon">▲</span>
                 </div>
                 <div id="holdings-content" class="collapsible-table-content active">
-                    <table><thead><tr><th>Symbol</th><th>Broker</th><th>Class</th><th>Qty</th><th>Avg Price</th><th>Invested</th></tr></thead><tbody id="holdings-body"></tbody></table>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Broker</th>
+                                <th>Class</th>
+                                <th>Qty</th>
+                                <th>Avg Price</th>
+                                <th>Invested Amt</th>
+                                <th style="background: #f0fdf4;">Live Price</th>
+                                <th style="background: #f0fdf4;">Current Value</th>
+                                <th style="background: #f0fdf4;">Unrealized P&L</th>
+                            </tr>
+                        </thead>
+                        <tbody id="holdings-body"></tbody>
+                    </table>
                 </div>
             </div>
             
@@ -263,8 +282,7 @@
             
             <div class="table-container" style="grid-column: 1 / -1; max-width: 600px;">
                 <h3>Hierarchical P&L (FY -> Month -> Day -> Script/Category)</h3>
-                <div id="hierarchical-pnl-body" class="tree-container">
-                    </div>
+                <div id="hierarchical-pnl-body" class="tree-container"></div>
             </div>
 
             <div class="table-container"><h3>Realized P&L by Script</h3><table><thead><tr><th>Symbol</th><th>Broker</th><th>Class</th><th>Realized P&L</th></tr></thead><tbody id="pnl-body"></tbody></table></div>
@@ -289,38 +307,15 @@
                 <table>
                     <thead>
                         <tr>
-                            <th class="sortable" onclick="setSort('date')">
-                                Date <span class="sort-icon" id="sort-date"></span><br>
-                                <input type="text" id="flt-col-date" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()">
-                            </th>
-                            <th class="sortable" onclick="setSort('broker')">
-                                Broker <span class="sort-icon" id="sort-broker"></span><br>
-                                <input type="text" id="flt-col-broker" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()">
-                            </th>
-                            <th class="sortable" onclick="setSort('assetClass')">
-                                Asset <span class="sort-icon" id="sort-assetClass"></span><br>
-                                <input type="text" id="flt-col-asset" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()">
-                            </th>
-                            <th class="sortable" onclick="setSort('txType')">
-                                Type <span class="sort-icon" id="sort-txType"></span><br>
-                                <input type="text" id="flt-col-type" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()">
-                            </th>
-                            <th class="sortable" onclick="setSort('symbol')">
-                                Symbol <span class="sort-icon" id="sort-symbol"></span><br>
-                                <input type="text" id="flt-col-symbol" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()">
-                            </th>
-                            <th class="sortable" onclick="setSort('remark')">
-                                Remark <span class="sort-icon" id="sort-remark"></span><br>
-                                <input type="text" id="flt-col-remark" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()">
-                            </th>
+                            <th class="sortable" onclick="setSort('date')">Date <span class="sort-icon" id="sort-date"></span><br><input type="text" id="flt-col-date" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()"></th>
+                            <th class="sortable" onclick="setSort('broker')">Broker <span class="sort-icon" id="sort-broker"></span><br><input type="text" id="flt-col-broker" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()"></th>
+                            <th class="sortable" onclick="setSort('assetClass')">Asset <span class="sort-icon" id="sort-assetClass"></span><br><input type="text" id="flt-col-asset" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()"></th>
+                            <th class="sortable" onclick="setSort('txType')">Type <span class="sort-icon" id="sort-txType"></span><br><input type="text" id="flt-col-type" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()"></th>
+                            <th class="sortable" onclick="setSort('symbol')">Symbol <span class="sort-icon" id="sort-symbol"></span><br><input type="text" id="flt-col-symbol" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()"></th>
+                            <th class="sortable" onclick="setSort('remark')">Remark <span class="sort-icon" id="sort-remark"></span><br><input type="text" id="flt-col-remark" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()"></th>
                             <th class="sortable" onclick="setSort('qty')">Qty <span class="sort-icon" id="sort-qty"></span></th>
                             <th class="sortable" onclick="setSort('price')">Price <span class="sort-icon" id="sort-price"></span></th>
-                            
-                            <th class="sortable" onclick="setSort('total')" style="min-width: 100px;">
-                                Total <span class="sort-icon" id="sort-total"></span><br>
-                                <div id="flt-col-total-display" style="margin-top: 6px; padding: 4px; font-size: 0.85rem; font-weight: bold; color: var(--primary); background: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 3px; display: none; text-align: center;">0.00</div>
-                            </th>
-                            
+                            <th class="sortable" onclick="setSort('total')" style="min-width: 100px;">Total <span class="sort-icon" id="sort-total"></span><br><div id="flt-col-total-display" style="margin-top: 6px; padding: 4px; font-size: 0.85rem; font-weight: bold; color: var(--primary); background: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 3px; display: none; text-align: center;">0.00</div></th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -357,8 +352,8 @@
     // --- STATE VARIABLES ---
     let currentUser = null; 
     let currentTxs = [];    
+    let livePrices = {}; // Global cache store for live prices keyed by Symbol
     
-    // Dynamic Table State Variables
     let currentPage = 1;
     const pageSize = 15;
     let sortCol = 'date';
@@ -370,13 +365,7 @@
             currentUser = user;
             document.getElementById('auth-overlay').style.display = 'none';
             document.getElementById('app-container').style.display = 'block';
-            document.getElementById('display-user-email').innerText = user.email || "Logged in via Google";
-            
-            db.collection('users').doc(user.uid).set({ 
-                email: user.email, 
-                lastLogin: firebase.firestore.FieldValue.serverTimestamp() 
-            }, { merge: true });
-
+            document.getElementById('display-user-email').innerText = user.email || "Logged in";
             loadTransactions();
         } else {
             currentUser = null;
@@ -412,11 +401,71 @@
 
     function signOut() { auth.signOut(); }
 
-    // --- CLOUD DATA LAYER ---
     async function loadTransactions() {
         if(!currentUser) return;
         const snapshot = await db.collection('transactions').where("userId", "==", currentUser.uid).get();
         currentTxs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderApp();
+    }
+
+    // --- LIVE MARKET DATA OVERLAY MODULE ---
+    async function fetchLivePrices() {
+        // Collect all unique non-CASH stock symbols currently held
+        let inventorySymbols = new Set();
+        currentTxs.forEach(tx => {
+            if (tx.symbol && tx.symbol !== 'CASH') {
+                inventorySymbols.add(tx.symbol.toUpperCase().trim());
+            }
+        });
+
+        const symbolsArray = Array.from(inventorySymbols);
+        if (symbolsArray.length === 0) {
+            alert("No symbols available to check live prices.");
+            return;
+        }
+
+        const apiKey = document.getElementById('live-api-key').value.trim();
+        alert(`Fetching real-time market snapshots for ${symbolsArray.length} items...`);
+
+        // Perform parallel async fetch targeting CORS-compliant endpoints
+        // Appends market flags dynamically (.NS) for standard India setups if suffix is missing
+        for (let sym of symbolsArray) {
+            let apiSymbol = sym;
+            if (!sym.includes('.')) {
+                apiSymbol = sym + ".NS"; // Map dynamically to NSE layout
+            }
+            
+            try {
+                // Configures clean endpoint access (e.g., standard free quote tracking)
+                let url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${apiSymbol}`;
+                // Optional failover to public endpoints if keys are dropped
+                if(apiKey) {
+                    url = `https://finnhub.io/api/v1/quote?symbol=${sym}&token=${apiKey}`;
+                }
+                
+                // Using standard open-cors client wrapper
+                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+                if (res.ok) {
+                    const wrapData = await res.json();
+                    const data = JSON.parse(wrapData.contents);
+                    
+                    let price = 0;
+                    if (data.quoteResponse && data.quoteResponse.result && data.quoteResponse.result[0]) {
+                        price = data.quoteResponse.result[0].regularMarketPrice;
+                    } else if (data.c) {
+                        price = data.c; // Finnhub output key mapping
+                    }
+                    
+                    if (price > 0) {
+                        livePrices[sym] = price;
+                    }
+                }
+            } catch (err) {
+                console.warn(`Failed fetching real time value for: ${sym}`, err);
+            }
+        }
+        
+        // Re-render dashboard components with new loaded balances
         renderApp();
     }
 
@@ -561,34 +610,15 @@
         reader.readAsText(file);
     }
 
-    // --- PAGINATION & SORTING HELPERS ---
-    function resetPageAndRender() {
-        currentPage = 1;
-        renderApp();
-    }
+    function resetPageAndRender() { currentPage = 1; renderApp(); }
+    function changePage(dir) { currentPage += dir; renderApp(); }
+    function setSort(col) { if (sortCol === col) { sortDesc = !sortDesc; } else { sortCol = col; sortDesc = col === 'date' ? true : false; } resetPageAndRender(); }
 
-    function changePage(dir) {
-        currentPage += dir;
-        renderApp();
-    }
-
-    function setSort(col) {
-        if (sortCol === col) {
-            sortDesc = !sortDesc;
-        } else {
-            sortCol = col;
-            sortDesc = col === 'date' ? true : false; 
-        }
-        resetPageAndRender();
-    }
-
-    // --- RENDERING LOGIC ---
     function populateFilterDropdowns() {
         const brokerReportFilter = document.getElementById('report-filter-broker');
         const symbolDatalist = document.getElementById('symbol-list');
         const brokerDatalist = document.getElementById('broker-list');
         const remarkDatalist = document.getElementById('remark-list'); 
-        
         const dashScriptSelect = document.getElementById('dash-script');
         const dashYearSelect = document.getElementById('dash-year');
 
@@ -605,8 +635,7 @@
         brokerDatalist.innerHTML = uniqueBrokers.filter(b => b!=='N/A').map(b => `<option value="${b}">`).join('');
         remarkDatalist.innerHTML = uniqueRemarks.map(r => `<option value="${r}">`).join(''); 
 
-        const brokerOptions = '<option value="All">All Brokers</option>' + uniqueBrokers.map(b => `<option value="${b}">${b}</option>`).join('');
-        brokerReportFilter.innerHTML = brokerOptions;
+        brokerReportFilter.innerHTML = '<option value="All">All Brokers</option>' + uniqueBrokers.map(b => `<option value="${b}">${b}</option>`).join('');
 
         dashScriptSelect.innerHTML = uniqueSymbols.filter(s => s !== "CASH").map(s => `<option value="${s}">${s}</option>`).join('');
         dashYearSelect.innerHTML = uniqueYears.map(y => `<option value="${y}">${y}</option>`).join('');
@@ -668,7 +697,6 @@
             let p = monthlyPnL[m]; totalPnL += p;
             if (p !== 0) { let c = p > 0 ? 'pnl-positive' : 'pnl-negative'; pnlBody.innerHTML += `<tr><td><strong>${m}</strong></td><td class="${c}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`; }
         });
-        if(pnlBody.innerHTML === '') pnlBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#666; padding: 15px;">No Realized P&L in period</td></tr>`;
 
         const totalEl = document.getElementById('dash-pnl-total');
         totalEl.innerText = (totalPnL > 0 ? '+' : '') + totalPnL.toFixed(2);
@@ -683,9 +711,8 @@
         
         let totalEquity = 0; let totalMF = 0; let totalCash = 0;
         let inventory = {}; let brokerPnLMap = {}; let brokerInvestmentMap = {}; let brokerLedgerMap = {}; let overallPnL = 0;
-        let hierarchicalPnL = {}; // Structure: { FY: { pnl, months: { Month: { pnl, days: { Day: { pnl, scripts: { Script: pnl }}}}}}}
+        let hierarchicalPnL = {}; 
         
-        // Helper to add data to Hierarchical P&L
         function addHierarchical(dateStr, symbol, amount) {
             let d = new Date(dateStr);
             let year = d.getFullYear(); let month = d.getMonth() + 1; let day = d.getDate();
@@ -750,7 +777,32 @@
 
                 if (!brokerInvestmentMap[item.broker]) brokerInvestmentMap[item.broker] = 0;
                 brokerInvestmentMap[item.broker] += item.cost;
-                holdingsBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${item.broker}</td><td>${item.type}</td><td>${item.qty.toFixed(4)}</td><td>${(item.cost/item.qty).toFixed(2)}</td><td>${item.cost.toFixed(2)}</td></tr>`;
+                
+                // Fetch cached real time prices if loaded
+                let livePrice = livePrices[item.symbol] || null;
+                let currentValStr = "-";
+                let unrealizedPnLStr = "-";
+                let pnlStyleClass = "pnl-neutral";
+                
+                if(livePrice) {
+                    let curValue = item.qty * livePrice;
+                    let unRealizedPnL = curValue - item.cost;
+                    currentValStr = curValue.toFixed(2);
+                    unrealizedPnLStr = (unRealizedPnL > 0 ? "+" : "") + unRealizedPnL.toFixed(2);
+                    pnlStyleClass = unRealizedPnL > 0 ? "pnl-positive" : (unRealizedPnL < 0 ? "pnl-negative" : "pnl-neutral");
+                }
+
+                holdingsBody.innerHTML += `<tr>
+                    <td><strong>${item.symbol}</strong></td>
+                    <td>${item.broker}</td>
+                    <td>${item.type}</td>
+                    <td>${item.qty.toFixed(4)}</td>
+                    <td>${(item.cost/item.qty).toFixed(2)}</td>
+                    <td>${item.cost.toFixed(2)}</td>
+                    <td style="background: #f0fdf4; font-weight:bold;">${livePrice ? livePrice.toFixed(2) : 'Click Fetch'}</td>
+                    <td style="background: #f0fdf4;">${currentValStr}</td>
+                    <td style="background: #f0fdf4;" class="${pnlStyleClass}">${unrealizedPnLStr}</td>
+                </tr>`;
             }
             if (item.pnl !== 0) { let c = item.pnl > 0 ? 'pnl-positive' : (item.pnl < 0 ? 'pnl-negative' : 'pnl-neutral'); pnlBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${item.broker}</td><td>${item.type}</td><td class="${c}">${item.pnl>0?'+':''}${item.pnl.toFixed(2)}</td></tr>`; }
         });
@@ -813,18 +865,16 @@
                             </div>`;
                         }
                     });
-                    
-                    treeHtml += `</div></div>`; // End Day
+                    treeHtml += `</div></div>`;
                 });
-                treeHtml += `</div></div>`; // End Month
+                treeHtml += `</div></div>`;
             });
-            treeHtml += `</div></div>`; // End FY
+            treeHtml += `</div></div>`;
         });
         
         if(treeHtml === '') treeHtml = `<div style="padding: 15px; color: #64748b; text-align: center;">No realized P&L to display.</div>`;
         document.getElementById('hierarchical-pnl-body').innerHTML = treeHtml;
 
-        // Update Summary Cards
         document.getElementById('equity-investment').innerText = totalEquity.toFixed(2);
         document.getElementById('mf-investment').innerText = totalMF.toFixed(2);
         document.getElementById('cash-balance').innerText = totalCash.toFixed(2);
@@ -834,17 +884,13 @@
 
         renderScriptDash();
 
-        // ---------------------------------------------------------
-        // DYNAMIC LEDGER RENDERING (FILTER, SEARCH, SORT, PAGINATE)
-        // ---------------------------------------------------------
+        // --- LEDGER FILTER ENGINE ---
         ['date', 'broker', 'assetClass', 'txType', 'symbol', 'remark', 'qty', 'price', 'total'].forEach(col => {
             const el = document.getElementById(`sort-${col}`);
             if(el) el.innerText = (sortCol === col) ? (sortDesc ? ' ↓' : ' ↑') : '';
         });
 
         const searchText = document.getElementById('ledger-search') ? document.getElementById('ledger-search').value.toLowerCase().trim() : '';
-        
-        // Grab values from the Header Filters
         const fColDate = document.getElementById('flt-col-date').value.toLowerCase().trim();
         const fColBroker = document.getElementById('flt-col-broker').value.toLowerCase().trim();
         const fColAsset = document.getElementById('flt-col-asset').value.toLowerCase().trim();
@@ -852,11 +898,8 @@
         const fColSymbol = document.getElementById('flt-col-symbol').value.toLowerCase().trim();
         const fColRemark = document.getElementById('flt-col-remark').value.toLowerCase().trim();
 
-        // 1. Filter
         let dynamicTxs = [...currentTxs].filter(tx => {
             let match = true;
-            
-            // Apply Column Filters
             if(fColDate && !(tx.date || '').toLowerCase().includes(fColDate)) match = false;
             if(fColBroker && !(tx.broker || '').toLowerCase().includes(fColBroker)) match = false;
             if(fColAsset && !(tx.assetClass || '').toLowerCase().includes(fColAsset)) match = false;
@@ -864,7 +907,6 @@
             if(fColSymbol && !(tx.symbol || '').toLowerCase().includes(fColSymbol)) match = false;
             if(fColRemark && !(tx.remark || '').toLowerCase().includes(fColRemark)) match = false;
             
-            // Apply Global Search
             if(searchText) {
                 const searchMatch = 
                     (tx.symbol || '').toLowerCase().includes(searchText) || 
@@ -876,7 +918,6 @@
             return match;
         });
 
-        // Calculate and Show/Hide Dynamic Total based on specific column filters
         const totalDisplayEl = document.getElementById('flt-col-total-display');
         if (fColType || fColSymbol || fColRemark) {
             let sumTotal = dynamicTxs.reduce((sum, tx) => sum + tx.total, 0);
@@ -886,30 +927,21 @@
             totalDisplayEl.style.display = 'none';
         }
 
-        // 2. Sort
         dynamicTxs.sort((a, b) => {
             let valA = a[sortCol]; let valB = b[sortCol];
-            
-            if (sortCol === 'date') { 
-                valA = new Date(valA).getTime(); valB = new Date(valB).getTime(); 
-            } else if (['qty', 'price', 'total'].includes(sortCol)) { 
-                valA = Number(valA); valB = Number(valB); 
-            } else { 
-                valA = String(valA || '').toLowerCase(); valB = String(valB || '').toLowerCase(); 
-            }
-            
+            if (sortCol === 'date') { valA = new Date(valA).getTime(); valB = new Date(valB).getTime(); }
+            else if (['qty', 'price', 'total'].includes(sortCol)) { valA = Number(valA); valB = Number(valB); }
+            else { valA = String(valA || '').toLowerCase(); valB = String(valB || '').toLowerCase(); }
             if (valA < valB) return sortDesc ? 1 : -1;
             if (valA > valB) return sortDesc ? -1 : 1;
             return 0;
         });
 
-        // 3. Paginate
         const totalPages = Math.ceil(dynamicTxs.length / pageSize) || 1;
         if (currentPage > totalPages) currentPage = totalPages;
         const startIdx = (currentPage - 1) * pageSize;
         const pageTxs = dynamicTxs.slice(startIdx, startIdx + pageSize);
 
-        // 4. Render DOM
         pageTxs.forEach(tx => {
             let badgeClass = tx.txType.toLowerCase().replace(' ', '-');
             ledgerBody.innerHTML += `<tr>
@@ -935,6 +967,5 @@
         document.getElementById('btn-next').disabled = currentPage === totalPages;
     }
 </script>
-
 </body>
 </html>
