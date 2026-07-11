@@ -81,13 +81,14 @@
         
         .table-container { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
-        th, td { padding: 10px; border-bottom: 1px solid var(--border); }
+        th, td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
         th { background-color: #f8fafc; font-weight: 600; white-space: nowrap; }
         
-        /* Interactive Table Headers */
+        /* Interactive Table Headers & Filters */
         th.sortable { cursor: pointer; transition: background 0.2s; user-select: none; }
         th.sortable:hover { background-color: #e2e8f0; }
         .sort-icon { font-size: 0.8rem; margin-left: 5px; color: var(--primary); }
+        .col-filter { width: 100%; padding: 4px; font-size: 0.8rem; font-weight: normal; margin-top: 6px; border: 1px solid #cbd5e1; border-radius: 3px; box-sizing: border-box; }
 
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
         .badge.purchase { background: #dcfce7; color: #15803d; }
@@ -187,6 +188,9 @@
                         </select>
                     </div>
                     <div class="form-group"><label>Symbol / Name</label><input type="text" id="symbol-input" list="symbol-list" required style="text-transform: uppercase;"><datalist id="symbol-list"></datalist></div>
+                    
+                    <div class="form-group"><label>Remark (Optional)</label><input type="text" id="remark-input" list="remark-list" placeholder="e.g. Dividend, Bonus, SIP"><datalist id="remark-list"></datalist></div>
+                    
                     <div class="form-group"><label>Quantity / Units</label><input type="number" id="qty" step="any" min="0" value="0" required></div>
                     <div class="form-group"><label>Price / NAV / Amount</label><input type="number" id="price" step="any" min="0" value="0" required></div>
                     <button type="submit" id="submit-btn" class="btn-primary">Add Transaction</button>
@@ -258,7 +262,7 @@
             <div class="table-container"><h3>Broker Ledger (Cash) Balance</h3><table><thead><tr><th>Broker</th><th>Available Balance</th></tr></thead><tbody id="broker-ledger-body"></tbody></table></div>
             
             <div class="table-container" style="grid-column: 1 / -1; max-width: 600px;">
-                <h3>Hierarchical P&L (FY -> Month -> Day -> Script)</h3>
+                <h3>Hierarchical P&L (FY -> Month -> Day -> Script/Category)</h3>
                 <div id="hierarchical-pnl-body" class="tree-container">
                     </div>
             </div>
@@ -276,26 +280,39 @@
         <div id="ledger-content" class="collapsible-table-content active">
             <div class="controls-row" style="background: #e0e7ff; border-color: #c7d2fe;">
                 <div class="form-group" style="flex: 2; min-width: 250px;">
-                    <label>Live Search (Symbol, Broker, Type)</label>
-                    <input type="text" id="ledger-search" placeholder="Start typing to search..." oninput="resetPageAndRender()" style="border-color: #a5b4fc;">
+                    <label>Global Live Search</label>
+                    <input type="text" id="ledger-search" placeholder="Start typing to search globally..." oninput="resetPageAndRender()" style="border-color: #a5b4fc;">
                 </div>
                 <button class="btn-export" onclick="exportCSV()">Download CSV</button>
-            </div>
-            <div class="controls-row">
-                <div class="form-group"><label>Broker</label><select id="filter-broker" onchange="resetPageAndRender()"><option value="All">All Brokers</option></select></div>
-                <div class="form-group"><label>Asset</label><select id="filter-asset" onchange="resetPageAndRender()"><option value="All">All Assets</option><option value="Equity">Equity</option><option value="Mutual Fund">Mutual Fund</option></select></div>
-                <div class="form-group"><label>Start Date</label><input type="date" id="filter-start" onchange="resetPageAndRender()"></div>
-                <div class="form-group"><label>End Date</label><input type="date" id="filter-end" onchange="resetPageAndRender()"></div>
             </div>
             <div class="table-container">
                 <table>
                     <thead>
                         <tr>
-                            <th class="sortable" onclick="setSort('date')">Date <span class="sort-icon" id="sort-date"></span></th>
-                            <th class="sortable" onclick="setSort('broker')">Broker <span class="sort-icon" id="sort-broker"></span></th>
-                            <th class="sortable" onclick="setSort('assetClass')">Asset <span class="sort-icon" id="sort-assetClass"></span></th>
-                            <th class="sortable" onclick="setSort('txType')">Type <span class="sort-icon" id="sort-txType"></span></th>
-                            <th class="sortable" onclick="setSort('symbol')">Symbol <span class="sort-icon" id="sort-symbol"></span></th>
+                            <th class="sortable" onclick="setSort('date')">
+                                Date <span class="sort-icon" id="sort-date"></span><br>
+                                <input type="text" id="flt-col-date" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()">
+                            </th>
+                            <th class="sortable" onclick="setSort('broker')">
+                                Broker <span class="sort-icon" id="sort-broker"></span><br>
+                                <input type="text" id="flt-col-broker" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()">
+                            </th>
+                            <th class="sortable" onclick="setSort('assetClass')">
+                                Asset <span class="sort-icon" id="sort-assetClass"></span><br>
+                                <input type="text" id="flt-col-asset" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()">
+                            </th>
+                            <th class="sortable" onclick="setSort('txType')">
+                                Type <span class="sort-icon" id="sort-txType"></span><br>
+                                <input type="text" id="flt-col-type" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()">
+                            </th>
+                            <th class="sortable" onclick="setSort('symbol')">
+                                Symbol <span class="sort-icon" id="sort-symbol"></span><br>
+                                <input type="text" id="flt-col-symbol" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()">
+                            </th>
+                            <th class="sortable" onclick="setSort('remark')">
+                                Remark <span class="sort-icon" id="sort-remark"></span><br>
+                                <input type="text" id="flt-col-remark" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetPageAndRender()">
+                            </th>
                             <th class="sortable" onclick="setSort('qty')">Qty <span class="sort-icon" id="sort-qty"></span></th>
                             <th class="sortable" onclick="setSort('price')">Price <span class="sort-icon" id="sort-price"></span></th>
                             <th class="sortable" onclick="setSort('total')">Total <span class="sort-icon" id="sort-total"></span></th>
@@ -425,6 +442,7 @@
         
         let finalSymbol = document.getElementById('symbol-input').value.toUpperCase().trim();
         let finalBroker = document.getElementById('broker-input').value.trim();
+        let finalRemark = document.getElementById('remark-input').value.trim(); // Capture Remark
         const isFlatAmount = ['Expense', 'Income', 'Cash Addition', 'Cash Withdrawal'].includes(txType);
 
         const txData = {
@@ -434,6 +452,7 @@
             assetClass: document.getElementById('asset-class').value,
             txType: txType,
             symbol: finalSymbol,
+            remark: finalRemark, // Save Remark
             qty: isFlatAmount ? 0 : qty,
             price: price,
             total: isFlatAmount ? price : (qty * price)
@@ -445,6 +464,7 @@
         } else {
             await db.collection('transactions').add(txData);
             document.getElementById('symbol-input').value = '';
+            document.getElementById('remark-input').value = '';
             document.getElementById('qty').value = '0';
             document.getElementById('price').value = '0';
         }
@@ -461,6 +481,7 @@
         document.getElementById('asset-class').value = tx.assetClass;
         document.getElementById('tx-type').value = tx.txType;
         document.getElementById('symbol-input').value = tx.symbol;
+        document.getElementById('remark-input').value = tx.remark || ''; // Load Remark
         document.getElementById('qty').value = tx.qty;
         document.getElementById('price').value = tx.price;
         document.getElementById('submit-btn').innerText = 'Update Transaction';
@@ -488,10 +509,10 @@
     function exportCSV() {
         if (currentTxs.length === 0) return alert("No data to export.");
         let csvContent = "data:text/csv;charset=utf-8,";
-        const headers = ["ID", "Date", "Broker", "Asset Class", "Transaction Type", "Symbol", "Quantity", "Price", "Total Amount"];
+        const headers = ["ID", "Date", "Broker", "Asset Class", "Transaction Type", "Symbol", "Remark", "Quantity", "Price", "Total Amount"];
         csvContent += headers.join(",") + "\n";
         currentTxs.forEach(tx => {
-            csvContent += [tx.id, tx.date, `"${tx.broker}"`, `"${tx.assetClass}"`, `"${tx.txType}"`, `"${tx.symbol}"`, tx.qty, tx.price, tx.total].join(",") + "\n";
+            csvContent += [tx.id, tx.date, `"${tx.broker}"`, `"${tx.assetClass}"`, `"${tx.txType}"`, `"${tx.symbol}"`, `"${tx.remark || ''}"`, tx.qty, tx.price, tx.total].join(",") + "\n";
         });
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
@@ -559,39 +580,36 @@
     // --- RENDERING LOGIC ---
     function populateFilterDropdowns() {
         const brokerReportFilter = document.getElementById('report-filter-broker');
-        const brokerLedgerFilter = document.getElementById('filter-broker');
         const symbolDatalist = document.getElementById('symbol-list');
         const brokerDatalist = document.getElementById('broker-list');
+        const remarkDatalist = document.getElementById('remark-list'); // Remark list
+        
         const dashScriptSelect = document.getElementById('dash-script');
         const dashYearSelect = document.getElementById('dash-year');
 
         const currentReportBroker = brokerReportFilter.value;
-        const currentLedgerBroker = brokerLedgerFilter.value;
         const currentDashScripts = Array.from(dashScriptSelect.selectedOptions).map(o => o.value);
         const currentDashYears = Array.from(dashYearSelect.selectedOptions).map(o => o.value);
 
         const uniqueSymbols = [...new Set(currentTxs.map(tx => tx.symbol))].sort();
         const uniqueBrokers = [...new Set(currentTxs.map(tx => tx.broker || 'N/A'))].sort();
+        const uniqueRemarks = [...new Set(currentTxs.map(tx => tx.remark).filter(Boolean))].sort(); // Unique Remarks
         const uniqueYears = [...new Set(currentTxs.map(tx => tx.date.substring(0, 4)))].sort().reverse();
 
         symbolDatalist.innerHTML = uniqueSymbols.map(s => `<option value="${s}">`).join('');
         brokerDatalist.innerHTML = uniqueBrokers.filter(b => b!=='N/A').map(b => `<option value="${b}">`).join('');
+        remarkDatalist.innerHTML = uniqueRemarks.map(r => `<option value="${r}">`).join(''); // Populate options
 
         const brokerOptions = '<option value="All">All Brokers</option>' + uniqueBrokers.map(b => `<option value="${b}">${b}</option>`).join('');
         brokerReportFilter.innerHTML = brokerOptions;
-        brokerLedgerFilter.innerHTML = brokerOptions;
 
         dashScriptSelect.innerHTML = uniqueSymbols.filter(s => s !== "CASH").map(s => `<option value="${s}">${s}</option>`).join('');
         dashYearSelect.innerHTML = uniqueYears.map(y => `<option value="${y}">${y}</option>`).join('');
 
         if (currentReportBroker) brokerReportFilter.value = currentReportBroker;
-        if (currentLedgerBroker) brokerLedgerFilter.value = currentLedgerBroker;
-        
         Array.from(dashScriptSelect.options).forEach(opt => { if (currentDashScripts.includes(opt.value)) opt.selected = true; });
         Array.from(dashYearSelect.options).forEach(opt => { if (currentDashYears.includes(opt.value)) opt.selected = true; });
-        
         if (!brokerReportFilter.value) brokerReportFilter.value = 'All';
-        if (!brokerLedgerFilter.value) brokerLedgerFilter.value = 'All';
     }
 
     function renderScriptDash() {
@@ -662,6 +680,25 @@
         let inventory = {}; let brokerPnLMap = {}; let brokerInvestmentMap = {}; let brokerLedgerMap = {}; let overallPnL = 0;
         let hierarchicalPnL = {}; // Structure: { FY: { pnl, months: { Month: { pnl, days: { Day: { pnl, scripts: { Script: pnl }}}}}}}
         
+        // Helper to add data to Hierarchical P&L
+        function addHierarchical(dateStr, symbol, amount) {
+            let d = new Date(dateStr);
+            let year = d.getFullYear(); let month = d.getMonth() + 1; let day = d.getDate();
+            let fy = month >= 4 ? `${year}-${(year+1).toString().slice(2)}` : `${year-1}-${year.toString().slice(2)}`;
+            let monthStr = month.toString().padStart(2, '0');
+            let dayStr = day.toString().padStart(2, '0');
+
+            if (!hierarchicalPnL[fy]) hierarchicalPnL[fy] = { pnl: 0, months: {} };
+            if (!hierarchicalPnL[fy].months[monthStr]) hierarchicalPnL[fy].months[monthStr] = { pnl: 0, days: {} };
+            if (!hierarchicalPnL[fy].months[monthStr].days[dayStr]) hierarchicalPnL[fy].months[monthStr].days[dayStr] = { pnl: 0, scripts: {} };
+            if (!hierarchicalPnL[fy].months[monthStr].days[dayStr].scripts[symbol]) hierarchicalPnL[fy].months[monthStr].days[dayStr].scripts[symbol] = 0;
+
+            hierarchicalPnL[fy].pnl += amount;
+            hierarchicalPnL[fy].months[monthStr].pnl += amount;
+            hierarchicalPnL[fy].months[monthStr].days[dayStr].pnl += amount;
+            hierarchicalPnL[fy].months[monthStr].days[dayStr].scripts[symbol] += amount;
+        }
+        
         let chronTxs = [...currentTxs].sort((a,b) => new Date(a.date) - new Date(b.date));
 
         chronTxs.forEach(tx => {
@@ -670,36 +707,24 @@
             if (!inventory[key]) inventory[key] = { symbol: tx.symbol, broker: b, qty: 0, cost: 0, type: tx.assetClass, pnl: 0 };
             if (!brokerLedgerMap[b]) brokerLedgerMap[b] = 0;
             
-            if (tx.txType === 'Purchase') { inventory[key].qty += tx.qty; inventory[key].cost += tx.total; brokerLedgerMap[b] -= tx.total; } 
+            if (tx.txType === 'Purchase') { 
+                inventory[key].qty += tx.qty; inventory[key].cost += tx.total; brokerLedgerMap[b] -= tx.total; 
+            } 
             else if (tx.txType === 'Sale') {
                 let avgCost = inventory[key].qty > 0 ? (inventory[key].cost / inventory[key].qty) : 0;
                 let cogs = avgCost * tx.qty; let tradePnL = tx.total - cogs; 
                 inventory[key].pnl += tradePnL; overallPnL += tradePnL; 
                 inventory[key].qty -= tx.qty; inventory[key].cost -= cogs; brokerLedgerMap[b] += tx.total; 
-                
-                // --- BUILD HIERARCHICAL P&L ---
-                let d = new Date(tx.date);
-                let year = d.getFullYear();
-                let month = d.getMonth() + 1; // 1-12
-                let day = d.getDate();
-                
-                // Calculate Indian Financial Year (April - March)
-                let fy = month >= 4 ? `${year}-${(year+1).toString().slice(2)}` : `${year-1}-${year.toString().slice(2)}`;
-                let monthStr = month.toString().padStart(2, '0');
-                let dayStr = day.toString().padStart(2, '0');
-
-                if (!hierarchicalPnL[fy]) hierarchicalPnL[fy] = { pnl: 0, months: {} };
-                if (!hierarchicalPnL[fy].months[monthStr]) hierarchicalPnL[fy].months[monthStr] = { pnl: 0, days: {} };
-                if (!hierarchicalPnL[fy].months[monthStr].days[dayStr]) hierarchicalPnL[fy].months[monthStr].days[dayStr] = { pnl: 0, scripts: {} };
-                if (!hierarchicalPnL[fy].months[monthStr].days[dayStr].scripts[tx.symbol]) hierarchicalPnL[fy].months[monthStr].days[dayStr].scripts[tx.symbol] = 0;
-
-                hierarchicalPnL[fy].pnl += tradePnL;
-                hierarchicalPnL[fy].months[monthStr].pnl += tradePnL;
-                hierarchicalPnL[fy].months[monthStr].days[dayStr].pnl += tradePnL;
-                hierarchicalPnL[fy].months[monthStr].days[dayStr].scripts[tx.symbol] += tradePnL;
+                addHierarchical(tx.date, tx.symbol, tradePnL); // ADD TO HIERARCHY
             } 
-            else if (tx.txType === 'Expense') { overallPnL -= tx.total; inventory[key].pnl -= tx.total; brokerLedgerMap[b] -= tx.total; } 
-            else if (tx.txType === 'Income') { overallPnL += tx.total; inventory[key].pnl += tx.total; brokerLedgerMap[b] += tx.total; } 
+            else if (tx.txType === 'Expense') { 
+                overallPnL -= tx.total; inventory[key].pnl -= tx.total; brokerLedgerMap[b] -= tx.total; 
+                addHierarchical(tx.date, tx.symbol, -tx.total); // ADD EXPENSE TO HIERARCHY
+            } 
+            else if (tx.txType === 'Income') { 
+                overallPnL += tx.total; inventory[key].pnl += tx.total; brokerLedgerMap[b] += tx.total; 
+                addHierarchical(tx.date, tx.symbol, tx.total); // ADD INCOME TO HIERARCHY
+            } 
             else if (tx.txType === 'Cash Addition') { brokerLedgerMap[b] += tx.total; } 
             else if (tx.txType === 'Cash Withdrawal') { brokerLedgerMap[b] -= tx.total; }
         });
@@ -807,30 +832,40 @@
         // ---------------------------------------------------------
         // DYNAMIC LEDGER RENDERING (FILTER, SEARCH, SORT, PAGINATE)
         // ---------------------------------------------------------
-        ['date', 'broker', 'assetClass', 'txType', 'symbol', 'qty', 'price', 'total'].forEach(col => {
+        ['date', 'broker', 'assetClass', 'txType', 'symbol', 'remark', 'qty', 'price', 'total'].forEach(col => {
             const el = document.getElementById(`sort-${col}`);
             if(el) el.innerText = (sortCol === col) ? (sortDesc ? ' ↓' : ' ↑') : '';
         });
 
-        const fBroker = document.getElementById('filter-broker').value; 
-        const fAsset = document.getElementById('filter-asset').value; 
-        const fStart = document.getElementById('filter-start').value; 
-        const fEnd = document.getElementById('filter-end').value;
         const searchText = document.getElementById('ledger-search') ? document.getElementById('ledger-search').value.toLowerCase().trim() : '';
+        
+        // Grab values from the new Header Filters
+        const fColDate = document.getElementById('flt-col-date').value.toLowerCase().trim();
+        const fColBroker = document.getElementById('flt-col-broker').value.toLowerCase().trim();
+        const fColAsset = document.getElementById('flt-col-asset').value.toLowerCase().trim();
+        const fColType = document.getElementById('flt-col-type').value.toLowerCase().trim();
+        const fColSymbol = document.getElementById('flt-col-symbol').value.toLowerCase().trim();
+        const fColRemark = document.getElementById('flt-col-remark').value.toLowerCase().trim();
 
         // 1. Filter
         let dynamicTxs = [...currentTxs].filter(tx => {
             let match = true;
-            if(fBroker !== 'All' && tx.broker !== fBroker) match = false;
-            if(fAsset !== 'All' && tx.assetClass !== fAsset) match = false;
-            if(fStart && new Date(tx.date) < new Date(fStart)) match = false;
-            if(fEnd && new Date(tx.date) > new Date(fEnd)) match = false;
             
+            // Apply Column Filters
+            if(fColDate && !(tx.date || '').toLowerCase().includes(fColDate)) match = false;
+            if(fColBroker && !(tx.broker || '').toLowerCase().includes(fColBroker)) match = false;
+            if(fColAsset && !(tx.assetClass || '').toLowerCase().includes(fColAsset)) match = false;
+            if(fColType && !(tx.txType || '').toLowerCase().includes(fColType)) match = false;
+            if(fColSymbol && !(tx.symbol || '').toLowerCase().includes(fColSymbol)) match = false;
+            if(fColRemark && !(tx.remark || '').toLowerCase().includes(fColRemark)) match = false;
+            
+            // Apply Global Search
             if(searchText) {
                 const searchMatch = 
                     (tx.symbol || '').toLowerCase().includes(searchText) || 
                     (tx.broker || '').toLowerCase().includes(searchText) || 
-                    (tx.txType || '').toLowerCase().includes(searchText);
+                    (tx.txType || '').toLowerCase().includes(searchText) ||
+                    (tx.remark || '').toLowerCase().includes(searchText);
                 if(!searchMatch) match = false;
             }
             return match;
@@ -862,11 +897,22 @@
         // 4. Render DOM
         pageTxs.forEach(tx => {
             let badgeClass = tx.txType.toLowerCase().replace(' ', '-');
-            ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td>${tx.broker}</td><td>${tx.assetClass}</td><td><span class="badge ${badgeClass}">${tx.txType}</span></td><td><strong>${tx.symbol}</strong></td><td>${tx.qty}</td><td>${tx.price.toFixed(2)}</td><td><strong>${tx.total.toFixed(2)}</strong></td><td><button class="btn-edit-tx" onclick="editTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteTx('${tx.id}')">Del</button></td></tr>`;
+            ledgerBody.innerHTML += `<tr>
+                <td>${tx.date}</td>
+                <td>${tx.broker}</td>
+                <td>${tx.assetClass}</td>
+                <td><span class="badge ${badgeClass}">${tx.txType}</span></td>
+                <td><strong>${tx.symbol}</strong></td>
+                <td>${tx.remark || '-'}</td>
+                <td>${tx.qty}</td>
+                <td>${tx.price.toFixed(2)}</td>
+                <td><strong>${tx.total.toFixed(2)}</strong></td>
+                <td><button class="btn-edit-tx" onclick="editTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteTx('${tx.id}')">Del</button></td>
+            </tr>`;
         });
         
         if (pageTxs.length === 0) {
-            ledgerBody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 20px; color: #64748b;">No transactions found matching your search.</td></tr>`;
+            ledgerBody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 20px; color: #64748b;">No transactions found matching your search.</td></tr>`;
         }
         
         document.getElementById('page-indicator').innerText = `Page ${currentPage} of ${totalPages}`;
