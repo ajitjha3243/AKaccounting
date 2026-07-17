@@ -213,7 +213,7 @@
                     </div>
                 </div>
                 <div id="script-dash-data" style="display: none;">
-                    <div class="reports-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
                         <div>
                             <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px;">Current Holdings</h3>
                             <div class="table-container">
@@ -230,6 +230,15 @@
                                     <thead><tr><th>Month</th><th>P&L</th></tr></thead>
                                     <tbody id="dash-pnl-body"></tbody>
                                     <tfoot><tr><th style="background-color: var(--card-bg);">Total Realized</th><th id="dash-pnl-total" style="background-color: var(--card-bg);">0.00</th></tr></tfoot>
+                                </table>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px;">Last 2 Sales</h3>
+                            <div class="table-container">
+                                <table>
+                                    <thead><tr><th>Date</th><th>Symbol</th><th>Qty</th><th>Price</th></tr></thead>
+                                    <tbody id="dash-sales-body"></tbody>
                                 </table>
                             </div>
                         </div>
@@ -701,6 +710,20 @@
         const totalEl = document.getElementById('dash-pnl-total');
         totalEl.innerText = (totalPnL > 0 ? '+' : '') + totalPnL.toFixed(2);
         totalEl.className = totalPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
+        
+        // --- ADDED LOGIC FOR RECENT SALES ---
+        const salesBody = document.getElementById('dash-sales-body');
+        salesBody.innerHTML = '';
+        
+        let lastSales = sortedTxs.filter(tx => selectedScripts.includes(tx.symbol) && tx.txType === 'Sale').reverse().slice(0, 2);
+
+        if (lastSales.length > 0) {
+            lastSales.forEach(tx => {
+                salesBody.innerHTML += `<tr><td>${tx.date}</td><td><strong>${tx.symbol}</strong></td><td>${tx.qty.toFixed(4)}</td><td>${tx.price.toFixed(2)}</td></tr>`;
+            });
+        } else {
+            salesBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#666; padding: 15px;">No recent sales</td></tr>`;
+        }
     }
 
     function renderApp() {
