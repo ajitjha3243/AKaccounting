@@ -22,7 +22,14 @@
         #auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
         .auth-box { background: var(--card-bg); padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; border-top: 5px solid var(--primary); }
         .auth-box h2 { margin-top: 0; color: var(--text-color); margin-bottom: 20px;}
-        .auth-box input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
+        .auth-box input[type="email"], .auth-box input[type="password"] { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
+        
+        /* NEW: Workspace Selector Styles */
+        .workspace-selector { background: #f8fafc; border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-bottom: 20px; text-align: left; }
+        .workspace-selector p { margin: 0 0 10px 0; font-size: 0.9rem; font-weight: 600; color: #475569; }
+        .workspace-selector label { display: block; margin-bottom: 8px; cursor: pointer; font-size: 0.95rem; }
+        .workspace-selector input[type="radio"] { margin-right: 8px; transform: scale(1.1); cursor: pointer; }
+
         .auth-buttons { display: flex; gap: 10px; margin-bottom: 15px; }
         .auth-buttons button { flex: 1; }
         .btn-google { background: #ea4335; color: white; width: 100%; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: 0.2s; }
@@ -127,9 +134,18 @@
 </head>
 <body>
 
+<!-- AUTHENTICATION OVERLAY -->
 <div id="auth-overlay">
     <div class="auth-box">
         <h2>Dashboard Login</h2>
+        
+        <!-- NEW: WORKSPACE SELECTOR -->
+        <div class="workspace-selector">
+            <p>Select Module to Load:</p>
+            <label><input type="radio" name="workspace" value="equity" checked> Equity & MF</label>
+            <label><input type="radio" name="workspace" value="other"> Other Purpose</label>
+        </div>
+
         <button id="btn-google-login" class="btn-google" onclick="signInWithGoogle()">Sign in with Google</button>
         <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border);">
         <input type="email" id="auth-email" placeholder="Email Address">
@@ -142,11 +158,12 @@
     </div>
 </div>
 
-<div class="container" id="app-container" style="display: none;">
+<!-- WORKSPACE 1: EQUITY & MF DASHBOARD (Your Existing App) -->
+<div class="container" id="workspace-equity" style="display: none;">
     <div class="header-top">
         <h1>Personal Accounting Dashboard</h1>
         <div class="user-controls">
-            <span id="display-user-email">user@example.com</span>
+            <span class="display-user-email">user@example.com</span>
             <button class="btn-logout" onclick="signOut()">Log Out</button>
         </div>
         <div class="header-actions">
@@ -340,6 +357,21 @@
     </div>
 </div>
 
+<!-- NEW WORKSPACE 2: OTHER PURPOSE DASHBOARD (Blank Canvas) -->
+<div class="container" id="workspace-other" style="display: none;">
+    <div class="header-top">
+        <h1>Other Purpose Dashboard</h1>
+        <div class="user-controls">
+            <span class="display-user-email">user@example.com</span>
+            <button class="btn-logout" onclick="signOut()">Log Out</button>
+        </div>
+    </div>
+    <div class="panel">
+        <h2>Custom Module</h2>
+        <p>This is your blank canvas for the "Other Purpose" workspace. You can build out a completely different dashboard, transaction layout, or feature set here without interfering with the Equity & MF logic.</p>
+    </div>
+</div>
+
 <script>
     // ==========================================
     // Firebase Configuration
@@ -368,17 +400,34 @@
     let sortCol = 'date';
     let sortDesc = true;
 
-    // --- SECURE AUTHENTICATION SYSTEM ---
+    // --- SECURE AUTHENTICATION SYSTEM & WORKSPACE ROUTING ---
     auth.onAuthStateChanged(user => {
         if (user) {
             currentUser = user;
             document.getElementById('auth-overlay').style.display = 'none';
-            document.getElementById('app-container').style.display = 'block';
-            document.getElementById('display-user-email').innerText = user.email || "Logged in";
-            loadTransactions();
+            
+            // Populate all spans holding the user email
+            document.querySelectorAll('.display-user-email').forEach(el => {
+                el.innerText = user.email || "Logged in";
+            });
+
+            // Route to correct workspace based on the radio button ticked
+            const selectedWorkspace = document.querySelector('input[name="workspace"]:checked').value;
+            
+            if (selectedWorkspace === 'equity') {
+                document.getElementById('workspace-equity').style.display = 'block';
+                document.getElementById('workspace-other').style.display = 'none';
+                loadTransactions(); // Only load Equity DB when needed
+            } else if (selectedWorkspace === 'other') {
+                document.getElementById('workspace-equity').style.display = 'none';
+                document.getElementById('workspace-other').style.display = 'block';
+                // You can add a new function here later, e.g. loadOtherTransactions();
+            }
+
         } else {
             currentUser = null;
-            document.getElementById('app-container').style.display = 'none';
+            document.getElementById('workspace-equity').style.display = 'none';
+            document.getElementById('workspace-other').style.display = 'none';
             document.getElementById('auth-overlay').style.display = 'flex';
         }
     });
