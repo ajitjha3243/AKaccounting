@@ -98,13 +98,17 @@
         .sort-icon { font-size: 0.8rem; margin-left: 5px; color: var(--primary); }
         .col-filter { width: 100%; padding: 4px; font-size: 0.8rem; font-weight: normal; margin-top: 6px; border: 1px solid #cbd5e1; border-radius: 3px; box-sizing: border-box; }
 
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
-        .badge.purchase { background: #dcfce7; color: #15803d; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+        .badge.purchase { background: #fef3c7; color: #b45309; }
         .badge.sale { background: #dbeafe; color: #1d4ed8; }
-        .badge.expense { background: #fef3c7; color: #b45309; }
+        .badge.expense { background: #fee2e2; color: #991b1b; }
         .badge.income { background: #e0e7ff; color: #4338ca; }
         .badge.cash-addition { background: #d1fae5; color: #065f46; }
         .badge.cash-withdrawal { background: #fee2e2; color: #991b1b; }
+        .badge.cash-received { background: #d1fae5; color: #065f46; }
+        .badge.cash-paid { background: #fee2e2; color: #991b1b; }
+        .badge.transfer { background: #f1f5f9; color: #475569; }
+        .badge.other { background: #e5e7eb; color: #374151; }
         
         .btn-edit-tx { background: none; border: none; color: var(--primary); cursor: pointer; font-weight: 500; margin-right: 8px; }
         .btn-delete { background: none; border: none; color: var(--danger); cursor: pointer; font-weight: 500; }
@@ -116,7 +120,7 @@
         .pagination-controls button { padding: 8px 16px; border: 1px solid var(--border); background: var(--card-bg); cursor: pointer; border-radius: 4px; font-weight: 600; transition: background 0.2s; }
         .pagination-controls button:hover:not(:disabled) { background: #e2e8f0; }
         .pagination-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
-        #page-indicator { font-weight: 500; color: #64748b; font-size: 0.95rem; }
+        #page-indicator, #other-page-indicator { font-weight: 500; color: #64748b; font-size: 0.95rem; }
 
         .tree-container { font-size: 0.9rem; background: #fff; }
         .tree-node { margin-bottom: 4px; }
@@ -367,6 +371,22 @@
         </div>
     </div>
     
+    <!-- OTHER PURPOSE: SUMMARY DASHBOARD -->
+    <div class="summary-container">
+        <div class="card pnl">
+            <h3>Net Income</h3>
+            <p id="other-net-income">0.00</p>
+        </div>
+        <div class="card cash" style="border-left-color: var(--success);">
+            <h3>Total Inflow (Income/Rec'd)</h3>
+            <p id="other-total-received" class="pnl-positive">0.00</p>
+        </div>
+        <div class="card mf" style="border-left-color: var(--danger);">
+            <h3>Total Outflow (Expense/Paid)</h3>
+            <p id="other-total-paid" class="pnl-negative">0.00</p>
+        </div>
+    </div>
+    
     <div class="main-grid">
         <!-- OTHER PURPOSE: LOG TRANSACTION FORM -->
         <div class="panel" style="margin-bottom: 25px; padding-top: 10px;">
@@ -390,6 +410,8 @@
                             <option value="Expense">Expense</option>
                             <option value="Purchase">Purchase</option>
                             <option value="Sale">Sale</option>
+                            <option value="Cash Received">Cash Received</option>
+                            <option value="Cash Paid">Cash Paid</option>
                             <option value="Transfer">Transfer</option>
                             <option value="Other">Other</option>
                         </select>
@@ -397,11 +419,11 @@
                     
                     <div class="form-group">
                         <label>3) Name of Transaction</label>
-                        <input type="text" id="other-name" placeholder="E.g., Client Payment, Office Supplies" required>
+                        <input type="text" id="other-name" placeholder="E.g., Client Payment, Office Supplies" required style="text-transform: capitalize;">
                     </div>
                     
                     <div class="form-group">
-                        <label>4) Remark</label>
+                        <label>4) Remark (Optional)</label>
                         <input type="text" id="other-remark" placeholder="Optional details">
                     </div>
                     
@@ -430,25 +452,37 @@
         <div class="panel" style="padding-top: 10px;">
             <div class="panel-header" onclick="toggleOtherLedger()">
                 <h2>Raw Transaction Ledger</h2>
-                <span id="other-ledger-icon">▼</span>
+                <span id="other-ledger-icon">▲</span>
             </div>
             <div id="other-ledger-content" class="collapsible-table-content active">
+                <div class="controls-row" style="background: #e0e7ff; border-color: #c7d2fe;">
+                    <div class="form-group" style="flex: 2; min-width: 250px;">
+                        <label>Global Live Search</label>
+                        <input type="text" id="other-ledger-search" placeholder="Start typing to search globally..." oninput="resetOtherPageAndRender()" style="border-color: #a5b4fc;">
+                    </div>
+                    <button class="btn-export" onclick="exportOtherCSV()">Download CSV</button>
+                </div>
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
-                                <th>Date</th>
-                                <th>Type</th>
-                                <th>Name</th>
-                                <th>Remark</th>
-                                <th>Quantity</th>
-                                <th>Rate</th>
-                                <th>Amount</th>
+                                <th class="sortable" onclick="setOtherSort('date')">Date <span class="sort-icon" id="other-sort-date"></span><br><input type="text" id="other-flt-date" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetOtherPageAndRender()"></th>
+                                <th class="sortable" onclick="setOtherSort('txType')">Type <span class="sort-icon" id="other-sort-txType"></span><br><input type="text" id="other-flt-type" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetOtherPageAndRender()"></th>
+                                <th class="sortable" onclick="setOtherSort('name')">Name <span class="sort-icon" id="other-sort-name"></span><br><input type="text" id="other-flt-name" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetOtherPageAndRender()"></th>
+                                <th class="sortable" onclick="setOtherSort('remark')">Remark <span class="sort-icon" id="other-sort-remark"></span><br><input type="text" id="other-flt-remark" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetOtherPageAndRender()"></th>
+                                <th class="sortable" onclick="setOtherSort('qty')">Qty <span class="sort-icon" id="other-sort-qty"></span></th>
+                                <th class="sortable" onclick="setOtherSort('rate')">Rate <span class="sort-icon" id="other-sort-rate"></span></th>
+                                <th class="sortable" onclick="setOtherSort('amount')" style="min-width: 100px;">Amount <span class="sort-icon" id="other-sort-amount"></span><br><div id="other-flt-total-display" style="margin-top: 6px; padding: 4px; font-size: 0.85rem; font-weight: bold; color: var(--primary); background: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 3px; display: none; text-align: center;">0.00</div></th>
                                 <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="other-ledger-body"></tbody>
                     </table>
+                    <div class="pagination-controls">
+                        <button id="other-btn-prev" onclick="changeOtherPage(-1)">Previous</button>
+                        <span id="other-page-indicator">Page 1 of 1</span>
+                        <button id="other-btn-next" onclick="changeOtherPage(1)">Next</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -484,6 +518,9 @@
 
     // --- STATE VARIABLES (OTHER) ---
     let otherTxs = [];
+    let otherCurrentPage = 1;
+    let otherSortCol = 'date';
+    let otherSortDesc = true;
 
     // --- SECURE AUTHENTICATION SYSTEM & WORKSPACE ROUTING ---
     auth.onAuthStateChanged(user => {
@@ -1159,6 +1196,8 @@
             await db.collection('other_transactions').add(txData);
             document.getElementById('other-tx-form').reset();
             document.getElementById('other-date').valueAsDate = new Date();
+            document.getElementById('other-qty').value = '1';
+            document.getElementById('other-rate').value = '0';
         }
         await loadOtherTransactions();
     });
@@ -1190,6 +1229,8 @@
         document.getElementById('other-cancel-edit-btn').style.display = 'none';
         document.getElementById('other-tx-form').reset();
         document.getElementById('other-date').valueAsDate = new Date();
+        document.getElementById('other-qty').value = '1';
+        document.getElementById('other-rate').value = '0';
     }
 
     async function deleteOtherTx(id) {
@@ -1200,15 +1241,134 @@
         }
     }
 
+    function exportOtherCSV() {
+        if (otherTxs.length === 0) return alert("No data to export.");
+        let csvContent = "data:text/csv;charset=utf-8,";
+        const headers = ["ID", "Date", "Transaction Type", "Name", "Remark", "Quantity", "Rate", "Amount"];
+        csvContent += headers.join(",") + "\n";
+        otherTxs.forEach(tx => {
+            const effAmt = ['Expense', 'Purchase', 'Cash Paid'].includes(tx.txType) ? -Math.abs(tx.amount) : Math.abs(tx.amount);
+            csvContent += [tx.id, tx.date, `"${tx.txType}"`, `"${tx.name}"`, `"${tx.remark || ''}"`, tx.qty, tx.rate, effAmt.toFixed(2)].join(",") + "\n";
+        });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Other_Transactions_Export_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // --- OTHER PURPOSE FILTERING & RENDERING LOGIC ---
+    function resetOtherPageAndRender() { otherCurrentPage = 1; renderOtherApp(); }
+    function changeOtherPage(dir) { otherCurrentPage += dir; renderOtherApp(); }
+    function setOtherSort(col) { 
+        if (otherSortCol === col) { otherSortDesc = !otherSortDesc; } 
+        else { otherSortCol = col; otherSortDesc = col === 'date' ? true : false; } 
+        resetOtherPageAndRender(); 
+    }
+
+    // Helper to calculate Negative amounts automatically for Outflows
+    function getOtherEffectiveAmount(tx) {
+        if (['Expense', 'Purchase', 'Cash Paid'].includes(tx.txType)) {
+            return -Math.abs(tx.amount);
+        }
+        return Math.abs(tx.amount); // Treat everything else as positive
+    }
+
     function renderOtherApp() {
         const ledgerBody = document.getElementById('other-ledger-body');
         ledgerBody.innerHTML = '';
         
-        // Sort by date descending
-        let dynamicTxs = [...otherTxs].sort((a,b) => new Date(b.date) - new Date(a.date));
+        // Dashboard Calculations
+        let netIncome = 0;
+        let totalReceived = 0;
+        let totalPaid = 0;
 
-        dynamicTxs.forEach(tx => {
+        otherTxs.forEach(tx => {
+            let effAmt = getOtherEffectiveAmount(tx);
+            netIncome += effAmt;
+            if (effAmt >= 0) totalReceived += effAmt;
+            if (effAmt < 0) totalPaid += Math.abs(effAmt);
+        });
+
+        document.getElementById('other-net-income').innerText = (netIncome > 0 ? '+' : '') + netIncome.toFixed(2);
+        document.getElementById('other-net-income').className = netIncome >= 0 ? 'pnl-positive' : 'pnl-negative';
+        document.getElementById('other-total-received').innerText = totalReceived.toFixed(2);
+        document.getElementById('other-total-paid').innerText = totalPaid.toFixed(2);
+
+        // Sorting & Filtering Setup
+        ['date', 'txType', 'name', 'remark', 'qty', 'rate', 'amount'].forEach(col => {
+            const el = document.getElementById(`other-sort-${col}`);
+            if(el) el.innerText = (otherSortCol === col) ? (otherSortDesc ? ' ↓' : ' ↑') : '';
+        });
+
+        const searchText = (document.getElementById('other-ledger-search') ? document.getElementById('other-ledger-search').value : '').toLowerCase().trim();
+        const fColDate = document.getElementById('other-flt-date').value.toLowerCase().trim();
+        const fColType = document.getElementById('other-flt-type').value.toLowerCase().trim();
+        const fColName = document.getElementById('other-flt-name').value.toLowerCase().trim();
+        const fColRemark = document.getElementById('other-flt-remark').value.toLowerCase().trim();
+
+        let dynamicTxs = [...otherTxs].filter(tx => {
+            let match = true;
+            if(fColDate && !(tx.date || '').toLowerCase().includes(fColDate)) match = false;
+            if(fColType && !(tx.txType || '').toLowerCase().includes(fColType)) match = false;
+            if(fColName && !(tx.name || '').toLowerCase().includes(fColName)) match = false;
+            if(fColRemark && !(tx.remark || '').toLowerCase().includes(fColRemark)) match = false;
+            
+            if(searchText) {
+                const searchMatch = 
+                    (tx.name || '').toLowerCase().includes(searchText) || 
+                    (tx.txType || '').toLowerCase().includes(searchText) ||
+                    (tx.remark || '').toLowerCase().includes(searchText);
+                if(!searchMatch) match = false;
+            }
+            return match;
+        });
+
+        // Toggle Total Sum Badge at the top of the column if filters are applied
+        const totalDisplayEl = document.getElementById('other-flt-total-display');
+        if (fColType || fColName || fColRemark || fColDate || searchText) {
+            let sumTotal = dynamicTxs.reduce((sum, tx) => sum + getOtherEffectiveAmount(tx), 0);
+            totalDisplayEl.innerText = sumTotal.toFixed(2);
+            totalDisplayEl.style.display = 'block';
+        } else {
+            totalDisplayEl.style.display = 'none';
+        }
+
+        // Sorting Engine
+        dynamicTxs.sort((a, b) => {
+            let valA = a[otherSortCol]; let valB = b[otherSortCol];
+            
+            if (otherSortCol === 'date') { 
+                valA = new Date(valA).getTime(); valB = new Date(valB).getTime(); 
+            }
+            else if (['qty', 'rate'].includes(otherSortCol)) { 
+                valA = Number(valA); valB = Number(valB); 
+            }
+            else if (otherSortCol === 'amount') {
+                valA = getOtherEffectiveAmount(a); valB = getOtherEffectiveAmount(b);
+            }
+            else { 
+                valA = String(valA || '').toLowerCase(); valB = String(valB || '').toLowerCase(); 
+            }
+            
+            if (valA < valB) return otherSortDesc ? 1 : -1;
+            if (valA > valB) return otherSortDesc ? -1 : 1;
+            return 0;
+        });
+
+        const totalPages = Math.ceil(dynamicTxs.length / pageSize) || 1;
+        if (otherCurrentPage > totalPages) otherCurrentPage = totalPages;
+        const startIdx = (otherCurrentPage - 1) * pageSize;
+        const pageTxs = dynamicTxs.slice(startIdx, startIdx + pageSize);
+
+        // Rendering Rows
+        pageTxs.forEach(tx => {
             let badgeClass = tx.txType.toLowerCase().replace(' ', '-');
+            let effAmt = getOtherEffectiveAmount(tx);
+            let amtClass = effAmt >= 0 ? 'pnl-positive' : 'pnl-negative';
+
             ledgerBody.innerHTML += `<tr>
                 <td>${tx.date}</td>
                 <td><span class="badge ${badgeClass}">${tx.txType}</span></td>
@@ -1216,7 +1376,7 @@
                 <td>${tx.remark || '-'}</td>
                 <td>${tx.qty}</td>
                 <td>${tx.rate.toFixed(2)}</td>
-                <td><strong>${tx.amount.toFixed(2)}</strong></td>
+                <td class="${amtClass}"><strong>${effAmt.toFixed(2)}</strong></td>
                 <td>
                     <button class="btn-edit-tx" onclick="editOtherTx('${tx.id}')">Edit</button>
                     <button class="btn-delete" onclick="deleteOtherTx('${tx.id}')">Del</button>
@@ -1224,9 +1384,13 @@
             </tr>`;
         });
 
-        if (dynamicTxs.length === 0) {
+        if (pageTxs.length === 0) {
             ledgerBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #64748b;">No transactions logged yet.</td></tr>`;
         }
+
+        document.getElementById('other-page-indicator').innerText = `Page ${otherCurrentPage} of ${totalPages}`;
+        document.getElementById('other-btn-prev').disabled = otherCurrentPage === 1;
+        document.getElementById('other-btn-next').disabled = otherCurrentPage === totalPages;
     }
 
 </script>
