@@ -24,7 +24,7 @@
         .auth-box h2 { margin-top: 0; color: var(--text-color); margin-bottom: 20px;}
         .auth-box input[type="email"], .auth-box input[type="password"] { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
         
-        /* NEW: Workspace Selector Styles */
+        /* Workspace Selector Styles */
         .workspace-selector { background: #f8fafc; border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-bottom: 20px; text-align: left; }
         .workspace-selector p { margin: 0 0 10px 0; font-size: 0.9rem; font-weight: 600; color: #475569; }
         .workspace-selector label { display: block; margin-bottom: 8px; cursor: pointer; font-size: 0.95rem; }
@@ -139,7 +139,7 @@
     <div class="auth-box">
         <h2>Dashboard Login</h2>
         
-        <!-- NEW: WORKSPACE SELECTOR -->
+        <!-- WORKSPACE SELECTOR -->
         <div class="workspace-selector">
             <p>Select Module to Load:</p>
             <label><input type="radio" name="workspace" value="equity" checked> Equity & MF</label>
@@ -158,7 +158,7 @@
     </div>
 </div>
 
-<!-- WORKSPACE 1: EQUITY & MF DASHBOARD (Your Existing App) -->
+<!-- WORKSPACE 1: EQUITY & MF DASHBOARD -->
 <div class="container" id="workspace-equity" style="display: none;">
     <div class="header-top">
         <h1>Personal Accounting Dashboard</h1>
@@ -357,7 +357,7 @@
     </div>
 </div>
 
-<!-- NEW WORKSPACE 2: OTHER PURPOSE DASHBOARD (Blank Canvas) -->
+<!-- WORKSPACE 2: OTHER PURPOSE DASHBOARD -->
 <div class="container" id="workspace-other" style="display: none;">
     <div class="header-top">
         <h1>Other Purpose Dashboard</h1>
@@ -366,9 +366,92 @@
             <button class="btn-logout" onclick="signOut()">Log Out</button>
         </div>
     </div>
-    <div class="panel">
-        <h2>Custom Module</h2>
-        <p>This is your blank canvas for the "Other Purpose" workspace. You can build out a completely different dashboard, transaction layout, or feature set here without interfering with the Equity & MF logic.</p>
+    
+    <div class="main-grid">
+        <!-- OTHER PURPOSE: LOG TRANSACTION FORM -->
+        <div class="panel" style="margin-bottom: 25px; padding-top: 10px;">
+            <div class="panel-header" onclick="toggleOtherLogTx()">
+                <h2>Log Transaction</h2>
+                <span id="other-log-tx-icon">▼</span>
+            </div>
+            <div id="other-log-tx-content" class="tx-form-container active">
+                <form id="other-tx-form">
+                    <input type="hidden" id="other-tx-id">
+                    
+                    <div class="form-group">
+                        <label>1) Date</label>
+                        <input type="date" id="other-date" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>2) Transaction Type</label>
+                        <select id="other-tx-type" required>
+                            <option value="Income">Income</option>
+                            <option value="Expense">Expense</option>
+                            <option value="Purchase">Purchase</option>
+                            <option value="Sale">Sale</option>
+                            <option value="Transfer">Transfer</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>3) Name of Transaction</label>
+                        <input type="text" id="other-name" placeholder="E.g., Client Payment, Office Supplies" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>4) Remark</label>
+                        <input type="text" id="other-remark" placeholder="Optional details">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>5) Quantity</label>
+                        <input type="number" id="other-qty" step="any" min="0" value="1" required oninput="calcOtherAmount()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>6) Rate</label>
+                        <input type="number" id="other-rate" step="any" min="0" value="0" required oninput="calcOtherAmount()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>7) Amount</label>
+                        <input type="number" id="other-amount" step="any" value="0" required>
+                    </div>
+                    
+                    <button type="submit" id="other-submit-btn" class="btn-primary">Add Transaction</button>
+                    <button type="button" id="other-cancel-edit-btn" style="display:none; margin-top: 10px; background:#64748b;" class="btn-primary" onclick="cancelOtherEdit()">Cancel Edit</button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- OTHER PURPOSE: RAW TRANSACTION LEDGER -->
+        <div class="panel" style="padding-top: 10px;">
+            <div class="panel-header" onclick="toggleOtherLedger()">
+                <h2>Raw Transaction Ledger</h2>
+                <span id="other-ledger-icon">▼</span>
+            </div>
+            <div id="other-ledger-content" class="collapsible-table-content active">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Name</th>
+                                <th>Remark</th>
+                                <th>Quantity</th>
+                                <th>Rate</th>
+                                <th>Amount</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="other-ledger-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -390,15 +473,17 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // --- STATE VARIABLES ---
+    // --- STATE VARIABLES (EQUITY) ---
     let currentUser = null; 
     let currentTxs = [];    
-    let livePrices = {}; // Global cache store for live prices keyed by Symbol
-    
+    let livePrices = {}; 
     let currentPage = 1;
     const pageSize = 15;
     let sortCol = 'date';
     let sortDesc = true;
+
+    // --- STATE VARIABLES (OTHER) ---
+    let otherTxs = [];
 
     // --- SECURE AUTHENTICATION SYSTEM & WORKSPACE ROUTING ---
     auth.onAuthStateChanged(user => {
@@ -411,17 +496,21 @@
                 el.innerText = user.email || "Logged in";
             });
 
+            // Set default dates
+            document.getElementById('date').valueAsDate = new Date();
+            document.getElementById('other-date').valueAsDate = new Date();
+
             // Route to correct workspace based on the radio button ticked
             const selectedWorkspace = document.querySelector('input[name="workspace"]:checked').value;
             
             if (selectedWorkspace === 'equity') {
                 document.getElementById('workspace-equity').style.display = 'block';
                 document.getElementById('workspace-other').style.display = 'none';
-                loadTransactions(); // Only load Equity DB when needed
+                loadTransactions(); 
             } else if (selectedWorkspace === 'other') {
                 document.getElementById('workspace-equity').style.display = 'none';
                 document.getElementById('workspace-other').style.display = 'block';
-                // You can add a new function here later, e.g. loadOtherTransactions();
+                loadOtherTransactions();
             }
 
         } else {
@@ -459,6 +548,10 @@
 
     function signOut() { auth.signOut(); }
 
+    /* ======================================================================
+       WORKSPACE 1: EQUITY & MF LOGIC (Existing)
+       ====================================================================== */
+    
     async function loadTransactions() {
         if(!currentUser) return;
         const snapshot = await db.collection('transactions').where("userId", "==", currentUser.uid).get();
@@ -466,68 +559,37 @@
         renderApp();
     }
 
-    // --- LIVE MARKET DATA OVERLAY MODULE ---
     async function fetchLivePrices() {
-        // Collect all unique non-CASH stock symbols currently held
         let inventorySymbols = new Set();
         currentTxs.forEach(tx => {
-            if (tx.symbol && tx.symbol !== 'CASH') {
-                inventorySymbols.add(tx.symbol.toUpperCase().trim());
-            }
+            if (tx.symbol && tx.symbol !== 'CASH') { inventorySymbols.add(tx.symbol.toUpperCase().trim()); }
         });
-
         const symbolsArray = Array.from(inventorySymbols);
-        if (symbolsArray.length === 0) {
-            alert("No symbols available to check live prices.");
-            return;
-        }
-
+        if (symbolsArray.length === 0) { alert("No symbols available to check live prices."); return; }
         const apiKey = document.getElementById('live-api-key').value.trim();
         alert(`Fetching real-time market snapshots for ${symbolsArray.length} items...`);
 
-        // Perform parallel async fetch targeting CORS-compliant endpoints
-        // Appends market flags dynamically (.NS) for standard India setups if suffix is missing
         for (let sym of symbolsArray) {
             let apiSymbol = sym;
-            if (!sym.includes('.')) {
-                apiSymbol = sym + ".NS"; // Map dynamically to NSE layout
-            }
-            
+            if (!sym.includes('.')) { apiSymbol = sym + ".NS"; }
             try {
-                // Configures clean endpoint access (e.g., standard free quote tracking)
                 let url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${apiSymbol}`;
-                // Optional failover to public endpoints if keys are dropped
-                if(apiKey) {
-                    url = `https://finnhub.io/api/v1/quote?symbol=${sym}&token=${apiKey}`;
-                }
-                
-                // Using standard open-cors client wrapper
+                if(apiKey) { url = `https://finnhub.io/api/v1/quote?symbol=${sym}&token=${apiKey}`; }
                 const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
                 if (res.ok) {
                     const wrapData = await res.json();
                     const data = JSON.parse(wrapData.contents);
-                    
                     let price = 0;
                     if (data.quoteResponse && data.quoteResponse.result && data.quoteResponse.result[0]) {
                         price = data.quoteResponse.result[0].regularMarketPrice;
-                    } else if (data.c) {
-                        price = data.c; // Finnhub output key mapping
-                    }
-                    
-                    if (price > 0) {
-                        livePrices[sym] = price;
-                    }
+                    } else if (data.c) { price = data.c; }
+                    if (price > 0) { livePrices[sym] = price; }
                 }
-            } catch (err) {
-                console.warn(`Failed fetching real time value for: ${sym}`, err);
-            }
+            } catch (err) { console.warn(`Failed fetching real time value for: ${sym}`, err); }
         }
-        
-        // Re-render dashboard components with new loaded balances
         renderApp();
     }
 
-    // --- UI INTERACTIONS ---
     function toggleLogTx(forceOpen = false) { const content = document.getElementById('log-tx-content'); const icon = document.getElementById('log-tx-icon'); if (forceOpen || !content.classList.contains('active')) { content.classList.add('active'); icon.innerText = '▲'; } else { content.classList.remove('active'); icon.innerText = '▼'; } }
     function toggleScriptDash(forceOpen = false) { const content = document.getElementById('script-dash-content'); const icon = document.getElementById('script-dash-icon'); if (forceOpen || !content.classList.contains('active')) { content.classList.add('active'); icon.innerText = '▲'; } else { content.classList.remove('active'); icon.innerText = '▼'; } }
     function toggleHoldings() { const content = document.getElementById('holdings-content'); const icon = document.getElementById('holdings-icon'); if (!content.classList.contains('active')) { content.classList.add('active'); icon.innerText = '▲'; } else { content.classList.remove('active'); icon.innerText = '▼'; } }
@@ -542,8 +604,6 @@
             document.getElementById('symbol-input').value = '';
         }
     }
-
-    document.getElementById('date').valueAsDate = new Date();
 
     document.getElementById('tx-form').addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -760,12 +820,9 @@
         totalEl.innerText = (totalPnL > 0 ? '+' : '') + totalPnL.toFixed(2);
         totalEl.className = totalPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
         
-        // --- ADDED LOGIC FOR RECENT SALES ---
         const salesBody = document.getElementById('dash-sales-body');
         salesBody.innerHTML = '';
-        
         let lastSales = sortedTxs.filter(tx => selectedScripts.includes(tx.symbol) && tx.txType === 'Sale').reverse().slice(0, 2);
-
         if (lastSales.length > 0) {
             lastSales.forEach(tx => {
                 salesBody.innerHTML += `<tr><td>${tx.date}</td><td><strong>${tx.symbol}</strong></td><td>${tx.qty.toFixed(4)}</td><td>${tx.price.toFixed(2)}</td></tr>`;
@@ -853,7 +910,6 @@
                 if (!brokerInvestmentMap[item.broker]) brokerInvestmentMap[item.broker] = 0;
                 brokerInvestmentMap[item.broker] += item.cost;
                 
-                // Fetch cached real time prices if loaded
                 let livePrice = livePrices[item.symbol] || null;
                 let currentValStr = "-";
                 let unrealizedPnLStr = "-";
@@ -893,7 +949,6 @@
         });
         Object.keys(brokerPnLMap).sort().forEach(b => { let p = brokerPnLMap[b]; if (p !== 0) brokerPnlBody.innerHTML += `<tr><td><strong>${b}</strong></td><td class="${p>0?'pnl-positive':'pnl-negative'}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`; });
 
-        // --- RENDER HIERARCHICAL TREE HTML ---
         let treeHtml = '';
         const monthNames = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -962,7 +1017,6 @@
 
         renderScriptDash();
 
-        // --- LEDGER FILTER ENGINE ---
         ['date', 'broker', 'assetClass', 'txType', 'symbol', 'remark', 'qty', 'price', 'total'].forEach(col => {
             const el = document.getElementById(`sort-${col}`);
             if(el) el.innerText = (sortCol === col) ? (sortDesc ? ' ↓' : ' ↑') : '';
@@ -1044,6 +1098,137 @@
         document.getElementById('btn-prev').disabled = currentPage === 1;
         document.getElementById('btn-next').disabled = currentPage === totalPages;
     }
+
+
+    /* ======================================================================
+       WORKSPACE 2: OTHER PURPOSE LOGIC (NEW)
+       ====================================================================== */
+       
+    async function loadOtherTransactions() {
+        if(!currentUser) return;
+        const snapshot = await db.collection('other_transactions').where("userId", "==", currentUser.uid).get();
+        otherTxs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderOtherApp();
+    }
+
+    function toggleOtherLogTx(forceOpen = false) { 
+        const content = document.getElementById('other-log-tx-content'); 
+        const icon = document.getElementById('other-log-tx-icon'); 
+        if (forceOpen || !content.classList.contains('active')) { 
+            content.classList.add('active'); icon.innerText = '▲'; 
+        } else { 
+            content.classList.remove('active'); icon.innerText = '▼'; 
+        } 
+    }
+    
+    function toggleOtherLedger(forceOpen = false) { 
+        const content = document.getElementById('other-ledger-content'); 
+        const icon = document.getElementById('other-ledger-icon'); 
+        if (forceOpen || !content.classList.contains('active')) { 
+            content.classList.add('active'); icon.innerText = '▲'; 
+        } else { 
+            content.classList.remove('active'); icon.innerText = '▼'; 
+        } 
+    }
+
+    function calcOtherAmount() {
+        let qty = parseFloat(document.getElementById('other-qty').value) || 0;
+        let rate = parseFloat(document.getElementById('other-rate').value) || 0;
+        document.getElementById('other-amount').value = (qty * rate).toFixed(2);
+    }
+
+    document.getElementById('other-tx-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const txId = document.getElementById('other-tx-id').value; 
+        
+        const txData = {
+            userId: currentUser.uid,
+            date: document.getElementById('other-date').value,
+            txType: document.getElementById('other-tx-type').value,
+            name: document.getElementById('other-name').value.trim(),
+            remark: document.getElementById('other-remark').value.trim(),
+            qty: parseFloat(document.getElementById('other-qty').value),
+            rate: parseFloat(document.getElementById('other-rate').value),
+            amount: parseFloat(document.getElementById('other-amount').value)
+        };
+
+        if (txId) {
+            await db.collection('other_transactions').doc(txId).update(txData);
+            cancelOtherEdit();
+        } else {
+            await db.collection('other_transactions').add(txData);
+            document.getElementById('other-tx-form').reset();
+            document.getElementById('other-date').valueAsDate = new Date();
+        }
+        await loadOtherTransactions();
+    });
+
+    async function editOtherTx(id) {
+        const docRef = await db.collection('other_transactions').doc(id).get();
+        if (!docRef.exists) return;
+        const tx = docRef.data();
+        
+        document.getElementById('other-tx-id').value = id;
+        document.getElementById('other-date').value = tx.date;
+        document.getElementById('other-tx-type').value = tx.txType;
+        document.getElementById('other-name').value = tx.name;
+        document.getElementById('other-remark').value = tx.remark || '';
+        document.getElementById('other-qty').value = tx.qty;
+        document.getElementById('other-rate').value = tx.rate;
+        document.getElementById('other-amount').value = tx.amount;
+        
+        document.getElementById('other-submit-btn').innerText = 'Update Transaction';
+        document.getElementById('other-cancel-edit-btn').style.display = 'block';
+        
+        toggleOtherLogTx(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelOtherEdit() {
+        document.getElementById('other-tx-id').value = '';
+        document.getElementById('other-submit-btn').innerText = 'Add Transaction';
+        document.getElementById('other-cancel-edit-btn').style.display = 'none';
+        document.getElementById('other-tx-form').reset();
+        document.getElementById('other-date').valueAsDate = new Date();
+    }
+
+    async function deleteOtherTx(id) {
+        if (confirm("Are you sure you want to delete this transaction?")) {
+            await db.collection('other_transactions').doc(id).delete();
+            if (document.getElementById('other-tx-id').value === id) cancelOtherEdit();
+            await loadOtherTransactions();
+        }
+    }
+
+    function renderOtherApp() {
+        const ledgerBody = document.getElementById('other-ledger-body');
+        ledgerBody.innerHTML = '';
+        
+        // Sort by date descending
+        let dynamicTxs = [...otherTxs].sort((a,b) => new Date(b.date) - new Date(a.date));
+
+        dynamicTxs.forEach(tx => {
+            let badgeClass = tx.txType.toLowerCase().replace(' ', '-');
+            ledgerBody.innerHTML += `<tr>
+                <td>${tx.date}</td>
+                <td><span class="badge ${badgeClass}">${tx.txType}</span></td>
+                <td><strong>${tx.name}</strong></td>
+                <td>${tx.remark || '-'}</td>
+                <td>${tx.qty}</td>
+                <td>${tx.rate.toFixed(2)}</td>
+                <td><strong>${tx.amount.toFixed(2)}</strong></td>
+                <td>
+                    <button class="btn-edit-tx" onclick="editOtherTx('${tx.id}')">Edit</button>
+                    <button class="btn-delete" onclick="deleteOtherTx('${tx.id}')">Del</button>
+                </td>
+            </tr>`;
+        });
+
+        if (dynamicTxs.length === 0) {
+            ledgerBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #64748b;">No transactions logged yet.</td></tr>`;
+        }
+    }
+
 </script>
 </body>
 </html>
