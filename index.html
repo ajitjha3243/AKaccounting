@@ -759,11 +759,12 @@
         chronTxs.forEach(tx => {
             let b = tx.broker || 'N/A'; let key = `${tx.symbol}::${b}`;
             
-            if (!inventory[key]) inventory[key] = { symbol: tx.symbol, broker: b, qty: 0, cost: 0, type: tx.assetClass, pnl: 0 };
+            if (!inventory[key]) inventory[key] = { symbol: tx.symbol, broker: b, qty: 0, cost: 0, type: tx.assetClass, pnl: 0, hasTrade: false };
             if (!brokerLedgerMap[b]) brokerLedgerMap[b] = 0;
             
             if (tx.txType === 'Purchase') { 
                 inventory[key].qty += tx.qty; inventory[key].cost += tx.total; brokerLedgerMap[b] -= tx.total; 
+                inventory[key].hasTrade = true;
             } 
             else if (tx.txType === 'Sale') {
                 let avgCost = inventory[key].qty > 0 ? (inventory[key].cost / inventory[key].qty) : 0;
@@ -771,6 +772,7 @@
                 inventory[key].pnl += tradePnL; overallPnL += tradePnL; 
                 inventory[key].qty -= tx.qty; inventory[key].cost -= cogs; brokerLedgerMap[b] += tx.total; 
                 addHierarchical(tx.date, tx.symbol, tradePnL); 
+                inventory[key].hasTrade = true;
             } 
             else if (tx.txType === 'Expense') { 
                 overallPnL -= tx.total; inventory[key].pnl -= tx.total; brokerLedgerMap[b] -= tx.total; 
@@ -779,6 +781,7 @@
             else if (tx.txType === 'Income') { 
                 overallPnL += tx.total; inventory[key].pnl += tx.total; brokerLedgerMap[b] += tx.total; 
                 addHierarchical(tx.date, tx.symbol, tx.total); 
+                inventory[key].hasTrade = true;
             } 
             else if (tx.txType === 'Cash Addition') { brokerLedgerMap[b] += tx.total; } 
             else if (tx.txType === 'Cash Withdrawal') { brokerLedgerMap[b] -= tx.total; }
@@ -827,7 +830,10 @@
                     <td style="background: #f0fdf4;" class="${pnlStyleClass}">${unrealizedPnLStr}</td>
                 </tr>`;
             }
-            if (item.pnl !== 0) { let c = item.pnl > 0 ? 'pnl-positive' : (item.pnl < 0 ? 'pnl-negative' : 'pnl-neutral'); pnlBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${item.broker}</td><td>${item.type}</td><td class="${c}">${item.pnl>0?'+':''}${item.pnl.toFixed(2)}</td></tr>`; }
+            if (item.pnl !== 0 && item.hasTrade && item.symbol.toUpperCase() !== 'EXPENSE' && item.symbol.toUpperCase() !== 'CASH') {
+                let c = item.pnl > 0 ? 'pnl-positive' : (item.pnl < 0 ? 'pnl-negative' : 'pnl-neutral');
+                pnlBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${item.broker}</td><td>${item.type}</td><td class="${c}">${item.pnl>0?'+':''}${item.pnl.toFixed(2)}</td></tr>`;
+            }
         });
 
         Object.keys(brokerInvestmentMap).sort().forEach(b => brokerInvestmentBody.innerHTML += `<tr><td><strong>${b}</strong></td><td>${brokerInvestmentMap[b].toFixed(2)}</td></tr>`);
