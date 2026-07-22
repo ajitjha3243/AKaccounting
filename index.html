@@ -387,6 +387,27 @@
         </div>
     </div>
     
+    <!-- NEW: PARTY BALANCE DASHBOARD -->
+    <div class="panel" style="padding-top: 10px; margin-bottom: 25px;">
+        <div class="panel-header" onclick="toggleOtherPartyDash()">
+            <h2>Transaction Party Balances</h2>
+            <span id="other-party-dash-icon">▲</span>
+        </div>
+        <div id="other-party-dash-content" class="collapsible-table-content active">
+            <div class="table-container" style="max-width: 600px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Transaction Party Name</th>
+                            <th>Net Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="other-party-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div class="main-grid">
         <!-- OTHER PURPOSE: LOG TRANSACTION FORM -->
         <div class="panel" style="margin-bottom: 25px; padding-top: 10px;">
@@ -418,8 +439,8 @@
                     </div>
                     
                     <div class="form-group">
-                        <label>3) Name of Transaction</label>
-                        <input type="text" id="other-name" placeholder="E.g., Client Payment, Office Supplies" required style="text-transform: capitalize;">
+                        <label>3) Transaction Party Name</label>
+                        <input type="text" id="other-name" placeholder="E.g., Client A, Vendor B, Office Supplies" required style="text-transform: capitalize;">
                     </div>
                     
                     <div class="form-group">
@@ -468,7 +489,7 @@
                             <tr>
                                 <th class="sortable" onclick="setOtherSort('date')">Date <span class="sort-icon" id="other-sort-date"></span><br><input type="text" id="other-flt-date" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetOtherPageAndRender()"></th>
                                 <th class="sortable" onclick="setOtherSort('txType')">Type <span class="sort-icon" id="other-sort-txType"></span><br><input type="text" id="other-flt-type" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetOtherPageAndRender()"></th>
-                                <th class="sortable" onclick="setOtherSort('name')">Name <span class="sort-icon" id="other-sort-name"></span><br><input type="text" id="other-flt-name" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetOtherPageAndRender()"></th>
+                                <th class="sortable" onclick="setOtherSort('name')">Party Name <span class="sort-icon" id="other-sort-name"></span><br><input type="text" id="other-flt-name" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetOtherPageAndRender()"></th>
                                 <th class="sortable" onclick="setOtherSort('remark')">Remark <span class="sort-icon" id="other-sort-remark"></span><br><input type="text" id="other-flt-remark" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetOtherPageAndRender()"></th>
                                 <th class="sortable" onclick="setOtherSort('qty')">Qty <span class="sort-icon" id="other-sort-qty"></span></th>
                                 <th class="sortable" onclick="setOtherSort('rate')">Rate <span class="sort-icon" id="other-sort-rate"></span></th>
@@ -1168,6 +1189,16 @@
         } 
     }
 
+    function toggleOtherPartyDash(forceOpen = false) { 
+        const content = document.getElementById('other-party-dash-content'); 
+        const icon = document.getElementById('other-party-dash-icon'); 
+        if (forceOpen || !content.classList.contains('active')) { 
+            content.classList.add('active'); icon.innerText = '▲'; 
+        } else { 
+            content.classList.remove('active'); icon.innerText = '▼'; 
+        } 
+    }
+
     function calcOtherAmount() {
         let qty = parseFloat(document.getElementById('other-qty').value) || 0;
         let rate = parseFloat(document.getElementById('other-rate').value) || 0;
@@ -1176,30 +1207,45 @@
 
     document.getElementById('other-tx-form').addEventListener('submit', async function(e) {
         e.preventDefault();
-        const txId = document.getElementById('other-tx-id').value; 
         
-        const txData = {
-            userId: currentUser.uid,
-            date: document.getElementById('other-date').value,
-            txType: document.getElementById('other-tx-type').value,
-            name: document.getElementById('other-name').value.trim(),
-            remark: document.getElementById('other-remark').value.trim(),
-            qty: parseFloat(document.getElementById('other-qty').value),
-            rate: parseFloat(document.getElementById('other-rate').value),
-            amount: parseFloat(document.getElementById('other-amount').value)
-        };
+        const btn = document.getElementById('other-submit-btn');
+        btn.disabled = true;
+        btn.innerText = "Saving...";
+        
+        try {
+            const txId = document.getElementById('other-tx-id').value; 
+            
+            const txData = {
+                userId: currentUser.uid,
+                date: document.getElementById('other-date').value,
+                txType: document.getElementById('other-tx-type').value,
+                name: document.getElementById('other-name').value.trim(),
+                remark: document.getElementById('other-remark').value.trim(),
+                qty: parseFloat(document.getElementById('other-qty').value) || 0,
+                rate: parseFloat(document.getElementById('other-rate').value) || 0,
+                amount: parseFloat(document.getElementById('other-amount').value) || 0
+            };
 
-        if (txId) {
-            await db.collection('other_transactions').doc(txId).update(txData);
-            cancelOtherEdit();
-        } else {
-            await db.collection('other_transactions').add(txData);
-            document.getElementById('other-tx-form').reset();
-            document.getElementById('other-date').valueAsDate = new Date();
-            document.getElementById('other-qty').value = '1';
-            document.getElementById('other-rate').value = '0';
+            if (txId) {
+                await db.collection('other_transactions').doc(txId).update(txData);
+                cancelOtherEdit();
+            } else {
+                await db.collection('other_transactions').add(txData);
+                document.getElementById('other-tx-form').reset();
+                document.getElementById('other-date').valueAsDate = new Date();
+                document.getElementById('other-qty').value = '1';
+                document.getElementById('other-rate').value = '0';
+                document.getElementById('other-amount').value = '0';
+            }
+            await loadOtherTransactions();
+            
+        } catch (error) {
+            alert("Error saving transaction: " + error.message);
+            console.error(error);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = document.getElementById('other-tx-id').value ? "Update Transaction" : "Add Transaction";
         }
-        await loadOtherTransactions();
     });
 
     async function editOtherTx(id) {
@@ -1231,6 +1277,7 @@
         document.getElementById('other-date').valueAsDate = new Date();
         document.getElementById('other-qty').value = '1';
         document.getElementById('other-rate').value = '0';
+        document.getElementById('other-amount').value = '0';
     }
 
     async function deleteOtherTx(id) {
@@ -1244,7 +1291,7 @@
     function exportOtherCSV() {
         if (otherTxs.length === 0) return alert("No data to export.");
         let csvContent = "data:text/csv;charset=utf-8,";
-        const headers = ["ID", "Date", "Transaction Type", "Name", "Remark", "Quantity", "Rate", "Amount"];
+        const headers = ["ID", "Date", "Transaction Type", "Transaction Party Name", "Remark", "Quantity", "Rate", "Amount"];
         csvContent += headers.join(",") + "\n";
         otherTxs.forEach(tx => {
             const effAmt = ['Expense', 'Purchase', 'Cash Paid'].includes(tx.txType) ? -Math.abs(tx.amount) : Math.abs(tx.amount);
@@ -1280,22 +1327,47 @@
         const ledgerBody = document.getElementById('other-ledger-body');
         ledgerBody.innerHTML = '';
         
-        // Dashboard Calculations
+        // Dashboard Calculations & Party Balances
         let netIncome = 0;
         let totalReceived = 0;
         let totalPaid = 0;
+        let partyBalances = {};
 
         otherTxs.forEach(tx => {
             let effAmt = getOtherEffectiveAmount(tx);
             netIncome += effAmt;
             if (effAmt >= 0) totalReceived += effAmt;
             if (effAmt < 0) totalPaid += Math.abs(effAmt);
+            
+            // Build Party Balance Map
+            let partyName = tx.name || 'Unknown';
+            if (!partyBalances[partyName]) partyBalances[partyName] = 0;
+            partyBalances[partyName] += effAmt;
         });
 
+        // Update Top Summary Dashboard
         document.getElementById('other-net-income').innerText = (netIncome > 0 ? '+' : '') + netIncome.toFixed(2);
         document.getElementById('other-net-income').className = netIncome >= 0 ? 'pnl-positive' : 'pnl-negative';
         document.getElementById('other-total-received').innerText = totalReceived.toFixed(2);
         document.getElementById('other-total-paid').innerText = totalPaid.toFixed(2);
+
+        // Update Party Balance Ledger Table
+        const partyBody = document.getElementById('other-party-body');
+        partyBody.innerHTML = '';
+        let partyKeys = Object.keys(partyBalances).sort();
+        
+        if (partyKeys.length === 0) {
+            partyBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#666; padding: 15px;">No party data found.</td></tr>`;
+        } else {
+            partyKeys.forEach(party => {
+                let bal = partyBalances[party];
+                let c = bal > 0 ? 'pnl-positive' : (bal < 0 ? 'pnl-negative' : 'pnl-neutral');
+                partyBody.innerHTML += `<tr>
+                    <td><strong>${party}</strong></td>
+                    <td class="${c}">${bal > 0 ? '+' : ''}${bal.toFixed(2)}</td>
+                </tr>`;
+            });
+        }
 
         // Sorting & Filtering Setup
         ['date', 'txType', 'name', 'remark', 'qty', 'rate', 'amount'].forEach(col => {
