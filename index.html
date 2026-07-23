@@ -22,7 +22,7 @@
         #auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
         .auth-box { background: var(--card-bg); padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; border-top: 5px solid var(--primary); }
         .auth-box h2 { margin-top: 0; color: var(--text-color); margin-bottom: 20px;}
-        .auth-box input[type="email"], .auth-box input[type="password"] { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
+        .auth-box input[type="email"], .auth-box input[type="password"] { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
         
         /* Workspace Selector Styles */
         .workspace-selector { background: #f8fafc; border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-bottom: 20px; text-align: left; }
@@ -30,11 +30,14 @@
         .workspace-selector label { display: block; margin-bottom: 8px; cursor: pointer; font-size: 0.95rem; }
         .workspace-selector input[type="radio"] { margin-right: 8px; transform: scale(1.1); cursor: pointer; }
 
-        .auth-buttons { display: flex; gap: 10px; margin-bottom: 15px; }
+        .auth-buttons { display: flex; gap: 10px; margin-bottom: 15px; margin-top: 15px; }
         .auth-buttons button { flex: 1; }
         .btn-google { background: #ea4335; color: white; width: 100%; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: 0.2s; }
         .btn-google:hover { background: #c5221f; }
         
+        .forgot-link { font-size: 0.85rem; color: var(--primary); text-decoration: none; cursor: pointer; display: inline-block; margin-bottom: 10px; font-weight: 500; }
+        .forgot-link:hover { text-decoration: underline; }
+
         .header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 15px;}
         .user-controls { display: flex; align-items: center; gap: 15px; background: #e2e8f0; padding: 8px 15px; border-radius: 8px; font-weight: 500; font-size: 0.95rem; }
         .btn-logout { background: #64748b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
@@ -154,11 +157,17 @@
         <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border);">
         <input type="email" id="auth-email" placeholder="Email Address">
         <input type="password" id="auth-password" placeholder="Password">
+        
+        <!-- FORGOT PASSWORD LINK -->
+        <div style="text-align: right;">
+            <a class="forgot-link" onclick="forgotPassword()">Forgot Password?</a>
+        </div>
+
         <div class="auth-buttons">
             <button class="btn-primary" onclick="signInWithEmail()">Log In</button>
             <button class="btn-secondary" onclick="signUpWithEmail()">Sign Up</button>
         </div>
-        <p id="auth-error" style="color: var(--danger); font-size: 0.85rem; margin: 0; display: none;"></p>
+        <p id="auth-error" style="color: var(--danger); font-size: 0.85rem; margin: 0; display: none; word-break: break-word; text-align: left;"></p>
     </div>
 </div>
 
@@ -387,7 +396,7 @@
         </div>
     </div>
     
-    <!-- NEW: PARTY BALANCE DASHBOARD -->
+    <!-- PARTY BALANCE DASHBOARD -->
     <div class="panel" style="padding-top: 10px; margin-bottom: 25px;">
         <div class="panel-header" onclick="toggleOtherPartyDash()">
             <h2>Transaction Party Balances</h2>
@@ -585,9 +594,19 @@
         errEl.style.display = 'block';
     }
 
+    // --- GOOGLE SIGN IN WITH ERROR DIAGNOSTICS ---
     function signInWithGoogle() {
         const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).catch(error => showError(error.message));
+        auth.signInWithPopup(provider).catch(error => {
+            console.error("Google Auth Error:", error);
+            if (error.code === 'auth/operation-not-allowed') {
+                showError("Google sign-in is not enabled in Firebase Console. Go to Authentication > Sign-in method in Firebase Console to enable it.");
+            } else if (error.code === 'auth/unauthorized-domain') {
+                showError("This domain is not authorized in Firebase Console for Google auth.");
+            } else {
+                showError(error.message);
+            }
+        });
     }
 
     function signInWithEmail() {
@@ -602,6 +621,22 @@
         const pwd = document.getElementById('auth-password').value;
         if(!email || !pwd) return showError("Please enter email and password.");
         auth.createUserWithEmailAndPassword(email, pwd).catch(error => showError(error.message));
+    }
+
+    // --- FORGOT PASSWORD / RESET PASSWORD FUNCTION ---
+    function forgotPassword() {
+        const email = document.getElementById('auth-email').value.trim();
+        if (!email) {
+            return showError("Please enter your email address in the field above first, then click 'Forgot Password?'.");
+        }
+        auth.sendPasswordResetEmail(email)
+            .then(() => {
+                alert(`Password reset link sent to ${email}! Please check your email inbox (and spam folder).`);
+                document.getElementById('auth-error').style.display = 'none';
+            })
+            .catch(error => {
+                showError("Reset error: " + error.message);
+            });
     }
 
     function signOut() { auth.signOut(); }
@@ -1159,7 +1194,7 @@
 
 
     /* ======================================================================
-       WORKSPACE 2: OTHER PURPOSE LOGIC (NEW)
+       WORKSPACE 2: OTHER PURPOSE LOGIC
        ====================================================================== */
        
     async function loadOtherTransactions() {
