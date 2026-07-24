@@ -395,7 +395,7 @@
         </div>
     </div>
 
-    <!-- NEW: DRILLDOWN DASHBOARD -->
+    <!-- DRILLDOWN DASHBOARD -->
     <div class="panel" style="padding-top: 10px; margin-bottom: 25px;">
         <div class="panel-header" onclick="toggleOtherDrilldown()">
             <h2>Monthly Income & Expense Drilldown</h2>
@@ -415,6 +415,7 @@
             <span id="other-party-dash-icon">▲</span>
         </div>
         <div id="other-party-dash-content" class="collapsible-table-content active">
+            <p style="font-size: 0.85rem; color: #64748b; margin-top: -5px; margin-bottom: 15px;"><em>Positive value = They owe you (Receivable) | Negative value = You owe them (Payable)</em></p>
             <div class="table-container" style="max-width: 600px;">
                 <table>
                     <thead>
@@ -459,9 +460,10 @@
                         </select>
                     </div>
                     
+                    <!-- NAME IS NOW OPTIONAL -->
                     <div class="form-group">
-                        <label>3) Transaction Party Name</label>
-                        <input type="text" id="other-name" placeholder="E.g., Client A, Vendor B, Office Supplies" required style="text-transform: capitalize;">
+                        <label>3) Transaction Party Name (Optional)</label>
+                        <input type="text" id="other-name" placeholder="E.g., Client A, Vendor B, Office Supplies" style="text-transform: capitalize;">
                     </div>
                     
                     <div class="form-group">
@@ -1311,7 +1313,7 @@
         document.getElementById('other-tx-id').value = id;
         document.getElementById('other-date').value = tx.date;
         document.getElementById('other-tx-type').value = tx.txType;
-        document.getElementById('other-name').value = tx.name;
+        document.getElementById('other-name').value = tx.name || '';
         document.getElementById('other-remark').value = tx.remark || '';
         document.getElementById('other-qty').value = tx.qty;
         document.getElementById('other-rate').value = tx.rate;
@@ -1350,7 +1352,7 @@
         csvContent += headers.join(",") + "\n";
         otherTxs.forEach(tx => {
             const effAmt = ['Expense', 'Purchase', 'Cash Paid'].includes(tx.txType) ? -Math.abs(tx.amount) : Math.abs(tx.amount);
-            csvContent += [tx.id, tx.date, `"${tx.txType}"`, `"${tx.name}"`, `"${tx.remark || ''}"`, tx.qty, tx.rate, effAmt.toFixed(2)].join(",") + "\n";
+            csvContent += [tx.id, tx.date, `"${tx.txType}"`, `"${tx.name || ''}"`, `"${tx.remark || ''}"`, tx.qty, tx.rate, effAmt.toFixed(2)].join(",") + "\n";
         });
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
@@ -1370,12 +1372,23 @@
         resetOtherPageAndRender(); 
     }
 
-    // Helper to calculate Negative amounts automatically for Outflows
+    // Helper to calculate P&L/Ledger Negative amounts (Outflows)
     function getOtherEffectiveAmount(tx) {
         if (['Expense', 'Purchase', 'Cash Paid'].includes(tx.txType)) {
             return -Math.abs(tx.amount);
         }
         return Math.abs(tx.amount); // Treat everything else as positive
+    }
+
+    // Helper to calculate Party Balance true accounting
+    function getPartyEffectiveAmount(tx) {
+        let amt = Math.abs(tx.amount);
+        if (['Sale', 'Income', 'Cash Paid'].includes(tx.txType)) {
+            return amt; // Increases Receivable / Decreases Payable
+        } else if (['Purchase', 'Expense', 'Cash Received'].includes(tx.txType)) {
+            return -amt; // Decreases Receivable / Increases Payable
+        }
+        return 0; // Transfer, Other
     }
 
     function renderOtherApp() {
@@ -1415,13 +1428,15 @@
                 netIncome += effAmt;
                 if (effAmt >= 0) totalReceived += effAmt;
                 if (effAmt < 0) totalPaid += Math.abs(effAmt);
-                addOtherHierarchical(tx.date, tx.name, effAmt);
+                addOtherHierarchical(tx.date, tx.name || 'General / No Name', effAmt);
             }
             
-            // Party Balance Logic: Include EVERYTHING
-            let partyName = tx.name || 'Unknown';
-            if (!partyBalances[partyName]) partyBalances[partyName] = 0;
-            partyBalances[partyName] += effAmt;
+            // Party Balance Logic: Only calculate if a party name was entered
+            let partyName = (tx.name || '').trim();
+            if (partyName) {
+                if (!partyBalances[partyName]) partyBalances[partyName] = 0;
+                partyBalances[partyName] += getPartyEffectiveAmount(tx);
+            }
         });
 
         // 1. Update Top Summary Dashboard
@@ -1495,16 +1510,22 @@
         let partyKeys = Object.keys(partyBalances).sort();
         
         if (partyKeys.length === 0) {
-            partyBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#666; padding: 15px;">No party data found.</td></tr>`;
+            partyBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#666; padding: 15px;">No active party balances.</td></tr>`;
         } else {
             partyKeys.forEach(party => {
                 let bal = partyBalances[party];
-                let c = bal > 0 ? 'pnl-positive' : (bal < 0 ? 'pnl-negative' : 'pnl-neutral');
-                partyBody.innerHTML += `<tr>
-                    <td><strong>${party}</strong></td>
-                    <td class="${c}">${bal > 0 ? '+' : ''}${bal.toFixed(2)}</td>
-                </tr>`;
+                // Hide zero balances to keep it clean
+                if (Math.abs(bal) > 0.001) {
+                    let c = bal > 0 ? 'pnl-positive' : 'pnl-negative';
+                    partyBody.innerHTML += `<tr>
+                        <td><strong>${party}</strong></td>
+                        <td class="${c}">${bal > 0 ? '+' : ''}${bal.toFixed(2)}</td>
+                    </tr>`;
+                }
             });
+            if (partyBody.innerHTML === '') {
+                 partyBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#666; padding: 15px;">All party accounts are settled (Zero Balance).</td></tr>`;
+            }
         }
 
         // 4. Update Filtering & Sorting
@@ -1582,7 +1603,7 @@
             ledgerBody.innerHTML += `<tr>
                 <td>${tx.date}</td>
                 <td><span class="badge ${badgeClass}">${tx.txType}</span></td>
-                <td><strong>${tx.name}</strong></td>
+                <td><strong>${tx.name || '-'}</strong></td>
                 <td>${tx.remark || '-'}</td>
                 <td>${tx.qty}</td>
                 <td>${tx.rate.toFixed(2)}</td>
