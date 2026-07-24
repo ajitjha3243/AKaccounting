@@ -158,7 +158,6 @@
         <input type="email" id="auth-email" placeholder="Email Address">
         <input type="password" id="auth-password" placeholder="Password">
         
-        <!-- FORGOT PASSWORD LINK -->
         <div style="text-align: right;">
             <a class="forgot-link" onclick="forgotPassword()">Forgot Password?</a>
         </div>
@@ -395,6 +394,19 @@
             <p id="other-total-paid" class="pnl-negative">0.00</p>
         </div>
     </div>
+
+    <!-- NEW: DRILLDOWN DASHBOARD -->
+    <div class="panel" style="padding-top: 10px; margin-bottom: 25px;">
+        <div class="panel-header" onclick="toggleOtherDrilldown()">
+            <h2>Monthly Income & Expense Drilldown</h2>
+            <span id="other-drilldown-icon">▲</span>
+        </div>
+        <div id="other-drilldown-content" class="collapsible-table-content active">
+            <div class="table-container" style="max-width: 800px;">
+                 <div id="other-hierarchical-body" class="tree-container"></div>
+            </div>
+        </div>
+    </div>
     
     <!-- PARTY BALANCE DASHBOARD -->
     <div class="panel" style="padding-top: 10px; margin-bottom: 25px;">
@@ -594,7 +606,6 @@
         errEl.style.display = 'block';
     }
 
-    // --- GOOGLE SIGN IN WITH ERROR DIAGNOSTICS ---
     function signInWithGoogle() {
         const provider = new firebase.auth.GoogleAuthProvider();
         auth.signInWithPopup(provider).catch(error => {
@@ -623,7 +634,6 @@
         auth.createUserWithEmailAndPassword(email, pwd).catch(error => showError(error.message));
     }
 
-    // --- FORGOT PASSWORD / RESET PASSWORD FUNCTION ---
     function forgotPassword() {
         const email = document.getElementById('auth-email').value.trim();
         if (!email) {
@@ -1224,6 +1234,16 @@
         } 
     }
 
+    function toggleOtherDrilldown(forceOpen = false) { 
+        const content = document.getElementById('other-drilldown-content'); 
+        const icon = document.getElementById('other-drilldown-icon'); 
+        if (forceOpen || !content.classList.contains('active')) { 
+            content.classList.add('active'); icon.innerText = '▲'; 
+        } else { 
+            content.classList.remove('active'); icon.innerText = '▼'; 
+        } 
+    }
+
     function toggleOtherPartyDash(forceOpen = false) { 
         const content = document.getElementById('other-party-dash-content'); 
         const icon = document.getElementById('other-party-dash-icon'); 
@@ -1362,31 +1382,114 @@
         const ledgerBody = document.getElementById('other-ledger-body');
         ledgerBody.innerHTML = '';
         
-        // Dashboard Calculations & Party Balances
         let netIncome = 0;
         let totalReceived = 0;
         let totalPaid = 0;
         let partyBalances = {};
+        let hierarchicalOther = {}; 
+        
+        function addOtherHierarchical(dateStr, name, amount) {
+            let d = new Date(dateStr);
+            let year = d.getFullYear(); 
+            let month = d.getMonth() + 1; 
+            let day = d.getDate();
+            let monthStr = month.toString().padStart(2, '0');
+            let dayStr = day.toString().padStart(2, '0');
+
+            if (!hierarchicalOther[year]) hierarchicalOther[year] = { pnl: 0, months: {} };
+            if (!hierarchicalOther[year].months[monthStr]) hierarchicalOther[year].months[monthStr] = { pnl: 0, days: {} };
+            if (!hierarchicalOther[year].months[monthStr].days[dayStr]) hierarchicalOther[year].months[monthStr].days[dayStr] = { pnl: 0, scripts: {} };
+            if (!hierarchicalOther[year].months[monthStr].days[dayStr].scripts[name]) hierarchicalOther[year].months[monthStr].days[dayStr].scripts[name] = 0;
+
+            hierarchicalOther[year].pnl += amount;
+            hierarchicalOther[year].months[monthStr].pnl += amount;
+            hierarchicalOther[year].months[monthStr].days[dayStr].pnl += amount;
+            hierarchicalOther[year].months[monthStr].days[dayStr].scripts[name] += amount;
+        }
 
         otherTxs.forEach(tx => {
             let effAmt = getOtherEffectiveAmount(tx);
-            netIncome += effAmt;
-            if (effAmt >= 0) totalReceived += effAmt;
-            if (effAmt < 0) totalPaid += Math.abs(effAmt);
             
-            // Build Party Balance Map
+            // P&L Logic: Exclude Cash Received, Cash Paid, Transfer
+            if (!['Cash Received', 'Cash Paid', 'Transfer'].includes(tx.txType)) {
+                netIncome += effAmt;
+                if (effAmt >= 0) totalReceived += effAmt;
+                if (effAmt < 0) totalPaid += Math.abs(effAmt);
+                addOtherHierarchical(tx.date, tx.name, effAmt);
+            }
+            
+            // Party Balance Logic: Include EVERYTHING
             let partyName = tx.name || 'Unknown';
             if (!partyBalances[partyName]) partyBalances[partyName] = 0;
             partyBalances[partyName] += effAmt;
         });
 
-        // Update Top Summary Dashboard
+        // 1. Update Top Summary Dashboard
         document.getElementById('other-net-income').innerText = (netIncome > 0 ? '+' : '') + netIncome.toFixed(2);
         document.getElementById('other-net-income').className = netIncome >= 0 ? 'pnl-positive' : 'pnl-negative';
         document.getElementById('other-total-received').innerText = totalReceived.toFixed(2);
         document.getElementById('other-total-paid').innerText = totalPaid.toFixed(2);
+        
+        // 2. Render Drilldown Dashboard
+        let treeHtml = '';
+        const monthNames = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-        // Update Party Balance Ledger Table
+        Object.keys(hierarchicalOther).sort().reverse().forEach(year => {
+            let yData = hierarchicalOther[year];
+            if (yData.pnl === 0) return; 
+            let yClass = yData.pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+            
+            treeHtml += `<div class="tree-node">
+                <div class="tree-header" onclick="this.parentElement.classList.toggle('active')">
+                    <span><span class="tree-arrow">▶</span> Year ${year}</span>
+                    <span class="${yClass}">${yData.pnl>0?'+':''}${yData.pnl.toFixed(2)}</span>
+                </div>
+                <div class="tree-children">`;
+            
+            Object.keys(yData.months).sort().reverse().forEach(mStr => {
+                let mData = yData.months[mStr];
+                if (mData.pnl === 0) return;
+                let mClass = mData.pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+                
+                treeHtml += `<div class="tree-node">
+                    <div class="tree-header" onclick="this.parentElement.classList.toggle('active')">
+                        <span><span class="tree-arrow">▶</span> ${monthNames[parseInt(mStr)]}</span>
+                        <span class="${mClass}">${mData.pnl>0?'+':''}${mData.pnl.toFixed(2)}</span>
+                    </div>
+                    <div class="tree-children">`;
+                
+                Object.keys(mData.days).sort().reverse().forEach(dStr => {
+                    let dData = mData.days[dStr];
+                    if (dData.pnl === 0) return;
+                    let dClass = dData.pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+                    
+                    treeHtml += `<div class="tree-node">
+                        <div class="tree-header" onclick="this.parentElement.classList.toggle('active')">
+                            <span><span class="tree-arrow">▶</span> ${dStr} ${monthNames[parseInt(mStr)].slice(0,3)}</span>
+                            <span class="${dClass}">${dData.pnl>0?'+':''}${dData.pnl.toFixed(2)}</span>
+                        </div>
+                        <div class="tree-children">`;
+                    
+                    Object.keys(dData.scripts).sort().forEach(script => {
+                        let sPnL = dData.scripts[script];
+                        if(sPnL !== 0) {
+                            let sClass = sPnL > 0 ? 'pnl-positive' : 'pnl-negative';
+                            treeHtml += `<div class="tree-leaf">
+                                <span>${script}</span>
+                                <span class="${sClass}">${sPnL>0?'+':''}${sPnL.toFixed(2)}</span>
+                            </div>`;
+                        }
+                    });
+                    treeHtml += `</div></div>`;
+                });
+                treeHtml += `</div></div>`;
+            });
+            treeHtml += `</div></div>`;
+        });
+        if(treeHtml === '') treeHtml = `<div style="padding: 15px; color: #64748b; text-align: center;">No income or expense data found yet.</div>`;
+        document.getElementById('other-hierarchical-body').innerHTML = treeHtml;
+
+        // 3. Update Party Balance Ledger Table
         const partyBody = document.getElementById('other-party-body');
         partyBody.innerHTML = '';
         let partyKeys = Object.keys(partyBalances).sort();
@@ -1404,7 +1507,7 @@
             });
         }
 
-        // Sorting & Filtering Setup
+        // 4. Update Filtering & Sorting
         ['date', 'txType', 'name', 'remark', 'qty', 'rate', 'amount'].forEach(col => {
             const el = document.getElementById(`other-sort-${col}`);
             if(el) el.innerText = (otherSortCol === col) ? (otherSortDesc ? ' ↓' : ' ↑') : '';
