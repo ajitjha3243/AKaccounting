@@ -170,7 +170,7 @@
             <button class="btn-primary" onclick="signInWithEmail()">Log In</button>
             <button class="btn-secondary" onclick="signUpWithEmail()">Sign Up</button>
         </div>
-        <p id="auth-error" style="color: var(--danger); font-size: 0.85rem; margin: 0; display: none; text-align: left;"></p>
+        <p id="auth-error" style="color: var(--danger); font-size: 0.85rem; margin: 0; display: none; word-break: break-word; text-align: left;"></p>
     </div>
 </div>
 
@@ -558,7 +558,7 @@
         </div>
     </div>
 
-    <!-- NEW: MFD BUSINESS & CLIENT ANALYTICS PANEL -->
+    <!-- MFD BUSINESS & CLIENT ANALYTICS PANEL -->
     <div class="panel" style="padding-top: 10px; margin-bottom: 25px;">
         <div class="panel-header" onclick="toggleMfdAnalyticsPanel()">
             <h2>Business & Client Analytics Reports</h2>
@@ -612,7 +612,7 @@
     </div>
 
     <div class="main-grid">
-        <!-- ADVANCED CLIENT MASTER PANEL -->
+        <!-- ADVANCED CLIENT MASTER PANEL WITH UCC -->
         <div class="panel">
             <div class="panel-header" onclick="toggleMfdClientPanel()">
                 <h2>Client Master (CRM)</h2>
@@ -628,7 +628,7 @@
                     </div>
                     <div class="controls-row">
                         <div class="form-group"><label>Mobile</label><input type="tel" id="mfd-client-phone"></div>
-                        <div class="form-group"><label>Folio Number(s)</label><input type="text" id="mfd-client-folio"></div>
+                        <div class="form-group"><label>UCC (Unique Client Code)</label><input type="text" id="mfd-client-ucc" placeholder="E.g., 10001234"></div>
                     </div>
                     <div class="controls-row">
                         <div class="form-group"><label>Address</label><input type="text" id="mfd-client-address" placeholder="Street Address"></div>
@@ -655,7 +655,8 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Client Code</th>
+                                <th>Sys Code</th>
+                                <th>UCC</th>
                                 <th>Client Name</th>
                                 <th>Mobile</th>
                                 <th>City</th>
@@ -668,7 +669,7 @@
             </div>
         </div>
 
-        <!-- TRANSACTION LOGGING & CSV UPLOAD PANEL -->
+        <!-- TRANSACTION LOGGING & CSV UPLOAD PANEL (FOLIO INDEPENDENT) -->
         <div class="panel">
             <div class="panel-header" onclick="toggleMfdTxPanel()">
                 <h2>Log Transaction / CSV Bulk Upload</h2>
@@ -676,11 +677,11 @@
             </div>
             <div id="mfd-tx-content" class="collapsible-table-content active">
                 
-                <!-- CSV UPLOAD SECTION -->
+                <!-- CSV UPLOAD SECTION WITH CLIENT CODE VERIFICATION -->
                 <div style="background: #e0e7ff; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #c7d2fe;">
                     <h3 style="margin-top: 0; font-size: 1rem; color: var(--primary);">📂 Bulk Upload Transactions via CSV</h3>
-                    <p style="font-size: 0.85rem; color: #475569; margin-bottom: 5px;"><strong>CSV columns exactly as:</strong> <code>Date, ClientCode, Scheme, Type, Amount, Folio</code></p>
-                    <p style="font-size: 0.75rem; color: var(--danger); margin-bottom: 10px;"><em>*System strictly checks Column 2 (ClientCode). If the numeric code is not found in your Master List, that row is securely skipped.</em></p>
+                    <p style="font-size: 0.85rem; color: #475569; margin-bottom: 5px;"><strong>CSV columns exactly as:</strong> <code>Date, SysCode, Scheme, Type, Amount, Folio</code></p>
+                    <p style="font-size: 0.75rem; color: var(--danger); margin-bottom: 10px;"><em>*System strictly checks Column 2 (SysCode - the auto-generated number like 1, 2, 3). If it is not found in your Master List, the row is securely skipped.</em></p>
                     <input type="file" id="mfd-csv-input" accept=".csv" onchange="uploadMfdCSV(event)">
                 </div>
 
@@ -692,7 +693,7 @@
                         <input type="date" id="mfd-tx-date" required>
                     </div>
                     <div class="form-group">
-                        <label>Client Name (Select via Code - Name)</label>
+                        <label>Client Name (Select via SysCode - Name)</label>
                         <input type="text" id="mfd-tx-client" list="mfd-client-datalist" placeholder="E.g., 1 - Rahul Sharma" required>
                         <datalist id="mfd-client-datalist"></datalist>
                     </div>
@@ -713,7 +714,7 @@
                         <input type="number" id="mfd-tx-amount" step="any" min="0" required>
                     </div>
                     <div class="form-group">
-                        <label>Folio Number (Optional)</label>
+                        <label>Folio Number (Optional, Independent)</label>
                         <input type="text" id="mfd-tx-folio" placeholder="Folio No.">
                     </div>
                     <button type="submit" id="mfd-tx-btn" class="btn-primary">Add Transaction</button>
@@ -731,7 +732,7 @@
                 <thead>
                     <tr>
                         <th>Date</th>
-                        <th>Code</th>
+                        <th>Sys Code</th>
                         <th>Client Name</th>
                         <th>Scheme</th>
                         <th>Type</th>
@@ -1890,7 +1891,7 @@
             clientCode: clientCodeNum,
             name: document.getElementById('mfd-client-name').value.trim(),
             pan: document.getElementById('mfd-client-pan').value.trim().toUpperCase(),
-            folio: document.getElementById('mfd-client-folio').value.trim(),
+            ucc: document.getElementById('mfd-client-ucc').value.trim(),  // Changed to UCC
             phone: document.getElementById('mfd-client-phone').value.trim(),
             address: document.getElementById('mfd-client-address').value.trim(),
             area: document.getElementById('mfd-client-area').value.trim(),
@@ -1919,7 +1920,7 @@
         document.getElementById('mfd-client-id').value = id;
         document.getElementById('mfd-client-name').value = c.name || '';
         document.getElementById('mfd-client-pan').value = c.pan || '';
-        document.getElementById('mfd-client-folio').value = c.folio || '';
+        document.getElementById('mfd-client-ucc').value = c.ucc || ''; // Changed to UCC
         document.getElementById('mfd-client-phone').value = c.phone || '';
         document.getElementById('mfd-client-address').value = c.address || '';
         document.getElementById('mfd-client-area').value = c.area || '';
@@ -1929,7 +1930,7 @@
         document.getElementById('mfd-client-nominee-name').value = c.nomineeName || '';
         document.getElementById('mfd-client-nominee-phone').value = c.nomineePhone || '';
         
-        document.getElementById('mfd-client-btn').innerText = `Update Client [Code: ${c.clientCode || '-'}]`;
+        document.getElementById('mfd-client-btn').innerText = `Update Client [SysCode: ${c.clientCode || '-'}]`;
         document.getElementById('mfd-client-cancel-btn').style.display = 'inline-block';
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -1972,7 +1973,7 @@
             scheme: document.getElementById('mfd-tx-scheme').value.trim(),
             type: document.getElementById('mfd-tx-type').value,
             amount: parseFloat(document.getElementById('mfd-tx-amount').value) || 0,
-            folio: document.getElementById('mfd-tx-folio').value.trim()
+            folio: document.getElementById('mfd-tx-folio').value.trim() // Folio remains independent here
         };
 
         if (tid) {
@@ -2035,6 +2036,7 @@
                 const line = lines[i].trim();
                 if (!line) continue;
                 
+                // Format: Date, SysCode, Scheme, Type, Amount, Folio
                 const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
                 if (cols.length >= 5) {
                     const cCode = parseInt(cols[1]) || 0;
@@ -2060,7 +2062,7 @@
                     successCount++;
                 }
             }
-            alert(`Import Complete!\n\nSuccessfully Imported: ${successCount}\nSkipped (Invalid/Missing Client Code): ${skipCount}`);
+            alert(`Import Complete!\n\nSuccessfully Imported: ${successCount}\nSkipped (Invalid/Missing SysCode): ${skipCount}`);
             event.target.value = '';
             loadMfdData();
         };
@@ -2069,7 +2071,7 @@
 
     // --- RENDER MFD WORKSPACE COMPONENTS & ACCURATE AUM REPORTS ---
     function renderMfdApp() {
-        // 1. Render Client Master Directory & Datalist
+        // 1. Render Client Master Directory
         const clientTable = document.getElementById('mfd-clients-list-body');
         const datalist = document.getElementById('mfd-client-datalist');
         clientTable.innerHTML = ''; datalist.innerHTML = '';
@@ -2080,6 +2082,7 @@
 
             clientTable.innerHTML += `<tr>
                 <td><strong>${c.clientCode || '-'}</strong></td>
+                <td>${c.ucc || '-'}</td>
                 <td><strong>${c.name}</strong></td>
                 <td>${c.phone || '-'}</td>
                 <td>${c.city || '-'}</td>
@@ -2091,7 +2094,7 @@
         });
 
         if (mfdClients.length === 0) {
-            clientTable.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:15px; color:#666;">No clients saved yet.</td></tr>`;
+            clientTable.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:15px; color:#666;">No clients saved yet.</td></tr>`;
         }
 
         // 2. Summary Dashboard & Advanced Reports Map Setup
@@ -2102,16 +2105,21 @@
         let schemeAumMap = {};
         let monthlyTree = {};
 
-        // Pre-fill client map with saved clients
+        // Pre-fill client map with saved clients using SysCode as safe string
         mfdClients.forEach(c => {
-            let key = c.clientCode || c.name;
+            let key = c.clientCode ? c.clientCode.toString() : c.name;
             clientAumMap[key] = { code: c.clientCode || '-', name: c.name, inflow: 0, redemption: 0, net: 0 };
         });
 
         mfdTxs.forEach(tx => {
-            let amt = Math.abs(tx.amount) || 0;
-            let cKey = tx.clientCode || tx.clientName;
+            // Highly resilient string parsing to completely eliminate the "nill" bug
+            let amt = Math.abs(parseFloat(tx.amount)) || 0;
+            let cKey = tx.clientCode ? tx.clientCode.toString() : tx.clientName;
             let sKey = tx.scheme || 'Uncategorized Scheme';
+
+            let txTypeStr = (tx.type || '').trim().toLowerCase();
+            let isRedeem = txTypeStr.includes('redemption') || txTypeStr.includes('redeem') || txTypeStr.includes('sale');
+            let isInflow = txTypeStr.includes('sip') || txTypeStr.includes('lumpsum') || txTypeStr.includes('purchase');
 
             if (!clientAumMap[cKey]) {
                 clientAumMap[cKey] = { code: tx.clientCode || '-', name: tx.clientName, inflow: 0, redemption: 0, net: 0 };
@@ -2129,7 +2137,7 @@
             if (!monthlyTree[yStr].months[mStr]) monthlyTree[yStr].months[mStr] = { net: 0, clients: {} };
             if (!monthlyTree[yStr].months[mStr].clients[tx.clientName]) monthlyTree[yStr].months[mStr].clients[tx.clientName] = 0;
 
-            if (['SIP', 'Lumpsum'].includes(tx.type)) {
+            if (isInflow) {
                 totalGrossInflow += amt;
                 clientAumMap[cKey].inflow += amt;
                 clientAumMap[cKey].net += amt;
@@ -2140,7 +2148,7 @@
                 monthlyTree[yStr].months[mStr].net += amt;
                 monthlyTree[yStr].months[mStr].clients[tx.clientName] += amt;
 
-            } else if (tx.type === 'Redemption') {
+            } else if (isRedeem) {
                 totalRedemption += amt;
                 clientAumMap[cKey].redemption += amt;
                 clientAumMap[cKey].net -= amt;
@@ -2153,7 +2161,7 @@
             }
         });
 
-        // Update Top Cards (FIXED: Net AUM = Inflows - Redemptions)
+        // Update Top Cards
         const netAum = totalGrossInflow - totalRedemption;
         document.getElementById('mfd-total-clients').innerText = mfdClients.length;
         document.getElementById('mfd-net-aum').innerText = (netAum >= 0 ? '+' : '') + netAum.toFixed(2);
@@ -2172,15 +2180,21 @@
         } else {
             sortedClientKeys.forEach(k => {
                 let item = clientAumMap[k];
-                let netClass = item.net >= 0 ? 'pnl-positive' : 'pnl-negative';
-                clientAumBody.innerHTML += `<tr>
-                    <td><strong>${item.code}</strong></td>
-                    <td><strong>${item.name}</strong></td>
-                    <td class="pnl-positive">+${item.inflow.toFixed(2)}</td>
-                    <td class="pnl-negative">-${item.redemption.toFixed(2)}</td>
-                    <td class="${netClass}"><strong>${item.net.toFixed(2)}</strong></td>
-                </tr>`;
+                // Only show clients who actually have a balance or past transactions
+                if (item.inflow > 0 || item.redemption > 0) {
+                    let netClass = item.net >= 0 ? 'pnl-positive' : 'pnl-negative';
+                    clientAumBody.innerHTML += `<tr>
+                        <td><strong>${item.code}</strong></td>
+                        <td><strong>${item.name}</strong></td>
+                        <td class="pnl-positive">+${item.inflow.toFixed(2)}</td>
+                        <td class="pnl-negative">-${item.redemption.toFixed(2)}</td>
+                        <td class="${netClass}"><strong>${item.net.toFixed(2)}</strong></td>
+                    </tr>`;
+                }
             });
+            if (clientAumBody.innerHTML === '') {
+                 clientAumBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:15px; color:#666;">No clients have logged transactions yet.</td></tr>`;
+            }
         }
 
         // 4. Render Report 2: Scheme-wise AUM Breakdown
@@ -2256,8 +2270,12 @@
         let sortedTxs = [...mfdTxs].sort((a,b) => new Date(b.date) - new Date(a.date));
 
         sortedTxs.forEach(tx => {
-            let badgeClass = tx.type.toLowerCase();
-            let isRedeem = tx.type === 'Redemption';
+            let txTypeStr = (tx.type || '').trim().toLowerCase();
+            let isRedeem = txTypeStr.includes('redemption') || txTypeStr.includes('redeem') || txTypeStr.includes('sale');
+            
+            let badgeClass = isRedeem ? 'redemption' : 'sip'; // Fallback badge class
+            if (txTypeStr.includes('lump')) badgeClass = 'lumpsum';
+            
             let amtClass = isRedeem ? 'pnl-negative' : 'pnl-positive';
 
             ledgerBody.innerHTML += `<tr>
