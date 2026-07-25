@@ -574,7 +574,7 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Code</th>
+                                <th>UCC</th>
                                 <th>Client Name</th>
                                 <th>Inflows</th>
                                 <th>Redeemed</th>
@@ -602,9 +602,28 @@
                 </div>
             </div>
 
-            <!-- REPORT 3: MONTHLY BUSINESS FLOW DRILLDOWN -->
+            <!-- REPORT 3: COMPREHENSIVE CLIENT DETAILS -->
+            <div class="table-container" style="margin-top: 25px;">
+                <h3 style="border-bottom: 2px solid var(--border); padding-bottom: 5px;">Comprehensive Client Details Report</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>UCC</th>
+                            <th>Client Name</th>
+                            <th>PAN</th>
+                            <th>Mobile</th>
+                            <th>City / State</th>
+                            <th>Nominee</th>
+                            <th>Net AUM</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mfd-client-details-body"></tbody>
+                </table>
+            </div>
+
+            <!-- REPORT 4: MONTHLY BUSINESS FLOW DRILLDOWN -->
             <div style="margin-top: 25px;">
-                <h3>Monthly Business Flow Drilldown (Year -> Month -> Client)</h3>
+                <h3 style="border-bottom: 2px solid var(--border); padding-bottom: 5px;">Monthly Business Flow Drilldown (Year -> Month -> Client)</h3>
                 <div id="mfd-drilldown-tree" class="tree-container" style="max-width: 800px;"></div>
             </div>
 
@@ -655,7 +674,6 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Sys Code</th>
                                 <th>UCC</th>
                                 <th>Client Name</th>
                                 <th>Mobile</th>
@@ -669,7 +687,7 @@
             </div>
         </div>
 
-        <!-- TRANSACTION LOGGING & CSV UPLOAD PANEL (FOLIO INDEPENDENT) -->
+        <!-- TRANSACTION LOGGING & CSV UPLOAD PANEL (UCC MATCHING) -->
         <div class="panel">
             <div class="panel-header" onclick="toggleMfdTxPanel()">
                 <h2>Log Transaction / CSV Bulk Upload</h2>
@@ -677,11 +695,11 @@
             </div>
             <div id="mfd-tx-content" class="collapsible-table-content active">
                 
-                <!-- CSV UPLOAD SECTION WITH CLIENT CODE VERIFICATION -->
+                <!-- CSV UPLOAD SECTION WITH UCC VERIFICATION -->
                 <div style="background: #e0e7ff; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #c7d2fe;">
                     <h3 style="margin-top: 0; font-size: 1rem; color: var(--primary);">📂 Bulk Upload Transactions via CSV</h3>
-                    <p style="font-size: 0.85rem; color: #475569; margin-bottom: 5px;"><strong>CSV columns exactly as:</strong> <code>Date, SysCode, Scheme, Type, Amount, Folio</code></p>
-                    <p style="font-size: 0.75rem; color: var(--danger); margin-bottom: 10px;"><em>*System strictly checks Column 2 (SysCode - the auto-generated number like 1, 2, 3). If it is not found in your Master List, the row is securely skipped.</em></p>
+                    <p style="font-size: 0.85rem; color: #475569; margin-bottom: 5px;"><strong>CSV columns exactly as:</strong> <code>Date, UCC, Scheme, Type, Amount, Folio</code></p>
+                    <p style="font-size: 0.75rem; color: var(--danger); margin-bottom: 10px;"><em>*System strictly checks Column 2 (UCC). If the UCC is not found in your Master List, the row is securely skipped.</em></p>
                     <input type="file" id="mfd-csv-input" accept=".csv" onchange="uploadMfdCSV(event)">
                 </div>
 
@@ -693,8 +711,8 @@
                         <input type="date" id="mfd-tx-date" required>
                     </div>
                     <div class="form-group">
-                        <label>Client Name (Select via SysCode - Name)</label>
-                        <input type="text" id="mfd-tx-client" list="mfd-client-datalist" placeholder="E.g., 1 - Rahul Sharma" required>
+                        <label>Client Name (Select via UCC - Name)</label>
+                        <input type="text" id="mfd-tx-client" list="mfd-client-datalist" placeholder="E.g., UCC123 - Rahul Sharma" required>
                         <datalist id="mfd-client-datalist"></datalist>
                     </div>
                     <div class="form-group">
@@ -732,7 +750,7 @@
                 <thead>
                     <tr>
                         <th>Date</th>
-                        <th>Sys Code</th>
+                        <th>UCC</th>
                         <th>Client Name</th>
                         <th>Scheme</th>
                         <th>Type</th>
@@ -1871,27 +1889,16 @@
         icon.innerText = content.classList.contains('active') ? '▲' : '▼';
     }
 
-    // --- CLIENT MASTER SUBMISSION (AUTO-INCREMENT CODE) ---
+    // --- CLIENT MASTER SUBMISSION ---
     document.getElementById('mfd-client-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const cid = document.getElementById('mfd-client-id').value;
-        
-        let clientCodeNum = 1;
-        
-        if (cid) {
-            const existingClient = mfdClients.find(c => c.id === cid);
-            clientCodeNum = existingClient ? (existingClient.clientCode || 1) : 1;
-        } else {
-            const maxCode = mfdClients.reduce((max, c) => Math.max(max, c.clientCode || 0), 0);
-            clientCodeNum = maxCode + 1;
-        }
 
         const cData = {
             userId: currentUser.uid,
-            clientCode: clientCodeNum,
             name: document.getElementById('mfd-client-name').value.trim(),
             pan: document.getElementById('mfd-client-pan').value.trim().toUpperCase(),
-            ucc: document.getElementById('mfd-client-ucc').value.trim(),  // Changed to UCC
+            ucc: document.getElementById('mfd-client-ucc').value.trim(), 
             phone: document.getElementById('mfd-client-phone').value.trim(),
             address: document.getElementById('mfd-client-address').value.trim(),
             area: document.getElementById('mfd-client-area').value.trim(),
@@ -1920,7 +1927,7 @@
         document.getElementById('mfd-client-id').value = id;
         document.getElementById('mfd-client-name').value = c.name || '';
         document.getElementById('mfd-client-pan').value = c.pan || '';
-        document.getElementById('mfd-client-ucc').value = c.ucc || ''; // Changed to UCC
+        document.getElementById('mfd-client-ucc').value = c.ucc || ''; 
         document.getElementById('mfd-client-phone').value = c.phone || '';
         document.getElementById('mfd-client-address').value = c.address || '';
         document.getElementById('mfd-client-area').value = c.area || '';
@@ -1930,7 +1937,7 @@
         document.getElementById('mfd-client-nominee-name').value = c.nomineeName || '';
         document.getElementById('mfd-client-nominee-phone').value = c.nomineePhone || '';
         
-        document.getElementById('mfd-client-btn').innerText = `Update Client [SysCode: ${c.clientCode || '-'}]`;
+        document.getElementById('mfd-client-btn').innerText = `Update Client [UCC: ${c.ucc || '-'}]`;
         document.getElementById('mfd-client-cancel-btn').style.display = 'inline-block';
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -1955,25 +1962,24 @@
         const tid = document.getElementById('mfd-tx-id').value;
         const rawClientInput = document.getElementById('mfd-tx-client').value.trim();
         
-        let tClientCode = 0;
+        let tUcc = '';
         let tClientName = rawClientInput;
         
-        const codeMatch = rawClientInput.match(/^(\d+)\s*-/);
-        if (codeMatch) {
-            tClientCode = parseInt(codeMatch[1]);
-            const matchedC = mfdClients.find(c => c.clientCode === tClientCode);
-            tClientName = matchedC ? matchedC.name : rawClientInput.replace(/^(\d+)\s*-\s*/, '');
+        const splitIndex = rawClientInput.indexOf(' - ');
+        if (splitIndex !== -1) {
+            tUcc = rawClientInput.substring(0, splitIndex).trim();
+            tClientName = rawClientInput.substring(splitIndex + 3).trim();
         }
 
         const txData = {
             userId: currentUser.uid,
             date: document.getElementById('mfd-tx-date').value,
-            clientCode: tClientCode,
+            ucc: tUcc,
             clientName: tClientName,
             scheme: document.getElementById('mfd-tx-scheme').value.trim(),
             type: document.getElementById('mfd-tx-type').value,
             amount: parseFloat(document.getElementById('mfd-tx-amount').value) || 0,
-            folio: document.getElementById('mfd-tx-folio').value.trim() // Folio remains independent here
+            folio: document.getElementById('mfd-tx-folio').value.trim() 
         };
 
         if (tid) {
@@ -1994,7 +2000,7 @@
         
         document.getElementById('mfd-tx-id').value = id;
         document.getElementById('mfd-tx-date').value = tx.date;
-        document.getElementById('mfd-tx-client').value = tx.clientCode ? `${tx.clientCode} - ${tx.clientName}` : tx.clientName;
+        document.getElementById('mfd-tx-client').value = tx.ucc ? `${tx.ucc} - ${tx.clientName}` : tx.clientName;
         document.getElementById('mfd-tx-scheme').value = tx.scheme;
         document.getElementById('mfd-tx-type').value = tx.type;
         document.getElementById('mfd-tx-amount').value = tx.amount;
@@ -2020,7 +2026,7 @@
         }
     }
 
-    // --- CSV BULK UPLOAD ENGINE ---
+    // --- CSV BULK UPLOAD ENGINE (UCC MATCHING) ---
     function uploadMfdCSV(event) {
         const file = event.target.files[0];
         if (!file || !currentUser) return;
@@ -2036,14 +2042,14 @@
                 const line = lines[i].trim();
                 if (!line) continue;
                 
-                // Format: Date, SysCode, Scheme, Type, Amount, Folio
+                // Format: Date, UCC, Scheme, Type, Amount, Folio
                 const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
                 if (cols.length >= 5) {
-                    const cCode = parseInt(cols[1]) || 0;
-                    const matchedC = mfdClients.find(c => c.clientCode === cCode);
+                    const cUcc = cols[1] || '';
+                    const matchedC = mfdClients.find(c => c.ucc === cUcc);
                     
                     if (!matchedC) {
-                        console.warn(`Skipped row ${i}: Client Code '${cCode}' not found in Client Master.`);
+                        console.warn(`Skipped row ${i}: UCC '${cUcc}' not found in Client Master.`);
                         skipCount++;
                         continue;
                     }
@@ -2051,7 +2057,7 @@
                     const txData = {
                         userId: currentUser.uid,
                         date: cols[0] || new Date().toISOString().split('T')[0],
-                        clientCode: cCode,
+                        ucc: cUcc,
                         clientName: matchedC.name,
                         scheme: cols[2] || 'Mutual Fund Scheme',
                         type: cols[3] || 'Lumpsum',
@@ -2062,7 +2068,7 @@
                     successCount++;
                 }
             }
-            alert(`Import Complete!\n\nSuccessfully Imported: ${successCount}\nSkipped (Invalid/Missing SysCode): ${skipCount}`);
+            alert(`Import Complete!\n\nSuccessfully Imported: ${successCount}\nSkipped (Invalid/Missing UCC): ${skipCount}`);
             event.target.value = '';
             loadMfdData();
         };
@@ -2071,18 +2077,17 @@
 
     // --- RENDER MFD WORKSPACE COMPONENTS & ACCURATE AUM REPORTS ---
     function renderMfdApp() {
-        // 1. Render Client Master Directory
+        // 1. Render Client Master Directory & Datalist
         const clientTable = document.getElementById('mfd-clients-list-body');
         const datalist = document.getElementById('mfd-client-datalist');
         clientTable.innerHTML = ''; datalist.innerHTML = '';
 
-        mfdClients.sort((a,b) => (a.clientCode || 0) - (b.clientCode || 0)).forEach(c => {
-            const displayStr = `${c.clientCode || '-'} - ${c.name}`;
+        mfdClients.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
+            const displayStr = `${c.ucc || '-'} - ${c.name}`;
             datalist.innerHTML += `<option value="${displayStr}">`;
 
             clientTable.innerHTML += `<tr>
-                <td><strong>${c.clientCode || '-'}</strong></td>
-                <td>${c.ucc || '-'}</td>
+                <td><strong>${c.ucc || '-'}</strong></td>
                 <td><strong>${c.name}</strong></td>
                 <td>${c.phone || '-'}</td>
                 <td>${c.city || '-'}</td>
@@ -2094,7 +2099,7 @@
         });
 
         if (mfdClients.length === 0) {
-            clientTable.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:15px; color:#666;">No clients saved yet.</td></tr>`;
+            clientTable.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:15px; color:#666;">No clients saved yet.</td></tr>`;
         }
 
         // 2. Summary Dashboard & Advanced Reports Map Setup
@@ -2105,16 +2110,14 @@
         let schemeAumMap = {};
         let monthlyTree = {};
 
-        // Pre-fill client map with saved clients using SysCode as safe string
         mfdClients.forEach(c => {
-            let key = c.clientCode ? c.clientCode.toString() : c.name;
-            clientAumMap[key] = { code: c.clientCode || '-', name: c.name, inflow: 0, redemption: 0, net: 0 };
+            let key = c.ucc ? c.ucc : c.name;
+            clientAumMap[key] = { ucc: c.ucc || '-', name: c.name, inflow: 0, redemption: 0, net: 0 };
         });
 
         mfdTxs.forEach(tx => {
-            // Highly resilient string parsing to completely eliminate the "nill" bug
             let amt = Math.abs(parseFloat(tx.amount)) || 0;
-            let cKey = tx.clientCode ? tx.clientCode.toString() : tx.clientName;
+            let cKey = tx.ucc ? tx.ucc : tx.clientName;
             let sKey = tx.scheme || 'Uncategorized Scheme';
 
             let txTypeStr = (tx.type || '').trim().toLowerCase();
@@ -2122,7 +2125,7 @@
             let isInflow = txTypeStr.includes('sip') || txTypeStr.includes('lumpsum') || txTypeStr.includes('purchase');
 
             if (!clientAumMap[cKey]) {
-                clientAumMap[cKey] = { code: tx.clientCode || '-', name: tx.clientName, inflow: 0, redemption: 0, net: 0 };
+                clientAumMap[cKey] = { ucc: tx.ucc || '-', name: tx.clientName, inflow: 0, redemption: 0, net: 0 };
             }
 
             if (!schemeAumMap[sKey]) {
@@ -2161,7 +2164,6 @@
             }
         });
 
-        // Update Top Cards
         const netAum = totalGrossInflow - totalRedemption;
         document.getElementById('mfd-total-clients').innerText = mfdClients.length;
         document.getElementById('mfd-net-aum').innerText = (netAum >= 0 ? '+' : '') + netAum.toFixed(2);
@@ -2180,11 +2182,10 @@
         } else {
             sortedClientKeys.forEach(k => {
                 let item = clientAumMap[k];
-                // Only show clients who actually have a balance or past transactions
                 if (item.inflow > 0 || item.redemption > 0) {
                     let netClass = item.net >= 0 ? 'pnl-positive' : 'pnl-negative';
                     clientAumBody.innerHTML += `<tr>
-                        <td><strong>${item.code}</strong></td>
+                        <td><strong>${item.ucc}</strong></td>
                         <td><strong>${item.name}</strong></td>
                         <td class="pnl-positive">+${item.inflow.toFixed(2)}</td>
                         <td class="pnl-negative">-${item.redemption.toFixed(2)}</td>
@@ -2218,7 +2219,31 @@
             });
         }
 
-        // 5. Render Report 3: Monthly Business Flow Tree
+        // 5. Render Report 3: Comprehensive Client Details Report
+        const clientDetailsBody = document.getElementById('mfd-client-details-body');
+        clientDetailsBody.innerHTML = '';
+        
+        mfdClients.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
+            let uccKey = c.ucc ? c.ucc : c.name;
+            let cNetAum = clientAumMap[uccKey] ? clientAumMap[uccKey].net : 0;
+            let netClass = cNetAum >= 0 ? 'pnl-positive' : 'pnl-negative';
+            
+            clientDetailsBody.innerHTML += `<tr>
+                <td><strong>${c.ucc || '-'}</strong></td>
+                <td><strong>${c.name}</strong></td>
+                <td>${c.pan || '-'}</td>
+                <td>${c.phone || '-'}</td>
+                <td>${c.city || '-'}${c.state ? ', ' + c.state : ''}</td>
+                <td>${c.nomineeName || '-'}</td>
+                <td class="${netClass}"><strong>${cNetAum.toFixed(2)}</strong></td>
+            </tr>`;
+        });
+
+        if (mfdClients.length === 0) {
+            clientDetailsBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:15px; color:#666;">No clients saved yet.</td></tr>`;
+        }
+
+        // 6. Render Report 4: Monthly Business Flow Tree
         const drilldownTree = document.getElementById('mfd-drilldown-tree');
         let treeHtml = '';
         const monthNames = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -2263,7 +2288,7 @@
         if (treeHtml === '') treeHtml = `<div style="padding:15px; color:#666; text-align:center;">No monthly flow data available.</div>`;
         drilldownTree.innerHTML = treeHtml;
 
-        // 6. Render Raw Transaction Ledger
+        // 7. Render Raw Transaction Ledger
         const ledgerBody = document.getElementById('mfd-ledger-body');
         ledgerBody.innerHTML = '';
 
@@ -2280,7 +2305,7 @@
 
             ledgerBody.innerHTML += `<tr>
                 <td>${tx.date}</td>
-                <td><strong>${tx.clientCode || '-'}</strong></td>
+                <td><strong>${tx.ucc || '-'}</strong></td>
                 <td><strong>${tx.clientName}</strong></td>
                 <td>${tx.scheme}</td>
                 <td><span class="badge ${badgeClass}">${tx.type}</span></td>
