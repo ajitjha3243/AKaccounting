@@ -538,19 +538,76 @@
         </div>
     </div>
 
-    <!-- MFD TOP SUMMARY CARDS -->
+    <!-- MFD TOP SUMMARY CARDS (FIXED ACCURATE NET AUM) -->
     <div class="summary-container">
         <div class="card equity">
             <h3>Total Clients</h3>
             <p id="mfd-total-clients">0</p>
         </div>
+        <div class="card pnl">
+            <h3>Net AUM</h3>
+            <p id="mfd-net-aum">0.00</p>
+        </div>
         <div class="card cash" style="border-left-color: var(--success);">
-            <h3>Total AUM / Inflow</h3>
-            <p id="mfd-total-aum" class="pnl-positive">0.00</p>
+            <h3>Gross Inflows (SIP + Lumpsum)</h3>
+            <p id="mfd-gross-inflow" class="pnl-positive">0.00</p>
         </div>
         <div class="card mf" style="border-left-color: var(--danger);">
             <h3>Total Redemptions</h3>
             <p id="mfd-total-redemption" class="pnl-negative">0.00</p>
+        </div>
+    </div>
+
+    <!-- NEW: MFD BUSINESS & CLIENT ANALYTICS PANEL -->
+    <div class="panel" style="padding-top: 10px; margin-bottom: 25px;">
+        <div class="panel-header" onclick="toggleMfdAnalyticsPanel()">
+            <h2>Business & Client Analytics Reports</h2>
+            <span id="mfd-analytics-icon">▲</span>
+        </div>
+        <div id="mfd-analytics-content" class="collapsible-table-content active">
+            
+            <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
+                
+                <!-- REPORT 1: CLIENT-WISE AUM SUMMARY -->
+                <div class="table-container">
+                    <h3>Client Portfolio AUM Summary</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Client Name</th>
+                                <th>Inflows</th>
+                                <th>Redeemed</th>
+                                <th>Net AUM</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mfd-client-aum-body"></tbody>
+                    </table>
+                </div>
+
+                <!-- REPORT 2: SCHEME-WISE AUM BREAKDOWN -->
+                <div class="table-container">
+                    <h3>Scheme-wise AUM Breakdown</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Scheme Name</th>
+                                <th>Inflows</th>
+                                <th>Redeemed</th>
+                                <th>Net AUM</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mfd-scheme-aum-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- REPORT 3: MONTHLY BUSINESS FLOW DRILLDOWN -->
+            <div style="margin-top: 25px;">
+                <h3>Monthly Business Flow Drilldown (Year -> Month -> Client)</h3>
+                <div id="mfd-drilldown-tree" class="tree-container" style="max-width: 800px;"></div>
+            </div>
+
         </div>
     </div>
 
@@ -619,7 +676,7 @@
             </div>
             <div id="mfd-tx-content" class="collapsible-table-content active">
                 
-                <!-- CSV UPLOAD SECTION WITH CLIENT CODE VERIFICATION -->
+                <!-- CSV UPLOAD SECTION -->
                 <div style="background: #e0e7ff; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #c7d2fe;">
                     <h3 style="margin-top: 0; font-size: 1rem; color: var(--primary);">📂 Bulk Upload Transactions via CSV</h3>
                     <p style="font-size: 0.85rem; color: #475569; margin-bottom: 5px;"><strong>CSV columns exactly as:</strong> <code>Date, ClientCode, Scheme, Type, Amount, Folio</code></p>
@@ -1540,23 +1597,21 @@
         resetOtherPageAndRender(); 
     }
 
-    // Helper to calculate P&L/Ledger Negative amounts (Outflows)
     function getOtherEffectiveAmount(tx) {
         if (['Expense', 'Purchase', 'Cash Paid'].includes(tx.txType)) {
             return -Math.abs(tx.amount);
         }
-        return Math.abs(tx.amount); // Treat everything else as positive
+        return Math.abs(tx.amount);
     }
 
-    // Helper to calculate Party Balance true accounting
     function getPartyEffectiveAmount(tx) {
         let amt = Math.abs(tx.amount);
         if (['Sale', 'Income', 'Cash Paid'].includes(tx.txType)) {
-            return amt; // Increases Receivable / Decreases Payable
+            return amt;
         } else if (['Purchase', 'Expense', 'Cash Received'].includes(tx.txType)) {
-            return -amt; // Decreases Receivable / Increases Payable
+            return -amt;
         }
-        return 0; // Transfer, Other
+        return 0;
     }
 
     function renderOtherApp() {
@@ -1591,7 +1646,6 @@
         otherTxs.forEach(tx => {
             let effAmt = getOtherEffectiveAmount(tx);
             
-            // P&L Logic: Exclude Cash Received, Cash Paid, Transfer
             if (!['Cash Received', 'Cash Paid', 'Transfer'].includes(tx.txType)) {
                 netIncome += effAmt;
                 if (effAmt >= 0) totalReceived += effAmt;
@@ -1599,7 +1653,6 @@
                 addOtherHierarchical(tx.date, tx.name || 'General / No Name', effAmt);
             }
             
-            // Party Balance Logic: Only calculate if a party name was entered
             let partyName = (tx.name || '').trim();
             if (partyName) {
                 if (!partyBalances[partyName]) partyBalances[partyName] = 0;
@@ -1607,13 +1660,11 @@
             }
         });
 
-        // 1. Update Top Summary Dashboard
         document.getElementById('other-net-income').innerText = (netIncome > 0 ? '+' : '') + netIncome.toFixed(2);
         document.getElementById('other-net-income').className = netIncome >= 0 ? 'pnl-positive' : 'pnl-negative';
         document.getElementById('other-total-received').innerText = totalReceived.toFixed(2);
         document.getElementById('other-total-paid').innerText = totalPaid.toFixed(2);
         
-        // 2. Render Drilldown Dashboard
         let treeHtml = '';
         const monthNames = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -1672,7 +1723,6 @@
         if(treeHtml === '') treeHtml = `<div style="padding: 15px; color: #64748b; text-align: center;">No income or expense data found yet.</div>`;
         document.getElementById('other-hierarchical-body').innerHTML = treeHtml;
 
-        // 3. Update Party Balance Ledger Table
         const partyBody = document.getElementById('other-party-body');
         partyBody.innerHTML = '';
         let partyKeys = Object.keys(partyBalances).sort();
@@ -1682,7 +1732,6 @@
         } else {
             partyKeys.forEach(party => {
                 let bal = partyBalances[party];
-                // Hide zero balances to keep it clean
                 if (Math.abs(bal) > 0.001) {
                     let c = bal > 0 ? 'pnl-positive' : 'pnl-negative';
                     partyBody.innerHTML += `<tr>
@@ -1696,7 +1745,6 @@
             }
         }
 
-        // 4. Update Filtering & Sorting
         ['date', 'txType', 'name', 'remark', 'qty', 'rate', 'amount'].forEach(col => {
             const el = document.getElementById(`other-sort-${col}`);
             if(el) el.innerText = (otherSortCol === col) ? (otherSortDesc ? ' ↓' : ' ↑') : '';
@@ -1725,7 +1773,6 @@
             return match;
         });
 
-        // Toggle Total Sum Badge at the top of the column if filters are applied
         const totalDisplayEl = document.getElementById('other-flt-total-display');
         if (fColType || fColName || fColRemark || fColDate || searchText) {
             let sumTotal = dynamicTxs.reduce((sum, tx) => sum + getOtherEffectiveAmount(tx), 0);
@@ -1735,23 +1782,17 @@
             totalDisplayEl.style.display = 'none';
         }
 
-        // Sorting Engine
         dynamicTxs.sort((a, b) => {
             let valA = a[otherSortCol]; let valB = b[otherSortCol];
-            
             if (otherSortCol === 'date') { 
                 valA = new Date(valA).getTime(); valB = new Date(valB).getTime(); 
-            }
-            else if (['qty', 'rate'].includes(otherSortCol)) { 
+            } else if (['qty', 'rate'].includes(otherSortCol)) { 
                 valA = Number(valA); valB = Number(valB); 
-            }
-            else if (otherSortCol === 'amount') {
+            } else if (otherSortCol === 'amount') {
                 valA = getOtherEffectiveAmount(a); valB = getOtherEffectiveAmount(b);
-            }
-            else { 
+            } else { 
                 valA = String(valA || '').toLowerCase(); valB = String(valB || '').toLowerCase(); 
             }
-            
             if (valA < valB) return otherSortDesc ? 1 : -1;
             if (valA > valB) return otherSortDesc ? -1 : 1;
             return 0;
@@ -1762,7 +1803,6 @@
         const startIdx = (otherCurrentPage - 1) * pageSize;
         const pageTxs = dynamicTxs.slice(startIdx, startIdx + pageSize);
 
-        // Rendering Rows
         pageTxs.forEach(tx => {
             let badgeClass = tx.txType.toLowerCase().replace(' ', '-');
             let effAmt = getOtherEffectiveAmount(tx);
@@ -1823,6 +1863,13 @@
         icon.innerText = content.classList.contains('active') ? '▲' : '▼';
     }
 
+    function toggleMfdAnalyticsPanel() {
+        const content = document.getElementById('mfd-analytics-content');
+        const icon = document.getElementById('mfd-analytics-icon');
+        content.classList.toggle('active');
+        icon.innerText = content.classList.contains('active') ? '▲' : '▼';
+    }
+
     // --- CLIENT MASTER SUBMISSION (AUTO-INCREMENT CODE) ---
     document.getElementById('mfd-client-form').addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -1831,11 +1878,9 @@
         let clientCodeNum = 1;
         
         if (cid) {
-            // Keep existing code if editing
             const existingClient = mfdClients.find(c => c.id === cid);
             clientCodeNum = existingClient ? (existingClient.clientCode || 1) : 1;
         } else {
-            // Calculate next available code
             const maxCode = mfdClients.reduce((max, c) => Math.max(max, c.clientCode || 0), 0);
             clientCodeNum = maxCode + 1;
         }
@@ -1903,13 +1948,12 @@
         }
     }
 
-    // --- MANUAL TRANSACTION SUBMISSION (EXTRACTING CODE) ---
+    // --- MANUAL TRANSACTION SUBMISSION ---
     document.getElementById('mfd-tx-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const tid = document.getElementById('mfd-tx-id').value;
         const rawClientInput = document.getElementById('mfd-tx-client').value.trim();
         
-        // Extract client code from "12 - Rahul Sharma" format
         let tClientCode = 0;
         let tClientName = rawClientInput;
         
@@ -1975,7 +2019,7 @@
         }
     }
 
-    // --- CSV BULK UPLOAD ENGINE (CLIENT CODE VALIDATION) ---
+    // --- CSV BULK UPLOAD ENGINE ---
     function uploadMfdCSV(event) {
         const file = event.target.files[0];
         if (!file || !currentUser) return;
@@ -1991,7 +2035,6 @@
                 const line = lines[i].trim();
                 if (!line) continue;
                 
-                // Format: Date, ClientCode, Scheme, Type, Amount, Folio
                 const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
                 if (cols.length >= 5) {
                     const cCode = parseInt(cols[1]) || 0;
@@ -2024,16 +2067,14 @@
         reader.readAsText(file);
     }
 
-    // --- RENDER MFD WORKSPACE COMPONENTS ---
+    // --- RENDER MFD WORKSPACE COMPONENTS & ACCURATE AUM REPORTS ---
     function renderMfdApp() {
-        // 1. Render Client Master Table & Smart Datadropdown
+        // 1. Render Client Master Directory & Datalist
         const clientTable = document.getElementById('mfd-clients-list-body');
         const datalist = document.getElementById('mfd-client-datalist');
         clientTable.innerHTML = ''; datalist.innerHTML = '';
 
         mfdClients.sort((a,b) => (a.clientCode || 0) - (b.clientCode || 0)).forEach(c => {
-            
-            // Standardize datalist format to: "[Code] - [Name]"
             const displayStr = `${c.clientCode || '-'} - ${c.name}`;
             datalist.innerHTML += `<option value="${displayStr}">`;
 
@@ -2053,23 +2094,162 @@
             clientTable.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:15px; color:#666;">No clients saved yet.</td></tr>`;
         }
 
-        // 2. Summary Dashboard Calculations
-        let totalInflow = 0;
+        // 2. Summary Dashboard & Advanced Reports Map Setup
+        let totalGrossInflow = 0;
         let totalRedemption = 0;
+        
+        let clientAumMap = {};
+        let schemeAumMap = {};
+        let monthlyTree = {};
+
+        // Pre-fill client map with saved clients
+        mfdClients.forEach(c => {
+            let key = c.clientCode || c.name;
+            clientAumMap[key] = { code: c.clientCode || '-', name: c.name, inflow: 0, redemption: 0, net: 0 };
+        });
 
         mfdTxs.forEach(tx => {
+            let amt = Math.abs(tx.amount) || 0;
+            let cKey = tx.clientCode || tx.clientName;
+            let sKey = tx.scheme || 'Uncategorized Scheme';
+
+            if (!clientAumMap[cKey]) {
+                clientAumMap[cKey] = { code: tx.clientCode || '-', name: tx.clientName, inflow: 0, redemption: 0, net: 0 };
+            }
+
+            if (!schemeAumMap[sKey]) {
+                schemeAumMap[sKey] = { name: sKey, inflow: 0, redemption: 0, net: 0 };
+            }
+
+            let d = new Date(tx.date);
+            let yStr = d.getFullYear() || new Date().getFullYear();
+            let mStr = (d.getMonth() + 1).toString().padStart(2, '0');
+
+            if (!monthlyTree[yStr]) monthlyTree[yStr] = { net: 0, months: {} };
+            if (!monthlyTree[yStr].months[mStr]) monthlyTree[yStr].months[mStr] = { net: 0, clients: {} };
+            if (!monthlyTree[yStr].months[mStr].clients[tx.clientName]) monthlyTree[yStr].months[mStr].clients[tx.clientName] = 0;
+
             if (['SIP', 'Lumpsum'].includes(tx.type)) {
-                totalInflow += Math.abs(tx.amount);
+                totalGrossInflow += amt;
+                clientAumMap[cKey].inflow += amt;
+                clientAumMap[cKey].net += amt;
+                schemeAumMap[sKey].inflow += amt;
+                schemeAumMap[sKey].net += amt;
+
+                monthlyTree[yStr].net += amt;
+                monthlyTree[yStr].months[mStr].net += amt;
+                monthlyTree[yStr].months[mStr].clients[tx.clientName] += amt;
+
             } else if (tx.type === 'Redemption') {
-                totalRedemption += Math.abs(tx.amount);
+                totalRedemption += amt;
+                clientAumMap[cKey].redemption += amt;
+                clientAumMap[cKey].net -= amt;
+                schemeAumMap[sKey].redemption += amt;
+                schemeAumMap[sKey].net -= amt;
+
+                monthlyTree[yStr].net -= amt;
+                monthlyTree[yStr].months[mStr].net -= amt;
+                monthlyTree[yStr].months[mStr].clients[tx.clientName] -= amt;
             }
         });
 
+        // Update Top Cards (FIXED: Net AUM = Inflows - Redemptions)
+        const netAum = totalGrossInflow - totalRedemption;
         document.getElementById('mfd-total-clients').innerText = mfdClients.length;
-        document.getElementById('mfd-total-aum').innerText = totalInflow.toFixed(2);
+        document.getElementById('mfd-net-aum').innerText = (netAum >= 0 ? '+' : '') + netAum.toFixed(2);
+        document.getElementById('mfd-net-aum').className = netAum >= 0 ? 'pnl-positive' : 'pnl-negative';
+        document.getElementById('mfd-gross-inflow').innerText = totalGrossInflow.toFixed(2);
         document.getElementById('mfd-total-redemption').innerText = totalRedemption.toFixed(2);
 
-        // 3. Render Transaction Ledger
+        // 3. Render Report 1: Client Portfolio AUM Summary
+        const clientAumBody = document.getElementById('mfd-client-aum-body');
+        clientAumBody.innerHTML = '';
+        
+        let sortedClientKeys = Object.keys(clientAumMap).sort((a,b) => clientAumMap[b].net - clientAumMap[a].net);
+        
+        if (sortedClientKeys.length === 0) {
+            clientAumBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:15px; color:#666;">No client data available.</td></tr>`;
+        } else {
+            sortedClientKeys.forEach(k => {
+                let item = clientAumMap[k];
+                let netClass = item.net >= 0 ? 'pnl-positive' : 'pnl-negative';
+                clientAumBody.innerHTML += `<tr>
+                    <td><strong>${item.code}</strong></td>
+                    <td><strong>${item.name}</strong></td>
+                    <td class="pnl-positive">+${item.inflow.toFixed(2)}</td>
+                    <td class="pnl-negative">-${item.redemption.toFixed(2)}</td>
+                    <td class="${netClass}"><strong>${item.net.toFixed(2)}</strong></td>
+                </tr>`;
+            });
+        }
+
+        // 4. Render Report 2: Scheme-wise AUM Breakdown
+        const schemeAumBody = document.getElementById('mfd-scheme-aum-body');
+        schemeAumBody.innerHTML = '';
+        
+        let sortedSchemeKeys = Object.keys(schemeAumMap).sort((a,b) => schemeAumMap[b].net - schemeAumMap[a].net);
+
+        if (sortedSchemeKeys.length === 0) {
+            schemeAumBody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:15px; color:#666;">No scheme transactions logged.</td></tr>`;
+        } else {
+            sortedSchemeKeys.forEach(s => {
+                let item = schemeAumMap[s];
+                let netClass = item.net >= 0 ? 'pnl-positive' : 'pnl-negative';
+                schemeAumBody.innerHTML += `<tr>
+                    <td><strong>${item.name}</strong></td>
+                    <td class="pnl-positive">+${item.inflow.toFixed(2)}</td>
+                    <td class="pnl-negative">-${item.redemption.toFixed(2)}</td>
+                    <td class="${netClass}"><strong>${item.net.toFixed(2)}</strong></td>
+                </tr>`;
+            });
+        }
+
+        // 5. Render Report 3: Monthly Business Flow Tree
+        const drilldownTree = document.getElementById('mfd-drilldown-tree');
+        let treeHtml = '';
+        const monthNames = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+        Object.keys(monthlyTree).sort().reverse().forEach(yr => {
+            let yData = monthlyTree[yr];
+            let yClass = yData.net >= 0 ? 'pnl-positive' : 'pnl-negative';
+            
+            treeHtml += `<div class="tree-node">
+                <div class="tree-header" onclick="this.parentElement.classList.toggle('active')">
+                    <span><span class="tree-arrow">▶</span> Year ${yr}</span>
+                    <span class="${yClass}">${yData.net>0?'+':''}${yData.net.toFixed(2)}</span>
+                </div>
+                <div class="tree-children">`;
+            
+            Object.keys(yData.months).sort().reverse().forEach(mStr => {
+                let mData = yData.months[mStr];
+                let mClass = mData.net >= 0 ? 'pnl-positive' : 'pnl-negative';
+                
+                treeHtml += `<div class="tree-node">
+                    <div class="tree-header" onclick="this.parentElement.classList.toggle('active')">
+                        <span><span class="tree-arrow">▶</span> ${monthNames[parseInt(mStr)]}</span>
+                        <span class="${mClass}">${mData.net>0?'+':''}${mData.net.toFixed(2)}</span>
+                    </div>
+                    <div class="tree-children">`;
+                
+                Object.keys(mData.clients).sort().forEach(cName => {
+                    let cNet = mData.clients[cName];
+                    if (cNet !== 0) {
+                        let cClass = cNet > 0 ? 'pnl-positive' : 'pnl-negative';
+                        treeHtml += `<div class="tree-leaf">
+                            <span>${cName}</span>
+                            <span class="${cClass}">${cNet>0?'+':''}${cNet.toFixed(2)}</span>
+                        </div>`;
+                    }
+                });
+                treeHtml += `</div></div>`;
+            });
+            treeHtml += `</div></div>`;
+        });
+
+        if (treeHtml === '') treeHtml = `<div style="padding:15px; color:#666; text-align:center;">No monthly flow data available.</div>`;
+        drilldownTree.innerHTML = treeHtml;
+
+        // 6. Render Raw Transaction Ledger
         const ledgerBody = document.getElementById('mfd-ledger-body');
         ledgerBody.innerHTML = '';
 
