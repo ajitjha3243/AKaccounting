@@ -149,7 +149,6 @@
     <div class="auth-box">
         <h2>Dashboard Login</h2>
         
-        <!-- WORKSPACE SELECTOR -->
         <div class="workspace-selector">
             <p>Select Workspace:</p>
             <label><input type="radio" name="workspace" value="equity" checked> Equity & MF</label>
@@ -174,7 +173,9 @@
     </div>
 </div>
 
+<!-- ========================================================= -->
 <!-- WORKSPACE 1: EQUITY & MF DASHBOARD -->
+<!-- ========================================================= -->
 <div class="container" id="workspace-equity" style="display: none;">
     <div class="header-top">
         <h1>Personal Accounting Dashboard</h1>
@@ -288,7 +289,7 @@
             <div class="form-group"><label>Filter By Asset Class:</label><select id="report-filter-asset" onchange="renderApp()"><option value="All">All Assets</option><option value="Equity">Equity</option><option value="Mutual Fund">Mutual Fund</option></select></div>
             
             <div class="form-group" style="min-width: 260px;">
-                <label>Live API Config (Finnhub/AlphaVantage or Proxy Key)</label>
+                <label>Live API Config (Finnhub/AlphaVantage)</label>
                 <input type="password" id="live-api-key" placeholder="Optional Free API Key" style="padding: 7px; font-size: 0.85rem;">
             </div>
             <button class="btn-live" onclick="fetchLivePrices()">🔄 Fetch Live Prices</button>
@@ -373,7 +374,9 @@
     </div>
 </div>
 
+<!-- ========================================================= -->
 <!-- WORKSPACE 2: OTHER PURPOSE DASHBOARD -->
+<!-- ========================================================= -->
 <div class="container" id="workspace-other" style="display: none;">
     <div class="header-top">
         <h1>Other Purpose Dashboard</h1>
@@ -444,10 +447,7 @@
             <div id="other-log-tx-content" class="tx-form-container active">
                 <form id="other-tx-form">
                     <input type="hidden" id="other-tx-id">
-                    <div class="form-group">
-                        <label>1) Date</label>
-                        <input type="date" id="other-date" required>
-                    </div>
+                    <div class="form-group"><label>1) Date</label><input type="date" id="other-date" required></div>
                     <div class="form-group">
                         <label>2) Transaction Type</label>
                         <select id="other-tx-type" required>
@@ -461,26 +461,11 @@
                             <option value="Other">Other</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>3) Transaction Party Name (Optional)</label>
-                        <input type="text" id="other-name" placeholder="E.g., Client A, Vendor B, Office Supplies" style="text-transform: capitalize;">
-                    </div>
-                    <div class="form-group">
-                        <label>4) Remark (Optional)</label>
-                        <input type="text" id="other-remark" placeholder="Optional details">
-                    </div>
-                    <div class="form-group">
-                        <label>5) Quantity</label>
-                        <input type="number" id="other-qty" step="any" min="0" value="1" required oninput="calcOtherAmount()">
-                    </div>
-                    <div class="form-group">
-                        <label>6) Rate</label>
-                        <input type="number" id="other-rate" step="any" min="0" value="0" required oninput="calcOtherAmount()">
-                    </div>
-                    <div class="form-group">
-                        <label>7) Amount</label>
-                        <input type="number" id="other-amount" step="any" value="0" required>
-                    </div>
+                    <div class="form-group"><label>3) Transaction Party Name (Optional)</label><input type="text" id="other-name" style="text-transform: capitalize;"></div>
+                    <div class="form-group"><label>4) Remark (Optional)</label><input type="text" id="other-remark"></div>
+                    <div class="form-group"><label>5) Quantity</label><input type="number" id="other-qty" step="any" min="0" value="1" required oninput="calcOtherAmount()"></div>
+                    <div class="form-group"><label>6) Rate</label><input type="number" id="other-rate" step="any" min="0" value="0" required oninput="calcOtherAmount()"></div>
+                    <div class="form-group"><label>7) Amount</label><input type="number" id="other-amount" step="any" value="0" required></div>
                     <button type="submit" id="other-submit-btn" class="btn-primary">Add Transaction</button>
                     <button type="button" id="other-cancel-edit-btn" style="display:none; margin-top: 10px; background:#64748b;" class="btn-primary" onclick="cancelOtherEdit()">Cancel Edit</button>
                 </form>
@@ -495,20 +480,17 @@
             </div>
             <div id="other-ledger-content" class="collapsible-table-content active">
                 <div class="controls-row" style="background: #e0e7ff; border-color: #c7d2fe;">
-                    <div class="form-group" style="flex: 2; min-width: 250px;">
-                        <label>Global Live Search</label>
-                        <input type="text" id="other-ledger-search" placeholder="Start typing to search globally..." oninput="resetOtherPageAndRender()" style="border-color: #a5b4fc;">
-                    </div>
+                    <div class="form-group" style="flex: 2; min-width: 250px;"><label>Global Live Search</label><input type="text" id="other-ledger-search" oninput="resetOtherPageAndRender()" style="border-color: #a5b4fc;"></div>
                     <button class="btn-export" onclick="exportOtherCSV()">Download CSV</button>
                 </div>
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
-                                <th class="sortable" onclick="setOtherSort('date')">Date <span class="sort-icon" id="other-sort-date"></span><br><input type="text" id="other-flt-date" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetOtherPageAndRender()"></th>
-                                <th class="sortable" onclick="setOtherSort('txType')">Type <span class="sort-icon" id="other-sort-txType"></span><br><input type="text" id="other-flt-type" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetOtherPageAndRender()"></th>
-                                <th class="sortable" onclick="setOtherSort('name')">Party Name <span class="sort-icon" id="other-sort-name"></span><br><input type="text" id="other-flt-name" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetOtherPageAndRender()"></th>
-                                <th class="sortable" onclick="setOtherSort('remark')">Remark <span class="sort-icon" id="other-sort-remark"></span><br><input type="text" id="other-flt-remark" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="resetOtherPageAndRender()"></th>
+                                <th class="sortable" onclick="setOtherSort('date')">Date <span class="sort-icon" id="other-sort-date"></span><br><input type="text" id="other-flt-date" class="col-filter" oninput="resetOtherPageAndRender()"></th>
+                                <th class="sortable" onclick="setOtherSort('txType')">Type <span class="sort-icon" id="other-sort-txType"></span><br><input type="text" id="other-flt-type" class="col-filter" oninput="resetOtherPageAndRender()"></th>
+                                <th class="sortable" onclick="setOtherSort('name')">Party Name <span class="sort-icon" id="other-sort-name"></span><br><input type="text" id="other-flt-name" class="col-filter" oninput="resetOtherPageAndRender()"></th>
+                                <th class="sortable" onclick="setOtherSort('remark')">Remark <span class="sort-icon" id="other-sort-remark"></span><br><input type="text" id="other-flt-remark" class="col-filter" oninput="resetOtherPageAndRender()"></th>
                                 <th class="sortable" onclick="setOtherSort('qty')">Qty <span class="sort-icon" id="other-sort-qty"></span></th>
                                 <th class="sortable" onclick="setOtherSort('rate')">Rate <span class="sort-icon" id="other-sort-rate"></span></th>
                                 <th class="sortable" onclick="setOtherSort('amount')" style="min-width: 100px;">Amount <span class="sort-icon" id="other-sort-amount"></span><br><div id="other-flt-total-display" style="margin-top: 6px; padding: 4px; font-size: 0.85rem; font-weight: bold; color: var(--primary); background: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 3px; display: none; text-align: center;">0.00</div></th>
@@ -528,7 +510,9 @@
     </div>
 </div>
 
+<!-- ========================================================= -->
 <!-- WORKSPACE 3: MFD BUSINESS DASHBOARD -->
+<!-- ========================================================= -->
 <div class="container" id="workspace-mfd" style="display: none;">
     <div class="header-top">
         <h1>MFD Business Dashboard</h1>
@@ -538,18 +522,18 @@
         </div>
     </div>
 
-    <!-- MFD TOP SUMMARY CARDS (FIXED ACCURATE NET AUM) -->
+    <!-- MFD TOP SUMMARY CARDS -->
     <div class="summary-container">
         <div class="card equity">
             <h3>Total Clients</h3>
             <p id="mfd-total-clients">0</p>
         </div>
         <div class="card pnl">
-            <h3>Net AUM</h3>
+            <h3>Net AUM (Value)</h3>
             <p id="mfd-net-aum">0.00</p>
         </div>
         <div class="card cash" style="border-left-color: var(--success);">
-            <h3>Gross Inflows (SIP + Lumpsum)</h3>
+            <h3>Gross Inflows</h3>
             <p id="mfd-gross-inflow" class="pnl-positive">0.00</p>
         </div>
         <div class="card mf" style="border-left-color: var(--danger);">
@@ -566,6 +550,15 @@
         </div>
         <div id="mfd-analytics-content" class="collapsible-table-content active">
             
+            <div class="controls-row" style="background: #fffbeb; border: 1px solid #fde68a;">
+                <div class="form-group" style="flex: 2;">
+                    <label>Filter Scheme & XIRR Report by Investor:</label>
+                    <select id="mfd-report-client-filter" onchange="renderMfdReportsOnly()">
+                        <option value="ALL">All Investors (Master Portfolio)</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
                 
                 <!-- REPORT 1: CLIENT-WISE AUM SUMMARY -->
@@ -574,27 +567,30 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>UCC</th>
+                                <th>PAN/UCC</th>
                                 <th>Client Name</th>
-                                <th>Inflows</th>
-                                <th>Redeemed</th>
-                                <th>Net AUM</th>
+                                <th>Invested</th>
+                                <th>Current Val</th>
+                                <th>XIRR</th>
                             </tr>
                         </thead>
                         <tbody id="mfd-client-aum-body"></tbody>
                     </table>
                 </div>
 
-                <!-- REPORT 2: SCHEME-WISE AUM BREAKDOWN -->
+                <!-- REPORT 2: SCHEME-WISE AUM BREAKDOWN (FILTERABLE WITH %) -->
                 <div class="table-container">
-                    <h3>Scheme-wise AUM Breakdown</h3>
+                    <h3>Scheme-wise AUM Breakdown <span id="scheme-filter-lbl" style="color:var(--primary); font-size:0.8rem;">(All)</span></h3>
                     <table>
                         <thead>
                             <tr>
-                                <th>Scheme Name</th>
-                                <th>Inflows</th>
-                                <th>Redeemed</th>
-                                <th>Net AUM</th>
+                                <th>Scheme / ISIN</th>
+                                <th>Units</th>
+                                <th>NAV</th>
+                                <th>Invested</th>
+                                <th>Current Val</th>
+                                <th>XIRR</th>
+                                <th style="background:#e2e8f0;">% Weight</th>
                             </tr>
                         </thead>
                         <tbody id="mfd-scheme-aum-body"></tbody>
@@ -608,13 +604,12 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>UCC</th>
+                            <th>PAN/UCC</th>
+                            <th>Group</th>
                             <th>Client Name</th>
-                            <th>PAN</th>
                             <th>Mobile</th>
                             <th>City / State</th>
                             <th>Nominee</th>
-                            <th>Net AUM</th>
                         </tr>
                     </thead>
                     <tbody id="mfd-client-details-body"></tbody>
@@ -631,7 +626,7 @@
     </div>
 
     <div class="main-grid">
-        <!-- ADVANCED CLIENT MASTER PANEL WITH UCC -->
+        <!-- ADVANCED CLIENT MASTER PANEL -->
         <div class="panel">
             <div class="panel-header" onclick="toggleMfdClientPanel()">
                 <h2>Client Master (CRM)</h2>
@@ -643,15 +638,19 @@
                     
                     <div class="controls-row">
                         <div class="form-group"><label>Client Name*</label><input type="text" id="mfd-client-name" required></div>
+                        <div class="form-group"><label>Group / Family</label><input type="text" id="mfd-client-group"></div>
+                    </div>
+                    <div class="controls-row">
                         <div class="form-group"><label>PAN</label><input type="text" id="mfd-client-pan" style="text-transform: uppercase;"></div>
+                        <div class="form-group"><label>UCC</label><input type="text" id="mfd-client-ucc"></div>
                     </div>
                     <div class="controls-row">
                         <div class="form-group"><label>Mobile</label><input type="tel" id="mfd-client-phone"></div>
-                        <div class="form-group"><label>UCC (Unique Client Code)</label><input type="text" id="mfd-client-ucc" placeholder="E.g., 10001234"></div>
+                        <div class="form-group"><label>Folio Number(s)</label><input type="text" id="mfd-client-folio"></div>
                     </div>
                     <div class="controls-row">
-                        <div class="form-group"><label>Address</label><input type="text" id="mfd-client-address" placeholder="Street Address"></div>
-                        <div class="form-group"><label>Area</label><input type="text" id="mfd-client-area" placeholder="Locality"></div>
+                        <div class="form-group"><label>Address</label><input type="text" id="mfd-client-address"></div>
+                        <div class="form-group"><label>Area</label><input type="text" id="mfd-client-area"></div>
                     </div>
                     <div class="controls-row">
                         <div class="form-group"><label>City</label><input type="text" id="mfd-client-city"></div>
@@ -674,10 +673,10 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>UCC</th>
+                                <th>Group</th>
+                                <th>PAN/UCC</th>
                                 <th>Client Name</th>
                                 <th>Mobile</th>
-                                <th>City</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -687,55 +686,66 @@
             </div>
         </div>
 
-        <!-- TRANSACTION LOGGING & CSV UPLOAD PANEL (UCC MATCHING) -->
+        <!-- TRANSACTION LOGGING & CSV UPLOAD PANEL -->
         <div class="panel">
             <div class="panel-header" onclick="toggleMfdTxPanel()">
-                <h2>Log Transaction / CSV Bulk Upload</h2>
+                <h2>Log Transaction / LATEST NAV & TX Bulk Uploads</h2>
                 <span id="mfd-tx-icon">▲</span>
             </div>
             <div id="mfd-tx-content" class="collapsible-table-content active">
                 
-                <!-- CSV UPLOAD SECTION WITH UCC VERIFICATION -->
+                <!-- NAV UPLOAD SECTION -->
+                <div style="background: #f0fdf4; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #bbf7d0;">
+                    <h3 style="margin-top: 0; font-size: 1rem; color: var(--success);">📈 Global NAV Update via CSV</h3>
+                    <p style="font-size: 0.85rem; color: #475569; margin-bottom: 5px;"><strong>CSV columns required:</strong> <code>ISIN, NAV</code></p>
+                    <input type="file" id="mfd-nav-csv-input" accept=".csv" onchange="uploadMfdNavCSV(event)">
+                </div>
+
+                <!-- CSV TX UPLOAD SECTION -->
                 <div style="background: #e0e7ff; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #c7d2fe;">
-                    <h3 style="margin-top: 0; font-size: 1rem; color: var(--primary);">📂 Bulk Upload Transactions via CSV</h3>
-                    <p style="font-size: 0.85rem; color: #475569; margin-bottom: 5px;"><strong>CSV columns exactly as:</strong> <code>Date, UCC, Scheme, Type, Amount, Folio</code></p>
-                    <p style="font-size: 0.75rem; color: var(--danger); margin-bottom: 10px;"><em>*System strictly checks Column 2 (UCC). If the UCC is not found in your Master List, the row is securely skipped.</em></p>
-                    <input type="file" id="mfd-csv-input" accept=".csv" onchange="uploadMfdCSV(event)">
+                    <h3 style="margin-top: 0; font-size: 1rem; color: var(--primary);">📂 Bulk Transaction Upload via CSV</h3>
+                    <p style="font-size: 0.85rem; color: #475569; margin-bottom: 5px;"><strong>CSV columns EXACTLY as:</strong> <code>Group, Investor Name, PAN/UCC, Type, Purchase date, Folio No., Scheme, ISIN, NAV, Unit, Inv Amount</code></p>
+                    <input type="file" id="mfd-csv-input" accept=".csv" onchange="uploadMfdTxCSV(event)">
                 </div>
 
                 <h3>Manual Transaction Entry</h3>
                 <form id="mfd-tx-form">
                     <input type="hidden" id="mfd-tx-id">
-                    <div class="form-group">
-                        <label>Date</label>
-                        <input type="date" id="mfd-tx-date" required>
+                    
+                    <div class="controls-row">
+                        <div class="form-group"><label>Group</label><input type="text" id="mfd-tx-group" placeholder="Optional"></div>
+                        <div class="form-group">
+                            <label>Investor Name (Select via PAN/UCC)</label>
+                            <input type="text" id="mfd-tx-client" list="mfd-client-datalist" placeholder="E.g., ABCDE1234F - Rahul" required>
+                            <datalist id="mfd-client-datalist"></datalist>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Client Name (Select via UCC - Name)</label>
-                        <input type="text" id="mfd-tx-client" list="mfd-client-datalist" placeholder="E.g., UCC123 - Rahul Sharma" required>
-                        <datalist id="mfd-client-datalist"></datalist>
+
+                    <div class="controls-row">
+                        <div class="form-group">
+                            <label>Transaction Type</label>
+                            <select id="mfd-tx-type" required>
+                                <option value="SIP">SIP</option>
+                                <option value="Lumpsum">Lumpsum Purchase</option>
+                                <option value="Redemption">Redemption</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Purchase Date</label><input type="date" id="mfd-tx-date" required></div>
+                        <div class="form-group"><label>Folio No.</label><input type="text" id="mfd-tx-folio"></div>
                     </div>
-                    <div class="form-group">
-                        <label>Scheme Name</label>
-                        <input type="text" id="mfd-tx-scheme" placeholder="E.g., HDFC Top 100 Fund" required>
+
+                    <div class="controls-row">
+                        <div class="form-group" style="flex:2;"><label>Scheme</label><input type="text" id="mfd-tx-scheme" required></div>
+                        <div class="form-group"><label>ISIN</label><input type="text" id="mfd-tx-isin" required></div>
                     </div>
-                    <div class="form-group">
-                        <label>Transaction Type</label>
-                        <select id="mfd-tx-type" required>
-                            <option value="SIP">SIP</option>
-                            <option value="Lumpsum">Lumpsum Purchase</option>
-                            <option value="Redemption">Redemption</option>
-                        </select>
+
+                    <div class="controls-row" style="background:#f8fafc;">
+                        <div class="form-group"><label>NAV</label><input type="number" id="mfd-tx-nav" step="any" min="0" oninput="calcMfdManualTx()"></div>
+                        <div class="form-group"><label>Unit</label><input type="number" id="mfd-tx-unit" step="any" min="0" oninput="calcMfdManualTx()"></div>
+                        <div class="form-group"><label>Inv Amount</label><input type="number" id="mfd-tx-amount" step="any" min="0" oninput="calcMfdManualUnit()" required></div>
                     </div>
-                    <div class="form-group">
-                        <label>Amount</label>
-                        <input type="number" id="mfd-tx-amount" step="any" min="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Folio Number (Optional, Independent)</label>
-                        <input type="text" id="mfd-tx-folio" placeholder="Folio No.">
-                    </div>
-                    <button type="submit" id="mfd-tx-btn" class="btn-primary">Add Transaction</button>
+
+                    <button type="submit" id="mfd-tx-btn" class="btn-primary" style="margin-top:15px;">Add Transaction</button>
                     <button type="button" id="mfd-tx-cancel-btn" style="display:none; margin-top:10px;" class="btn-secondary" onclick="cancelMfdTxEdit()">Cancel Edit</button>
                 </form>
             </div>
@@ -750,11 +760,13 @@
                 <thead>
                     <tr>
                         <th>Date</th>
-                        <th>UCC</th>
-                        <th>Client Name</th>
+                        <th>PAN/UCC</th>
+                        <th>Investor</th>
                         <th>Scheme</th>
+                        <th>ISIN</th>
                         <th>Type</th>
-                        <th>Folio</th>
+                        <th>NAV</th>
+                        <th>Unit</th>
                         <th>Amount</th>
                         <th>Action</th>
                     </tr>
@@ -767,7 +779,7 @@
 
 <script>
     // ==========================================
-    // Firebase Configuration
+    // 1. FIREBASE CONFIGURATION
     // ==========================================
     const firebaseConfig = {
       apiKey: "AIzaSyBgQ08BOvTb60ZpPM72733sQUcpgy9ujQY",
@@ -783,125 +795,100 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // --- STATE VARIABLES (EQUITY) ---
+    // ==========================================
+    // 2. GLOBAL STATE VARIABLES
+    // ==========================================
     let currentUser = null; 
+    
+    // Workspace 1 (Equity/MF)
     let currentTxs = [];    
     let livePrices = {}; 
-    let currentPage = 1;
-    const pageSize = 15;
-    let sortCol = 'date';
+    let currentPage = 1; 
+    const pageSize = 15; 
+    let sortCol = 'date'; 
     let sortDesc = true;
-
-    // --- STATE VARIABLES (OTHER) ---
-    let otherTxs = [];
-    let otherCurrentPage = 1;
-    let otherSortCol = 'date';
+    
+    // Workspace 2 (Other Purpose)
+    let otherTxs = []; 
+    let otherCurrentPage = 1; 
+    let otherSortCol = 'date'; 
     let otherSortDesc = true;
 
-    // --- STATE VARIABLES (MFD) ---
+    // Workspace 3 (MFD Business)
     let mfdClients = [];
     let mfdTxs = [];
+    let mfdNavs = {}; // Map ISIN -> Latest NAV
 
-    // --- SECURE AUTHENTICATION SYSTEM & WORKSPACE ROUTING ---
+    // ==========================================
+    // 3. AUTHENTICATION & ROUTING LOGIC
+    // ==========================================
     auth.onAuthStateChanged(user => {
         if (user) {
             currentUser = user;
             document.getElementById('auth-overlay').style.display = 'none';
-            
-            // Populate all spans holding the user email
-            document.querySelectorAll('.display-user-email').forEach(el => {
-                el.innerText = user.email || "Logged in";
-            });
+            document.querySelectorAll('.display-user-email').forEach(el => { el.innerText = user.email || "Logged in"; });
 
-            // Set default dates
             document.getElementById('date').valueAsDate = new Date();
             document.getElementById('other-date').valueAsDate = new Date();
             document.getElementById('mfd-tx-date').valueAsDate = new Date();
 
-            // Route to correct workspace based on the radio button ticked
             const selectedWorkspace = document.querySelector('input[name="workspace"]:checked').value;
             
             if (selectedWorkspace === 'equity') {
-                document.getElementById('workspace-equity').style.display = 'block';
-                document.getElementById('workspace-other').style.display = 'none';
-                document.getElementById('workspace-mfd').style.display = 'none';
+                document.getElementById('workspace-equity').style.display = 'block'; document.getElementById('workspace-other').style.display = 'none'; document.getElementById('workspace-mfd').style.display = 'none';
                 loadTransactions(); 
             } else if (selectedWorkspace === 'other') {
-                document.getElementById('workspace-equity').style.display = 'none';
-                document.getElementById('workspace-other').style.display = 'block';
-                document.getElementById('workspace-mfd').style.display = 'none';
+                document.getElementById('workspace-equity').style.display = 'none'; document.getElementById('workspace-other').style.display = 'block'; document.getElementById('workspace-mfd').style.display = 'none';
                 loadOtherTransactions();
             } else if (selectedWorkspace === 'mfd') {
-                document.getElementById('workspace-equity').style.display = 'none';
-                document.getElementById('workspace-other').style.display = 'none';
-                document.getElementById('workspace-mfd').style.display = 'block';
+                document.getElementById('workspace-equity').style.display = 'none'; document.getElementById('workspace-other').style.display = 'none'; document.getElementById('workspace-mfd').style.display = 'block';
                 loadMfdData();
             }
-
         } else {
             currentUser = null;
-            document.getElementById('workspace-equity').style.display = 'none';
-            document.getElementById('workspace-other').style.display = 'none';
-            document.getElementById('workspace-mfd').style.display = 'none';
+            document.getElementById('workspace-equity').style.display = 'none'; document.getElementById('workspace-other').style.display = 'none'; document.getElementById('workspace-mfd').style.display = 'none';
             document.getElementById('auth-overlay').style.display = 'flex';
         }
     });
 
-    function showError(msg) {
-        const errEl = document.getElementById('auth-error');
-        errEl.innerText = msg;
-        errEl.style.display = 'block';
+    function showError(msg) { const errEl = document.getElementById('auth-error'); errEl.innerText = msg; errEl.style.display = 'block'; }
+    
+    function signInWithGoogle() { 
+        const provider = new firebase.auth.GoogleAuthProvider(); 
+        auth.signInWithPopup(provider).catch(error => { 
+            console.error("Google Auth Error:", error); 
+            showError(error.message); 
+        }); 
     }
-
-    function signInWithGoogle() {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).catch(error => {
-            console.error("Google Auth Error:", error);
-            if (error.code === 'auth/operation-not-allowed') {
-                showError("Google sign-in is not enabled in Firebase Console. Go to Authentication > Sign-in method in Firebase Console to enable it.");
-            } else if (error.code === 'auth/unauthorized-domain') {
-                showError("This domain is not authorized in Firebase Console for Google auth.");
-            } else {
-                showError(error.message);
-            }
-        });
+    
+    function signInWithEmail() { 
+        const email = document.getElementById('auth-email').value; 
+        const pwd = document.getElementById('auth-password').value; 
+        if(!email || !pwd) return showError("Enter email and password."); 
+        auth.signInWithEmailAndPassword(email, pwd).catch(error => showError(error.message)); 
     }
-
-    function signInWithEmail() {
-        const email = document.getElementById('auth-email').value;
-        const pwd = document.getElementById('auth-password').value;
-        if(!email || !pwd) return showError("Please enter email and password.");
-        auth.signInWithEmailAndPassword(email, pwd).catch(error => showError(error.message));
+    
+    function signUpWithEmail() { 
+        const email = document.getElementById('auth-email').value; 
+        const pwd = document.getElementById('auth-password').value; 
+        if(!email || !pwd) return showError("Enter email and password."); 
+        auth.createUserWithEmailAndPassword(email, pwd).catch(error => showError(error.message)); 
     }
-
-    function signUpWithEmail() {
-        const email = document.getElementById('auth-email').value;
-        const pwd = document.getElementById('auth-password').value;
-        if(!email || !pwd) return showError("Please enter email and password.");
-        auth.createUserWithEmailAndPassword(email, pwd).catch(error => showError(error.message));
+    
+    function forgotPassword() { 
+        const email = document.getElementById('auth-email').value.trim(); 
+        if (!email) return showError("Enter your email address above first, then click 'Forgot Password?'."); 
+        auth.sendPasswordResetEmail(email).then(() => { 
+            alert(`Reset link sent to ${email}!`); 
+            document.getElementById('auth-error').style.display = 'none'; 
+        }).catch(error => showError("Reset error: " + error.message)); 
     }
-
-    function forgotPassword() {
-        const email = document.getElementById('auth-email').value.trim();
-        if (!email) {
-            return showError("Please enter your email address in the field above first, then click 'Forgot Password?'.");
-        }
-        auth.sendPasswordResetEmail(email)
-            .then(() => {
-                alert(`Password reset link sent to ${email}! Please check your email inbox (and spam folder).`);
-                document.getElementById('auth-error').style.display = 'none';
-            })
-            .catch(error => {
-                showError("Reset error: " + error.message);
-            });
-    }
-
+    
     function signOut() { auth.signOut(); }
 
-    /* ======================================================================
-       WORKSPACE 1: EQUITY & MF LOGIC
-       ====================================================================== */
-    
+    // ==========================================
+    // 4. WORKSPACE 1: EQUITY & MF LOGIC
+    // ==========================================
     async function loadTransactions() {
         if(!currentUser) return;
         const snapshot = await db.collection('transactions').where("userId", "==", currentUser.uid).get();
@@ -1039,7 +1026,7 @@
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `Export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `Equity_Export_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -1449,11 +1436,9 @@
         document.getElementById('btn-next').disabled = currentPage === totalPages;
     }
 
-
-    /* ======================================================================
-       WORKSPACE 2: OTHER PURPOSE LOGIC
-       ====================================================================== */
-       
+    // ======================================================================
+    // 5. WORKSPACE 2: OTHER PURPOSE LOGIC
+    // ======================================================================
     async function loadOtherTransactions() {
         if(!currentUser) return;
         const snapshot = await db.collection('other_transactions').where("userId", "==", currentUser.uid).get();
@@ -1851,11 +1836,9 @@
         document.getElementById('other-btn-next').disabled = otherCurrentPage === totalPages;
     }
 
-
-    /* ======================================================================
-       WORKSPACE 3: MFD BUSINESS LOGIC
-       ====================================================================== */
-
+    // ======================================================================
+    // 6. WORKSPACE 3: MFD BUSINESS LOGIC
+    // ======================================================================
     async function loadMfdData() {
         if (!currentUser) return;
         
@@ -1865,29 +1848,16 @@
         const txSnap = await db.collection('mfd_transactions').where("userId", "==", currentUser.uid).get();
         mfdTxs = txSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+        const navSnap = await db.collection('mfd_navs').get();
+        mfdNavs = {};
+        navSnap.docs.forEach(doc => { mfdNavs[doc.id] = doc.data().nav; });
+
         renderMfdApp();
     }
 
-    function toggleMfdClientPanel() {
-        const content = document.getElementById('mfd-client-content');
-        const icon = document.getElementById('mfd-client-icon');
-        content.classList.toggle('active');
-        icon.innerText = content.classList.contains('active') ? '▲' : '▼';
-    }
-
-    function toggleMfdTxPanel() {
-        const content = document.getElementById('mfd-tx-content');
-        const icon = document.getElementById('mfd-tx-icon');
-        content.classList.toggle('active');
-        icon.innerText = content.classList.contains('active') ? '▲' : '▼';
-    }
-
-    function toggleMfdAnalyticsPanel() {
-        const content = document.getElementById('mfd-analytics-content');
-        const icon = document.getElementById('mfd-analytics-icon');
-        content.classList.toggle('active');
-        icon.innerText = content.classList.contains('active') ? '▲' : '▼';
-    }
+    function toggleMfdClientPanel() { const c = document.getElementById('mfd-client-content'); const i = document.getElementById('mfd-client-icon'); c.classList.toggle('active'); i.innerText = c.classList.contains('active') ? '▲' : '▼'; }
+    function toggleMfdTxPanel() { const c = document.getElementById('mfd-tx-content'); const i = document.getElementById('mfd-tx-icon'); c.classList.toggle('active'); i.innerText = c.classList.contains('active') ? '▲' : '▼'; }
+    function toggleMfdAnalyticsPanel() { const c = document.getElementById('mfd-analytics-content'); const i = document.getElementById('mfd-analytics-icon'); c.classList.toggle('active'); i.innerText = c.classList.contains('active') ? '▲' : '▼'; }
 
     // --- CLIENT MASTER SUBMISSION ---
     document.getElementById('mfd-client-form').addEventListener('submit', async function(e) {
@@ -1897,6 +1867,7 @@
         const cData = {
             userId: currentUser.uid,
             name: document.getElementById('mfd-client-name').value.trim(),
+            group: document.getElementById('mfd-client-group').value.trim(),
             pan: document.getElementById('mfd-client-pan').value.trim().toUpperCase(),
             ucc: document.getElementById('mfd-client-ucc').value.trim(), 
             phone: document.getElementById('mfd-client-phone').value.trim(),
@@ -1926,6 +1897,7 @@
         
         document.getElementById('mfd-client-id').value = id;
         document.getElementById('mfd-client-name').value = c.name || '';
+        document.getElementById('mfd-client-group').value = c.group || '';
         document.getElementById('mfd-client-pan').value = c.pan || '';
         document.getElementById('mfd-client-ucc').value = c.ucc || ''; 
         document.getElementById('mfd-client-phone').value = c.phone || '';
@@ -1937,7 +1909,7 @@
         document.getElementById('mfd-client-nominee-name').value = c.nomineeName || '';
         document.getElementById('mfd-client-nominee-phone').value = c.nomineePhone || '';
         
-        document.getElementById('mfd-client-btn').innerText = `Update Client [UCC: ${c.ucc || '-'}]`;
+        document.getElementById('mfd-client-btn').innerText = `Update Client [${c.pan || c.ucc || '-'}]`;
         document.getElementById('mfd-client-cancel-btn').style.display = 'inline-block';
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -1957,27 +1929,42 @@
     }
 
     // --- MANUAL TRANSACTION SUBMISSION ---
+    function calcMfdManualTx() {
+        let n = parseFloat(document.getElementById('mfd-tx-nav').value) || 0;
+        let u = parseFloat(document.getElementById('mfd-tx-unit').value) || 0;
+        if (n > 0 && u > 0) document.getElementById('mfd-tx-amount').value = (n * u).toFixed(2);
+    }
+    function calcMfdManualUnit() {
+        let n = parseFloat(document.getElementById('mfd-tx-nav').value) || 0;
+        let a = parseFloat(document.getElementById('mfd-tx-amount').value) || 0;
+        if (n > 0 && a > 0) document.getElementById('mfd-tx-unit').value = (a / n).toFixed(4);
+    }
+
     document.getElementById('mfd-tx-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const tid = document.getElementById('mfd-tx-id').value;
         const rawClientInput = document.getElementById('mfd-tx-client').value.trim();
         
-        let tUcc = '';
+        let tPanUcc = '';
         let tClientName = rawClientInput;
         
         const splitIndex = rawClientInput.indexOf(' - ');
         if (splitIndex !== -1) {
-            tUcc = rawClientInput.substring(0, splitIndex).trim();
+            tPanUcc = rawClientInput.substring(0, splitIndex).trim();
             tClientName = rawClientInput.substring(splitIndex + 3).trim();
         }
 
         const txData = {
             userId: currentUser.uid,
+            group: document.getElementById('mfd-tx-group').value.trim(),
             date: document.getElementById('mfd-tx-date').value,
-            ucc: tUcc,
+            pan_ucc: tPanUcc,
             clientName: tClientName,
             scheme: document.getElementById('mfd-tx-scheme').value.trim(),
+            isin: document.getElementById('mfd-tx-isin').value.trim(),
             type: document.getElementById('mfd-tx-type').value,
+            nav: parseFloat(document.getElementById('mfd-tx-nav').value) || 0,
+            unit: parseFloat(document.getElementById('mfd-tx-unit').value) || 0,
             amount: parseFloat(document.getElementById('mfd-tx-amount').value) || 0,
             folio: document.getElementById('mfd-tx-folio').value.trim() 
         };
@@ -1999,10 +1986,14 @@
         const tx = docRef.data();
         
         document.getElementById('mfd-tx-id').value = id;
+        document.getElementById('mfd-tx-group').value = tx.group || '';
         document.getElementById('mfd-tx-date').value = tx.date;
-        document.getElementById('mfd-tx-client').value = tx.ucc ? `${tx.ucc} - ${tx.clientName}` : tx.clientName;
+        document.getElementById('mfd-tx-client').value = tx.pan_ucc ? `${tx.pan_ucc} - ${tx.clientName}` : tx.clientName;
         document.getElementById('mfd-tx-scheme').value = tx.scheme;
+        document.getElementById('mfd-tx-isin').value = tx.isin || '';
         document.getElementById('mfd-tx-type').value = tx.type;
+        document.getElementById('mfd-tx-nav').value = tx.nav || 0;
+        document.getElementById('mfd-tx-unit').value = tx.unit || 0;
         document.getElementById('mfd-tx-amount').value = tx.amount;
         document.getElementById('mfd-tx-folio').value = tx.folio || '';
         
@@ -2026,15 +2017,52 @@
         }
     }
 
-    // --- CSV BULK UPLOAD ENGINE (UCC MATCHING) ---
-    function uploadMfdCSV(event) {
+    // --- CSV BULK LATEST NAV UPLOAD ---
+    function uploadMfdNavCSV(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const lines = e.target.result.split('\n');
+            let successCount = 0;
+            const batch = db.batch();
+
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+                if (cols.length >= 2) {
+                    const isin = cols[0];
+                    const nav = parseFloat(cols[1]);
+                    if (isin && nav > 0) {
+                        const ref = db.collection('mfd_navs').doc(isin);
+                        batch.set(ref, { nav: nav, updated: new Date().toISOString() });
+                        successCount++;
+                    }
+                }
+            }
+            if (successCount > 0) {
+                await batch.commit();
+                alert(`Successfully updated ${successCount} NAV records globally!`);
+            } else {
+                alert("No valid NAV records found to update.");
+            }
+            event.target.value = '';
+            loadMfdData();
+        };
+        reader.readAsText(file);
+    }
+
+    // --- CSV BULK TX UPLOAD ENGINE ---
+    function uploadMfdTxCSV(event) {
         const file = event.target.files[0];
         if (!file || !currentUser) return;
 
         const reader = new FileReader();
         reader.onload = async function(e) {
-            const text = e.target.result;
-            const lines = text.split('\n');
+            const lines = e.target.result.split('\n');
             let successCount = 0;
             let skipCount = 0;
 
@@ -2042,33 +2070,36 @@
                 const line = lines[i].trim();
                 if (!line) continue;
                 
-                // Format: Date, UCC, Scheme, Type, Amount, Folio
                 const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
-                if (cols.length >= 5) {
-                    const cUcc = cols[1] || '';
-                    const matchedC = mfdClients.find(c => c.ucc === cUcc);
+                if (cols.length >= 11) {
+                    const cPanUcc = cols[2];
+                    const matchedC = mfdClients.find(c => (c.pan && c.pan === cPanUcc) || (c.ucc && c.ucc === cPanUcc));
                     
                     if (!matchedC) {
-                        console.warn(`Skipped row ${i}: UCC '${cUcc}' not found in Client Master.`);
+                        console.warn(`Skipped row ${i}: PAN/UCC '${cPanUcc}' not found in Client Master.`);
                         skipCount++;
                         continue;
                     }
 
                     const txData = {
                         userId: currentUser.uid,
-                        date: cols[0] || new Date().toISOString().split('T')[0],
-                        ucc: cUcc,
+                        group: cols[0] || matchedC.group || '',
                         clientName: matchedC.name,
-                        scheme: cols[2] || 'Mutual Fund Scheme',
+                        pan_ucc: cPanUcc,
                         type: cols[3] || 'Lumpsum',
-                        amount: parseFloat(cols[4]) || 0,
-                        folio: cols[5] || ''
+                        date: cols[4] || new Date().toISOString().split('T')[0],
+                        folio: cols[5] || '',
+                        scheme: cols[6] || 'Mutual Fund Scheme',
+                        isin: cols[7] || '',
+                        nav: parseFloat(cols[8]) || 0,
+                        unit: parseFloat(cols[9]) || 0,
+                        amount: parseFloat(cols[10]) || 0
                     };
                     await db.collection('mfd_transactions').add(txData);
                     successCount++;
                 }
             }
-            alert(`Import Complete!\n\nSuccessfully Imported: ${successCount}\nSkipped (Invalid/Missing UCC): ${skipCount}`);
+            alert(`Transaction Import Complete!\n\nSuccessfully Imported: ${successCount}\nSkipped (Invalid/Missing PAN/UCC): ${skipCount}`);
             event.target.value = '';
             loadMfdData();
         };
@@ -2077,20 +2108,27 @@
 
     // --- RENDER MFD WORKSPACE COMPONENTS & ACCURATE AUM REPORTS ---
     function renderMfdApp() {
-        // 1. Render Client Master Directory & Datalist
         const clientTable = document.getElementById('mfd-clients-list-body');
         const datalist = document.getElementById('mfd-client-datalist');
         clientTable.innerHTML = ''; datalist.innerHTML = '';
 
+        const filterDropdown = document.getElementById('mfd-report-client-filter');
+        let currentFilterVal = filterDropdown ? filterDropdown.value : 'ALL';
+        
+        let filterHtml = `<option value="ALL">All Investors (Master Portfolio)</option>`;
+
         mfdClients.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
-            const displayStr = `${c.ucc || '-'} - ${c.name}`;
+            let identifier = c.pan || c.ucc || '-';
+            const displayStr = `${identifier} - ${c.name}`;
             datalist.innerHTML += `<option value="${displayStr}">`;
+            
+            filterHtml += `<option value="${identifier}">${displayStr}</option>`;
 
             clientTable.innerHTML += `<tr>
-                <td><strong>${c.ucc || '-'}</strong></td>
+                <td><strong>${c.group || '-'}</strong></td>
+                <td><strong>${identifier}</strong></td>
                 <td><strong>${c.name}</strong></td>
                 <td>${c.phone || '-'}</td>
-                <td>${c.city || '-'}</td>
                 <td>
                     <button class="btn-edit-tx" onclick="editMfdClient('${c.id}')">Edit</button>
                     <button class="btn-delete" onclick="deleteMfdClient('${c.id}')">Del</button>
@@ -2098,84 +2136,135 @@
             </tr>`;
         });
 
+        if (filterDropdown) {
+            filterDropdown.innerHTML = filterHtml;
+            filterDropdown.value = currentFilterVal;
+        }
+
         if (mfdClients.length === 0) {
             clientTable.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:15px; color:#666;">No clients saved yet.</td></tr>`;
         }
 
-        // 2. Summary Dashboard & Advanced Reports Map Setup
+        renderMfdReportsOnly();
+    }
+
+    function renderMfdReportsOnly() {
+        const filterVal = document.getElementById('mfd-report-client-filter').value;
+        const schemeFilterLbl = document.getElementById('scheme-filter-lbl');
+        if (schemeFilterLbl) schemeFilterLbl.innerText = filterVal === 'ALL' ? '(All Investors)' : '(Filtered)';
+
         let totalGrossInflow = 0;
         let totalRedemption = 0;
+        let currentValAum = 0;
         
         let clientAumMap = {};
         let schemeAumMap = {};
         let monthlyTree = {};
 
         mfdClients.forEach(c => {
-            let key = c.ucc ? c.ucc : c.name;
-            clientAumMap[key] = { ucc: c.ucc || '-', name: c.name, inflow: 0, redemption: 0, net: 0 };
+            let key = c.pan || c.ucc || c.name;
+            clientAumMap[key] = { pan_ucc: key, name: c.name, inflow: 0, redemption: 0, units: 0, curValue: 0, cashflows: [] };
         });
 
         mfdTxs.forEach(tx => {
             let amt = Math.abs(parseFloat(tx.amount)) || 0;
-            let cKey = tx.ucc ? tx.ucc : tx.clientName;
-            let sKey = tx.scheme || 'Uncategorized Scheme';
+            let unit = Math.abs(parseFloat(tx.unit)) || 0;
+            
+            let cKey = tx.pan_ucc || tx.clientName;
+            let sKey = tx.isin || tx.scheme || 'Uncategorized';
 
             let txTypeStr = (tx.type || '').trim().toLowerCase();
             let isRedeem = txTypeStr.includes('redemption') || txTypeStr.includes('redeem') || txTypeStr.includes('sale');
             let isInflow = txTypeStr.includes('sip') || txTypeStr.includes('lumpsum') || txTypeStr.includes('purchase');
 
-            if (!clientAumMap[cKey]) {
-                clientAumMap[cKey] = { ucc: tx.ucc || '-', name: tx.clientName, inflow: 0, redemption: 0, net: 0 };
-            }
-
-            if (!schemeAumMap[sKey]) {
-                schemeAumMap[sKey] = { name: sKey, inflow: 0, redemption: 0, net: 0 };
-            }
-
             let d = new Date(tx.date);
-            let yStr = d.getFullYear() || new Date().getFullYear();
-            let mStr = (d.getMonth() + 1).toString().padStart(2, '0');
+            
+            if (!clientAumMap[cKey]) clientAumMap[cKey] = { pan_ucc: cKey, name: tx.clientName, inflow: 0, redemption: 0, units: 0, curValue: 0, cashflows: [] };
+            if (!schemeAumMap[sKey]) schemeAumMap[sKey] = { isin: tx.isin, scheme: tx.scheme, inflow: 0, redemption: 0, units: 0, curValue: 0, cashflows: [] };
 
-            if (!monthlyTree[yStr]) monthlyTree[yStr] = { net: 0, months: {} };
-            if (!monthlyTree[yStr].months[mStr]) monthlyTree[yStr].months[mStr] = { net: 0, clients: {} };
-            if (!monthlyTree[yStr].months[mStr].clients[tx.clientName]) monthlyTree[yStr].months[mStr].clients[tx.clientName] = 0;
+            let includeInSchemeReport = (filterVal === 'ALL' || cKey === filterVal);
 
             if (isInflow) {
                 totalGrossInflow += amt;
                 clientAumMap[cKey].inflow += amt;
-                clientAumMap[cKey].net += amt;
-                schemeAumMap[sKey].inflow += amt;
-                schemeAumMap[sKey].net += amt;
+                clientAumMap[cKey].units += unit;
+                clientAumMap[cKey].cashflows.push({ amt: -amt, date: d }); 
 
-                monthlyTree[yStr].net += amt;
-                monthlyTree[yStr].months[mStr].net += amt;
-                monthlyTree[yStr].months[mStr].clients[tx.clientName] += amt;
-
+                if (includeInSchemeReport) {
+                    schemeAumMap[sKey].inflow += amt;
+                    schemeAumMap[sKey].units += unit;
+                    schemeAumMap[sKey].cashflows.push({ amt: -amt, date: d });
+                }
             } else if (isRedeem) {
                 totalRedemption += amt;
                 clientAumMap[cKey].redemption += amt;
-                clientAumMap[cKey].net -= amt;
-                schemeAumMap[sKey].redemption += amt;
-                schemeAumMap[sKey].net -= amt;
+                clientAumMap[cKey].units -= unit;
+                clientAumMap[cKey].cashflows.push({ amt: amt, date: d }); 
 
-                monthlyTree[yStr].net -= amt;
-                monthlyTree[yStr].months[mStr].net -= amt;
-                monthlyTree[yStr].months[mStr].clients[tx.clientName] -= amt;
+                if (includeInSchemeReport) {
+                    schemeAumMap[sKey].redemption += amt;
+                    schemeAumMap[sKey].units -= unit;
+                    schemeAumMap[sKey].cashflows.push({ amt: amt, date: d });
+                }
+            }
+
+            let yStr = d.getFullYear() || new Date().getFullYear();
+            let mStr = (d.getMonth() + 1).toString().padStart(2, '0');
+            if (!monthlyTree[yStr]) monthlyTree[yStr] = { net: 0, months: {} };
+            if (!monthlyTree[yStr].months[mStr]) monthlyTree[yStr].months[mStr] = { net: 0, clients: {} };
+            if (!monthlyTree[yStr].months[mStr].clients[tx.clientName]) monthlyTree[yStr].months[mStr].clients[tx.clientName] = 0;
+            
+            let pnlImpact = isInflow ? amt : (isRedeem ? -amt : 0);
+            monthlyTree[yStr].net += pnlImpact;
+            monthlyTree[yStr].months[mStr].net += pnlImpact;
+            monthlyTree[yStr].months[mStr].clients[tx.clientName] += pnlImpact;
+        });
+
+        // Resolve Valuations via Global NAV
+        Object.keys(clientAumMap).forEach(k => {
+            let item = clientAumMap[k];
+            let curVal = 0;
+            let cTxs = mfdTxs.filter(t => (t.pan_ucc || t.clientName) === k);
+            let sBal = {};
+            cTxs.forEach(t => {
+                let sk = t.isin || t.scheme;
+                if(!sBal[sk]) sBal[sk] = { units: 0, isin: t.isin, fallbackNav: 0 };
+                let isR = t.type.toLowerCase().includes('red');
+                sBal[sk].units += isR ? -t.unit : t.unit;
+                if(t.nav > 0) sBal[sk].fallbackNav = t.nav; 
+            });
+            
+            Object.keys(sBal).forEach(sk => {
+                let hold = sBal[sk].units;
+                if (hold > 0) {
+                    let rNav = mfdNavs[sBal[sk].isin] || sBal[sk].fallbackNav || 0;
+                    curVal += (hold * rNav);
+                }
+            });
+            item.curValue = curVal;
+            if (curVal > 0) {
+                item.cashflows.push({ amt: curVal, date: new Date() });
             }
         });
 
-        const netAum = totalGrossInflow - totalRedemption;
-        document.getElementById('mfd-total-clients').innerText = mfdClients.length;
-        document.getElementById('mfd-net-aum').innerText = (netAum >= 0 ? '+' : '') + netAum.toFixed(2);
-        document.getElementById('mfd-net-aum').className = netAum >= 0 ? 'pnl-positive' : 'pnl-negative';
+        Object.keys(schemeAumMap).forEach(k => {
+            let item = schemeAumMap[k];
+            if (item.units > 0) {
+                let rNav = mfdNavs[item.isin] || 0;
+                item.curValue = item.units * rNav;
+                item.cashflows.push({ amt: item.curValue, date: new Date() });
+                currentValAum += item.curValue; // Tally total for % weight calculation
+            }
+        });
+
+        document.getElementById('mfd-net-aum').innerText = filterVal === 'ALL' && currentValAum > 0 ? currentValAum.toFixed(2) : (totalGrossInflow - totalRedemption).toFixed(2);
         document.getElementById('mfd-gross-inflow').innerText = totalGrossInflow.toFixed(2);
         document.getElementById('mfd-total-redemption').innerText = totalRedemption.toFixed(2);
 
-        // 3. Render Report 1: Client Portfolio AUM Summary
+        // Render Report 1: Client Portfolio AUM Summary
         const clientAumBody = document.getElementById('mfd-client-aum-body');
         clientAumBody.innerHTML = '';
-        
-        let sortedClientKeys = Object.keys(clientAumMap).sort((a,b) => clientAumMap[b].net - clientAumMap[a].net);
+        let sortedClientKeys = Object.keys(clientAumMap).sort((a,b) => clientAumMap[b].curValue - clientAumMap[a].curValue);
         
         if (sortedClientKeys.length === 0) {
             clientAumBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:15px; color:#666;">No client data available.</td></tr>`;
@@ -2183,67 +2272,68 @@
             sortedClientKeys.forEach(k => {
                 let item = clientAumMap[k];
                 if (item.inflow > 0 || item.redemption > 0) {
-                    let netClass = item.net >= 0 ? 'pnl-positive' : 'pnl-negative';
+                    let xirrVal = computeXIRR(item.cashflows);
+                    let xClass = xirrVal >= 0 ? 'pnl-positive' : 'pnl-negative';
+                    
                     clientAumBody.innerHTML += `<tr>
-                        <td><strong>${item.ucc}</strong></td>
+                        <td><strong>${item.pan_ucc}</strong></td>
                         <td><strong>${item.name}</strong></td>
                         <td class="pnl-positive">+${item.inflow.toFixed(2)}</td>
-                        <td class="pnl-negative">-${item.redemption.toFixed(2)}</td>
-                        <td class="${netClass}"><strong>${item.net.toFixed(2)}</strong></td>
+                        <td><strong>${item.curValue.toFixed(2)}</strong></td>
+                        <td class="${xClass}">${xirrVal.toFixed(2)}%</td>
                     </tr>`;
                 }
             });
-            if (clientAumBody.innerHTML === '') {
-                 clientAumBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:15px; color:#666;">No clients have logged transactions yet.</td></tr>`;
-            }
         }
 
-        // 4. Render Report 2: Scheme-wise AUM Breakdown
+        // Render Report 2: Scheme-wise AUM Breakdown (WITH % WEIGHT)
         const schemeAumBody = document.getElementById('mfd-scheme-aum-body');
         schemeAumBody.innerHTML = '';
         
-        let sortedSchemeKeys = Object.keys(schemeAumMap).sort((a,b) => schemeAumMap[b].net - schemeAumMap[a].net);
+        let sortedSchemeKeys = Object.keys(schemeAumMap).sort((a,b) => schemeAumMap[b].curValue - schemeAumMap[a].curValue);
 
         if (sortedSchemeKeys.length === 0) {
-            schemeAumBody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:15px; color:#666;">No scheme transactions logged.</td></tr>`;
+            schemeAumBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:15px; color:#666;">No scheme transactions logged.</td></tr>`;
         } else {
             sortedSchemeKeys.forEach(s => {
                 let item = schemeAumMap[s];
-                let netClass = item.net >= 0 ? 'pnl-positive' : 'pnl-negative';
-                schemeAumBody.innerHTML += `<tr>
-                    <td><strong>${item.name}</strong></td>
-                    <td class="pnl-positive">+${item.inflow.toFixed(2)}</td>
-                    <td class="pnl-negative">-${item.redemption.toFixed(2)}</td>
-                    <td class="${netClass}"><strong>${item.net.toFixed(2)}</strong></td>
-                </tr>`;
+                if(item.units > 0.001 || item.redemption > 0) {
+                    let rNav = mfdNavs[item.isin] || 0;
+                    let xirrVal = computeXIRR(item.cashflows);
+                    let xClass = xirrVal >= 0 ? 'pnl-positive' : 'pnl-negative';
+                    
+                    let pct = currentValAum > 0 ? ((item.curValue / currentValAum) * 100).toFixed(2) + '%' : '0.00%';
+
+                    schemeAumBody.innerHTML += `<tr>
+                        <td><strong>${item.scheme}</strong><br><small style="color:#64748b;">${item.isin}</small></td>
+                        <td>${item.units.toFixed(4)}</td>
+                        <td>${rNav.toFixed(4)}</td>
+                        <td>${item.inflow.toFixed(2)}</td>
+                        <td><strong>${item.curValue.toFixed(2)}</strong></td>
+                        <td class="${xClass}">${xirrVal.toFixed(2)}%</td>
+                        <td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:0.8rem; font-weight:600;">${pct}</span></td>
+                    </tr>`;
+                }
             });
         }
 
-        // 5. Render Report 3: Comprehensive Client Details Report
+        // Render Report 3: Comprehensive Client Details
         const clientDetailsBody = document.getElementById('mfd-client-details-body');
         clientDetailsBody.innerHTML = '';
         
         mfdClients.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
-            let uccKey = c.ucc ? c.ucc : c.name;
-            let cNetAum = clientAumMap[uccKey] ? clientAumMap[uccKey].net : 0;
-            let netClass = cNetAum >= 0 ? 'pnl-positive' : 'pnl-negative';
-            
+            let key = c.pan || c.ucc || c.name;
             clientDetailsBody.innerHTML += `<tr>
-                <td><strong>${c.ucc || '-'}</strong></td>
+                <td><strong>${key}</strong></td>
+                <td>${c.group || '-'}</td>
                 <td><strong>${c.name}</strong></td>
-                <td>${c.pan || '-'}</td>
                 <td>${c.phone || '-'}</td>
                 <td>${c.city || '-'}${c.state ? ', ' + c.state : ''}</td>
                 <td>${c.nomineeName || '-'}</td>
-                <td class="${netClass}"><strong>${cNetAum.toFixed(2)}</strong></td>
             </tr>`;
         });
 
-        if (mfdClients.length === 0) {
-            clientDetailsBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:15px; color:#666;">No clients saved yet.</td></tr>`;
-        }
-
-        // 6. Render Report 4: Monthly Business Flow Tree
+        // Render Report 4: Monthly Business Flow Tree
         const drilldownTree = document.getElementById('mfd-drilldown-tree');
         let treeHtml = '';
         const monthNames = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -2251,33 +2341,18 @@
         Object.keys(monthlyTree).sort().reverse().forEach(yr => {
             let yData = monthlyTree[yr];
             let yClass = yData.net >= 0 ? 'pnl-positive' : 'pnl-negative';
-            
-            treeHtml += `<div class="tree-node">
-                <div class="tree-header" onclick="this.parentElement.classList.toggle('active')">
-                    <span><span class="tree-arrow">▶</span> Year ${yr}</span>
-                    <span class="${yClass}">${yData.net>0?'+':''}${yData.net.toFixed(2)}</span>
-                </div>
-                <div class="tree-children">`;
+            treeHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> Year ${yr}</span><span class="${yClass}">${yData.net>0?'+':''}${yData.net.toFixed(2)}</span></div><div class="tree-children">`;
             
             Object.keys(yData.months).sort().reverse().forEach(mStr => {
                 let mData = yData.months[mStr];
                 let mClass = mData.net >= 0 ? 'pnl-positive' : 'pnl-negative';
-                
-                treeHtml += `<div class="tree-node">
-                    <div class="tree-header" onclick="this.parentElement.classList.toggle('active')">
-                        <span><span class="tree-arrow">▶</span> ${monthNames[parseInt(mStr)]}</span>
-                        <span class="${mClass}">${mData.net>0?'+':''}${mData.net.toFixed(2)}</span>
-                    </div>
-                    <div class="tree-children">`;
+                treeHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${monthNames[parseInt(mStr)]}</span><span class="${mClass}">${mData.net>0?'+':''}${mData.net.toFixed(2)}</span></div><div class="tree-children">`;
                 
                 Object.keys(mData.clients).sort().forEach(cName => {
                     let cNet = mData.clients[cName];
                     if (cNet !== 0) {
                         let cClass = cNet > 0 ? 'pnl-positive' : 'pnl-negative';
-                        treeHtml += `<div class="tree-leaf">
-                            <span>${cName}</span>
-                            <span class="${cClass}">${cNet>0?'+':''}${cNet.toFixed(2)}</span>
-                        </div>`;
+                        treeHtml += `<div class="tree-leaf"><span>${cName}</span><span class="${cClass}">${cNet>0?'+':''}${cNet.toFixed(2)}</span></div>`;
                     }
                 });
                 treeHtml += `</div></div>`;
@@ -2288,28 +2363,27 @@
         if (treeHtml === '') treeHtml = `<div style="padding:15px; color:#666; text-align:center;">No monthly flow data available.</div>`;
         drilldownTree.innerHTML = treeHtml;
 
-        // 7. Render Raw Transaction Ledger
+        // Render Raw Ledger
         const ledgerBody = document.getElementById('mfd-ledger-body');
         ledgerBody.innerHTML = '';
-
         let sortedTxs = [...mfdTxs].sort((a,b) => new Date(b.date) - new Date(a.date));
 
         sortedTxs.forEach(tx => {
             let txTypeStr = (tx.type || '').trim().toLowerCase();
             let isRedeem = txTypeStr.includes('redemption') || txTypeStr.includes('redeem') || txTypeStr.includes('sale');
-            
-            let badgeClass = isRedeem ? 'redemption' : 'sip'; // Fallback badge class
+            let badgeClass = isRedeem ? 'redemption' : 'sip'; 
             if (txTypeStr.includes('lump')) badgeClass = 'lumpsum';
-            
             let amtClass = isRedeem ? 'pnl-negative' : 'pnl-positive';
 
             ledgerBody.innerHTML += `<tr>
                 <td>${tx.date}</td>
-                <td><strong>${tx.ucc || '-'}</strong></td>
+                <td><strong>${tx.pan_ucc || '-'}</strong></td>
                 <td><strong>${tx.clientName}</strong></td>
                 <td>${tx.scheme}</td>
+                <td><small style="color:#64748b;">${tx.isin || '-'}</small></td>
                 <td><span class="badge ${badgeClass}">${tx.type}</span></td>
-                <td>${tx.folio || '-'}</td>
+                <td>${tx.nav > 0 ? tx.nav.toFixed(4) : '-'}</td>
+                <td>${tx.unit > 0 ? tx.unit.toFixed(4) : '-'}</td>
                 <td class="${amtClass}">${isRedeem ? '-' : '+'}${tx.amount.toFixed(2)}</td>
                 <td>
                     <button class="btn-edit-tx" onclick="editMfdTx('${tx.id}')">Edit</button>
@@ -2319,7 +2393,7 @@
         });
 
         if (sortedTxs.length === 0) {
-            ledgerBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:15px; color:#666;">No MFD transactions logged yet.</td></tr>`;
+            ledgerBody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:15px; color:#666;">No transactions logged yet.</td></tr>`;
         }
     }
 </script>
