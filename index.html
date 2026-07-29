@@ -107,6 +107,7 @@
         .badge.sip { background: #dcfce7; color: #15803d; }
         .badge.lumpsum { background: #dbeafe; color: #1d4ed8; }
         .badge.redemption { background: #fee2e2; color: #991b1b; }
+        .badge.other { background: #e5e7eb; color: #374151; }
         
         .btn-edit-tx { background: none; border: none; color: var(--primary); cursor: pointer; font-weight: 500; margin-right: 8px; }
         .btn-delete { background: none; border: none; color: var(--danger); cursor: pointer; font-weight: 500; }
@@ -145,10 +146,10 @@
         <input type="password" id="auth-password" placeholder="Password">
         <div style="text-align: right;"><a class="forgot-link" onclick="forgotPassword()">Forgot Password?</a></div>
         <div class="auth-buttons">
-            <button class="btn-primary" onclick="signInWithEmail()">Log In</button>
-            <button class="btn-secondary" onclick="signUpWithEmail()">Sign Up</button>
+            <button id="btn-login" class="btn-primary" onclick="signInWithEmail()">Log In</button>
+            <button id="btn-signup" class="btn-secondary" onclick="signUpWithEmail()">Sign Up</button>
         </div>
-        <p id="auth-error" style="color: var(--danger); font-size: 0.85rem; margin: 0; display: none;"></p>
+        <p id="auth-error" style="color: var(--danger); font-size: 0.85rem; margin: 10px 0 0 0; display: none; word-break: break-word; text-align: left;"></p>
     </div>
 </div>
 
@@ -247,7 +248,7 @@
                 <h3 onclick="togglePanel('eq-holdings-content', 'eq-holdings-icon')" style="cursor:pointer; display:flex; justify-content:space-between;">Current Holdings (Live Market Track) <span id="eq-holdings-icon">▲</span></h3>
                 <div id="eq-holdings-content" class="collapsible-table-content active">
                     <table>
-                        <thead><tr><th>Symbol</th><th>Broker</th><th>Class</th><th>Qty</th><th>Avg Price</th><th>Invested</th><th style="background:#f0fdf4;">Live Price</th><th style="background:#f0fdf4;">Current Value</th><th style="background:#f0fdf4;">Unrealized P&L</th></tr></thead>
+                        <thead><tr><th>Symbol</th><th>Broker</th><th>Class</th><th>Qty</th><th>Avg Price</th><th>Invested Amt</th><th style="background:#f0fdf4;">Live Price</th><th style="background:#f0fdf4;">Current Value</th><th style="background:#f0fdf4;">Unrealized P&L</th></tr></thead>
                         <tbody id="eq-holdings-body"></tbody>
                     </table>
                 </div>
@@ -312,6 +313,10 @@
         <div class="user-controls">
             <span class="display-user-email"></span>
             <button class="btn-logout" onclick="signOut()">Log Out</button>
+        </div>
+        <div class="header-actions">
+            <button class="btn-backup" onclick="backupData()">💾 Backup to JSON (Global)</button>
+            <button class="btn-restore" onclick="document.getElementById('import-file').click()">📂 Restore JSON (Global)</button>
         </div>
     </div>
     
@@ -389,7 +394,7 @@
                                 <th class="sortable" onclick="setOthSort('remark')">Remark <span id="oth-sort-remark"></span><br><input type="text" id="oth-flt-remark" class="col-filter" oninput="othCurrentPage=1; renderOthApp();"></th>
                                 <th class="sortable" onclick="setOthSort('qty')">Qty</th>
                                 <th class="sortable" onclick="setOthSort('rate')">Rate</th>
-                                <th class="sortable" onclick="setOthSort('amount')">Amount <span id="oth-sort-amount"></span><br><div id="oth-total-display" style="margin-top:6px; padding:4px; font-size:0.85rem; font-weight:bold; color:var(--primary); background:#e0e7ff; display:none; text-align:center;">0.00</div></th>
+                                <th class="sortable" onclick="setOthSort('amount')">Amount <span id="oth-sort-amount"></span><br><div id="oth-flt-total-display" style="margin-top:6px; padding:4px; font-size:0.85rem; font-weight:bold; color:var(--primary); background:#e0e7ff; display:none; text-align:center;">0.00</div></th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -416,12 +421,16 @@
             <span class="display-user-email"></span>
             <button class="btn-logout" onclick="signOut()">Log Out</button>
         </div>
+        <div class="header-actions">
+            <button class="btn-backup" onclick="backupData()">💾 Backup to JSON (Global)</button>
+            <button class="btn-restore" onclick="document.getElementById('import-file').click()">📂 Restore JSON (Global)</button>
+        </div>
     </div>
 
     <div class="summary-container">
         <div class="card equity"><h3>Total Clients (Filtered)</h3><p id="mfd-total-clients">0</p></div>
         <div class="card pnl"><h3>Net Investment</h3><p id="mfd-net-inv">0.00</p></div>
-        <div class="card purple"><h3>Current Value (AUM)</h3><p id="mfd-net-aum">0.00</p></div>
+        <div class="card purple"><h3>Current Value (AUM)</h3><p id="mfd-current-val">0.00</p></div>
         <div class="card cash"><h3>Gross Inflows</h3><p id="mfd-gross-inflow" class="pnl-positive">0.00</p></div>
         <div class="card mf" style="border-left-color: var(--danger);"><h3>Total Redemptions</h3><p id="mfd-total-redemption" class="pnl-negative">0.00</p></div>
     </div>
@@ -449,7 +458,7 @@
                 <div class="table-container">
                     <h3>Client Portfolio AUM Summary</h3>
                     <table>
-                        <thead><tr><th>PAN/UCC</th><th>Client Name</th><th>Invested</th><th>Current Val</th><th>XIRR</th><th style="background:#e2e8f0;">% Wgt</th></tr></thead>
+                        <thead><tr><th>Group</th><th>PAN/UCC</th><th>Client Name</th><th>Invested</th><th>Current Val</th><th>XIRR</th><th style="background:#e2e8f0;">% Wgt</th></tr></thead>
                         <tbody id="mfd-client-aum"></tbody>
                     </table>
                 </div>
@@ -611,360 +620,10 @@
     </div>
 </div>
 
-<!-- ========================================================================= -->
-<!-- GLOBAL JAVASCRIPT ENGINE -->
-<!-- ========================================================================= -->
 <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBgQ08BOvTb60ZpPM72733sQUcpgy9ujQY",
-      authDomain: "equitydashboard-47f8c.firebaseapp.com",
-      projectId: "equitydashboard-47f8c",
-      storageBucket: "equitydashboard-47f8c.firebasestorage.app",
-      messagingSenderId: "313210184210",
-      appId: "1:313210184210:web:0d2492eab6d8e3a5f0aecb",
-      measurementId: "G-7XHQXMX6PR"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore(); const auth = firebase.auth();
-
-    let currentUser = null; 
-    let eqTxs = []; let eqPrices = {}; let eqPage = 1; let eqSort = 'date'; let eqDesc = true; const pSize = 15;
-    let othTxs = []; let othPage = 1; let othSort = 'date'; let othDesc = true;
-    let mfdClients = []; let mfdTxs = []; let mfdNavs = {}; let mfdPage = 1; let mfdSortCol = 'date'; let mfdSortDesc = true;
-
-    function togglePanel(cId, iId) { const c = document.getElementById(cId); const i = document.getElementById(iId); if(c && i){ c.classList.toggle('active'); i.innerText = c.classList.contains('active') ? '▲' : '▼'; } }
-    function showError(msg) { const errEl = document.getElementById('auth-error'); errEl.innerText = msg; errEl.style.display = 'block'; }
-    
-    function computeXIRR(cashflows) {
-        if (!cashflows || cashflows.length < 2) return 0;
-        cashflows.sort((a,b) => a.date.getTime() - b.date.getTime());
-        let hasPos = false, hasNeg = false;
-        cashflows.forEach(cf => { if(cf.amt > 0) hasPos = true; if(cf.amt < 0) hasNeg = true; });
-        if(!hasPos || !hasNeg) return 0;
-
-        let guess = 0.1; let d0 = cashflows[0].date.getTime();
-        for (let i = 0; i < 100; i++) {
-            let f = 0, df = 0;
-            for (let j = 0; j < cashflows.length; j++) {
-                let t = (cashflows[j].date.getTime() - d0) / (1000 * 3600 * 24 * 365.25);
-                f += cashflows[j].amt / Math.pow(1 + guess, t);
-                df -= (t * cashflows[j].amt) / Math.pow(1 + guess, t + 1);
-            }
-            if (Math.abs(f) < 0.0001) return guess * 100; 
-            let nextGuess = guess - f / df;
-            if (Math.abs(nextGuess - guess) < 0.00001) return nextGuess * 100;
-            guess = nextGuess;
-        }
-        return guess * 100; 
-    }
-
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            currentUser = user; document.getElementById('auth-overlay').style.display = 'none';
-            document.querySelectorAll('.display-user-email').forEach(el => el.innerText = user.email);
-            if(document.getElementById('eq-date')) document.getElementById('eq-date').valueAsDate = new Date();
-            if(document.getElementById('oth-date')) document.getElementById('oth-date').valueAsDate = new Date();
-            if(document.getElementById('mfd-t-date')) document.getElementById('mfd-t-date').valueAsDate = new Date();
-
-            const ws = document.querySelector('input[name="workspace"]:checked').value;
-            document.getElementById('workspace-equity').style.display = ws === 'equity' ? 'block' : 'none';
-            document.getElementById('workspace-other').style.display = ws === 'other' ? 'block' : 'none';
-            document.getElementById('workspace-mfd').style.display = ws === 'mfd' ? 'block' : 'none';
-
-            if (ws === 'equity') loadEq(); else if (ws === 'other') loadOth(); else if (ws === 'mfd') loadMfdData();
-        } else {
-            currentUser = null;
-            document.getElementById('workspace-equity').style.display = 'none'; document.getElementById('workspace-other').style.display = 'none'; document.getElementById('workspace-mfd').style.display = 'none';
-            document.getElementById('auth-overlay').style.display = 'flex';
-        }
-    });
-
-    function signInWithGoogle() { const provider = new firebase.auth.GoogleAuthProvider(); auth.signInWithPopup(provider).catch(e => showError(e.message)); }
-    function signInWithEmail() { const e = document.getElementById('auth-email').value; const p = document.getElementById('auth-password').value; if(!e || !p) return showError("Enter email and password."); auth.signInWithEmailAndPassword(e, p).catch(err => showError(err.message)); }
-    function signUpWithEmail() { const e = document.getElementById('auth-email').value; const p = document.getElementById('auth-password').value; if(!e || !p) return showError("Enter email and password."); auth.createUserWithEmailAndPassword(e, p).catch(err => showError(err.message)); }
-    function forgotPassword() { const e = document.getElementById('auth-email').value.trim(); if (!e) return showError("Enter email."); auth.sendPasswordResetEmail(e).then(() => { alert(`Reset link sent to ${e}`); document.getElementById('auth-error').style.display = 'none'; }).catch(err => showError(err.message)); }
-    function signOut() { auth.signOut(); }
-
-    async function backupData() {
-        if(!currentUser) return;
-        try {
-            const uid = currentUser.uid;
-            const eqSnap = await db.collection('transactions').where("userId", "==", uid).get();
-            const othSnap = await db.collection('other_transactions').where("userId", "==", uid).get();
-            const mfdCSnap = await db.collection('mfd_clients').where("userId", "==", uid).get();
-            const mfdTSnap = await db.collection('mfd_transactions').where("userId", "==", uid).get();
-            const mfdNSnap = await db.collection('mfd_navs').get();
-
-            const backup = {
-                format: "pro-equity-full-backup", date: new Date().toISOString(),
-                transactions: eqSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
-                other_transactions: othSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
-                mfd_clients: mfdCSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
-                mfd_transactions: mfdTSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
-                mfd_navs: mfdNSnap.docs.map(d => {return {id: d.id, ...d.data()};})
-            };
-
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup));
-            const link = document.createElement("a"); link.setAttribute("href", dataStr); link.setAttribute("download", `Full_Backup_${new Date().toISOString().split('T')[0]}.json`);
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        } catch(e) { alert('Backup failed: ' + e); }
-    }
-
-    async function restoreData(event) {
-        const file = event.target.files[0]; if (!file || !currentUser) return; const reader = new FileReader();
-        reader.onload = async function(e) {
-            try {
-                const data = JSON.parse(e.target.result);
-                if (data.format === "pro-equity-full-backup" || data.transactions) {
-                    if(!confirm("Restore will ADD data to your current account. Continue?")) return;
-                    const batch = db.batch(); let count = 0;
-                    const addDocs = (collection, items) => { if(!items) return; items.forEach(item => { let ref = db.collection(collection).doc(); item.userId = currentUser.uid; batch.set(ref, item); count++; }); };
-                    addDocs('transactions', data.transactions); addDocs('other_transactions', data.other_transactions); addDocs('mfd_clients', data.mfd_clients); addDocs('mfd_transactions', data.mfd_transactions);
-                    if(data.mfd_navs) { data.mfd_navs.forEach(nav => { if(nav.id) { let ref = db.collection('mfd_navs').doc(nav.id); let ndata = {...nav}; delete ndata.id; batch.set(ref, ndata); count++; } }); }
-                    if(count > 0) { await batch.commit(); alert("Database restored successfully!"); window.location.reload(); } else { alert("No valid data found to restore."); }
-                } else { alert("Invalid backup file format."); }
-            } catch (err) { alert("Invalid backup file."); console.error(err); }
-            event.target.value = ''; 
-        }; reader.readAsText(file);
-    }
-
-    // =====================================
-    // WORKSPACE 1: EQUITY
-    // =====================================
-    async function loadEq() { if(!currentUser) return; const s = await db.collection('transactions').where("userId", "==", currentUser.uid).get(); eqTxs = s.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEqApp(); }
-    async function fetchEqLivePrices() {
-        let syms = new Set(); eqTxs.forEach(tx => { if (tx.symbol && tx.symbol !== 'CASH') syms.add(tx.symbol.toUpperCase().trim()); });
-        const arr = Array.from(syms); if (arr.length === 0) return alert("No symbols.");
-        const api = document.getElementById('eq-api-key').value.trim(); alert(`Fetching real-time data for ${arr.length} items...`);
-        for (let sym of arr) {
-            let q = sym.includes('.') ? sym : sym + ".NS";
-            try { let url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${q}`; if(api) url = `https://finnhub.io/api/v1/quote?symbol=${sym}&token=${api}`; const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`); if (res.ok) { const wrap = await res.json(); const data = JSON.parse(wrap.contents); let p = 0; if (data.quoteResponse && data.quoteResponse.result[0]) p = data.quoteResponse.result[0].regularMarketPrice; else if (data.c) p = data.c; if (p > 0) eqPrices[sym] = p; } } catch (err) {}
-        } renderEqApp();
-    }
-
-    function handleEqTxType() { const t = document.getElementById('eq-tx-type').value; if (t === 'Cash Addition' || t === 'Cash Withdrawal') { document.getElementById('eq-symbol').value = 'CASH'; document.getElementById('eq-qty').value = '0'; } else if (document.getElementById('eq-symbol').value === 'CASH') { document.getElementById('eq-symbol').value = ''; } }
-
-    if(document.getElementById('eq-tx-form')) {
-        document.getElementById('eq-tx-form').addEventListener('submit', async function(e) {
-            e.preventDefault(); const id = document.getElementById('eq-tx-id').value; const t = document.getElementById('eq-tx-type').value; const q = parseFloat(document.getElementById('eq-qty').value); const p = parseFloat(document.getElementById('eq-price').value); const isFlat = ['Expense', 'Income', 'Cash Addition', 'Cash Withdrawal'].includes(t);
-            const data = { userId: currentUser.uid, date: document.getElementById('eq-date').value, broker: document.getElementById('eq-broker').value.trim(), assetClass: document.getElementById('eq-asset-class').value, txType: t, symbol: document.getElementById('eq-symbol').value.toUpperCase().trim(), remark: document.getElementById('eq-remark').value.trim(), qty: isFlat ? 0 : q, price: p, total: isFlat ? p : (q * p) };
-            if (id) { await db.collection('transactions').doc(id).update(data); cancelEqEdit(); } else { await db.collection('transactions').add(data); document.getElementById('eq-tx-form').reset(); document.getElementById('eq-date').valueAsDate = new Date(); }
-            loadEq();
-        });
-    }
-
-    async function editEq(id) {
-        const d = await db.collection('transactions').doc(id).get(); if (!d.exists) return; const t = d.data();
-        document.getElementById('eq-tx-id').value = id; document.getElementById('eq-date').value = t.date; document.getElementById('eq-broker').value = t.broker; document.getElementById('eq-asset-class').value = t.assetClass; document.getElementById('eq-tx-type').value = t.txType; document.getElementById('eq-symbol').value = t.symbol; document.getElementById('eq-remark').value = t.remark || ''; document.getElementById('eq-qty').value = t.qty; document.getElementById('eq-price').value = t.price;
-        document.getElementById('eq-submit-btn').innerText = 'Update'; document.getElementById('eq-cancel-btn').style.display = 'block'; togglePanel('eq-log-tx-content', 'eq-log-tx-icon'); window.scrollTo(0,0);
-    }
-    function cancelEqEdit() { document.getElementById('eq-tx-id').value = ''; document.getElementById('eq-submit-btn').innerText = 'Add Transaction'; document.getElementById('eq-cancel-btn').style.display = 'none'; document.getElementById('eq-tx-form').reset(); document.getElementById('eq-date').valueAsDate = new Date(); }
-    async function deleteEq(id) { if (confirm("Delete?")) { await db.collection('transactions').doc(id).delete(); cancelEqEdit(); loadEq(); } }
-    
-    function exportEqCSV() {
-        if (eqTxs.length === 0) return alert("No data."); let c = "data:text/csv;charset=utf-8,ID,Date,Broker,Asset Class,Transaction Type,Symbol,Remark,Quantity,Price,Total Amount\n";
-        eqTxs.forEach(tx => { c += [tx.id, tx.date, `"${tx.broker}"`, `"${tx.assetClass}"`, `"${tx.txType}"`, `"${tx.symbol}"`, `"${tx.remark || ''}"`, tx.qty, tx.price, tx.total].join(",") + "\n"; });
-        const link = document.createElement("a"); link.setAttribute("href", encodeURI(c)); link.setAttribute("download", `Equity_Export_${new Date().toISOString().split('T')[0]}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    }
-
-    function setEqSort(col) { if (eqSort === col) { eqDesc = !eqDesc; } else { eqSort = col; eqDesc = col === 'date'; } eqPage=1; renderEqApp(); }
-
-    function renderEqScriptDash() {
-        const selS = Array.from(document.getElementById('eq-dash-script').selectedOptions).map(o=>o.value); const selY = Array.from(document.getElementById('eq-dash-year').selectedOptions).map(o=>o.value);
-        const dc = document.getElementById('eq-script-data'); if(selS.length===0){ dc.style.display='none'; return; } else { dc.style.display='block'; }
-        
-        let inv={}, mPnl={}, tPnl=0;
-        [...eqTxs].sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(tx=>{
-            if(!selS.includes(tx.symbol)) return; let k = `${tx.symbol}::${tx.broker||'N/A'}`; let y=tx.date.substring(0,4); let mk=`${y}-${(new Date(tx.date).getMonth()+1).toString().padStart(2,'0')}`;
-            if(!inv[k]) inv[k]={s:tx.symbol, b:tx.broker||'N/A', q:0, c:0}; if(!mPnl[mk]) mPnl[mk]=0;
-            if(tx.txType==='Purchase'){ inv[k].q+=tx.qty; inv[k].c+=tx.total; } else if(tx.txType==='Sale'){ let ac=inv[k].q>0?(inv[k].c/inv[k].q):0; let cgs=ac*tx.qty; let pl=tx.total-cgs; inv[k].q-=tx.qty; inv[k].c-=cgs; mPnl[mk]+=pl; }
-        });
-        
-        let hb=''; Object.keys(inv).sort().forEach(k=>{ let i=inv[k]; if(i.q>0.0001) hb+=`<tr><td><strong>${i.s}</strong></td><td>${i.b}</td><td>${i.q.toFixed(4)}</td><td>${(i.c/i.q).toFixed(2)}</td><td>${i.c.toFixed(2)}</td></tr>`; });
-        document.getElementById('eq-dash-holdings').innerHTML=hb||`<tr><td colspan="5" style="text-align:center;">No holdings</td></tr>`;
-        
-        let pb=''; let ktr=Object.keys(mPnl).sort().reverse(); if(selY.length>0) ktr=ktr.filter(m=>selY.includes(m.substring(0,4)));
-        ktr.forEach(m=>{ let p=mPnl[m]; tPnl+=p; if(p!==0) pb+=`<tr><td><strong>${m}</strong></td><td class="${p>0?'pnl-positive':'pnl-negative'}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`; });
-        document.getElementById('eq-dash-pnl').innerHTML=pb; document.getElementById('eq-dash-total-pnl').innerText=tPnl.toFixed(2); document.getElementById('eq-dash-total-pnl').className=tPnl>=0?'pnl-positive':'pnl-negative';
-        
-        let sb=''; let ls=eqTxs.filter(t=>selS.includes(t.symbol)&&t.txType==='Sale').sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,2);
-        ls.forEach(t=>sb+=`<tr><td>${t.date}</td><td><strong>${t.symbol}</strong></td><td>${t.qty}</td><td>${t.price}</td></tr>`);
-        document.getElementById('eq-dash-sales').innerHTML=sb||`<tr><td colspan="4" style="text-align:center;">No recent sales</td></tr>`;
-    }
-
-    function renderEqApp() {
-        const brFilter = document.getElementById('eq-filter-broker').value || 'All'; const asFilter = document.getElementById('eq-filter-asset').value || 'All';
-        let inv={}, bPnl={}, bInv={}, bLedger={}, oPnl=0, hPnl={}, totE=0, totM=0, totC=0;
-        let cTxs = [...eqTxs].sort((a,b) => new Date(a.date) - new Date(b.date));
-        
-        cTxs.forEach(tx => {
-            let b = tx.broker||'N/A'; let k = `${tx.symbol}::${b}`;
-            if (!inv[k]) inv[k] = { s: tx.symbol, b: b, q: 0, c: 0, t: tx.assetClass, p: 0, ht: false };
-            if (!bLedger[b]) bLedger[b] = 0;
-            
-            let amt = tx.total; let dObj = new Date(tx.date); let fy = dObj.getMonth()>=3 ? `${dObj.getFullYear()}-${(dObj.getFullYear()+1).toString().slice(2)}` : `${dObj.getFullYear()-1}-${dObj.getFullYear().toString().slice(2)}`; let mStr = (dObj.getMonth()+1).toString().padStart(2,'0'); let dStr = dObj.getDate().toString().padStart(2,'0');
-            const addH = (pAmt) => { if(!hPnl[fy]) hPnl[fy]={p:0,m:{}}; if(!hPnl[fy].m[mStr]) hPnl[fy].m[mStr]={p:0,d:{}}; if(!hPnl[fy].m[mStr].d[dStr]) hPnl[fy].m[mStr].d[dStr]={p:0,s:{}}; if(!hPnl[fy].m[mStr].d[dStr].s[tx.symbol]) hPnl[fy].m[mStr].d[dStr].s[tx.symbol]=0; hPnl[fy].p+=pAmt; hPnl[fy].m[mStr].p+=pAmt; hPnl[fy].m[mStr].d[dStr].p+=pAmt; hPnl[fy].m[mStr].d[dStr].s[tx.symbol]+=pAmt; };
-
-            if (tx.txType === 'Purchase') { inv[k].q+=tx.qty; inv[k].c+=amt; bLedger[b]-=amt; inv[k].ht=true; } 
-            else if (tx.txType === 'Sale') { let ac=inv[k].q>0?(inv[k].c/inv[k].q):0; let cgs=ac*tx.qty; let pl=amt-cgs; inv[k].p+=pl; oPnl+=pl; inv[k].q-=tx.qty; inv[k].c-=cgs; bLedger[b]+=amt; addH(pl); inv[k].ht=true; } 
-            else if (tx.txType === 'Expense') { oPnl-=amt; inv[k].p-=amt; bLedger[b]-=amt; addH(-amt); } 
-            else if (tx.txType === 'Income') { oPnl+=amt; inv[k].p+=amt; bLedger[b]+=amt; addH(amt); inv[k].ht=true; } 
-            else if (tx.txType === 'Cash Addition') { bLedger[b]+=amt; } 
-            else if (tx.txType === 'Cash Withdrawal') { bLedger[b]-=amt; }
-        });
-
-        const hb=document.getElementById('eq-holdings-body'); const pnb=document.getElementById('eq-script-pnl'); const bib=document.getElementById('eq-broker-inv'); const blb=document.getElementById('eq-broker-cash'); const bpb=document.getElementById('eq-broker-pnl');
-        hb.innerHTML=''; pnb.innerHTML=''; bib.innerHTML=''; blb.innerHTML=''; bpb.innerHTML='';
-        
-        Object.keys(inv).sort().forEach(k => {
-            let i=inv[k]; if(asFilter!=='All'&&i.t!==asFilter) return; if(brFilter!=='All'&&i.b!==brFilter) return;
-            if(!bPnl[i.b]) bPnl[i.b]=0; bPnl[i.b]+=i.p;
-            if(i.q>0.0001){
-                if(i.t==='Equity') totE+=i.c; if(i.t==='Mutual Fund') totM+=i.c; if(!bInv[i.b]) bInv[i.b]=0; bInv[i.b]+=i.c;
-                let lp=eqPrices[i.s]||null; let cv="-", up="-", upc="pnl-neutral";
-                if(lp){ let v=i.q*lp; let u=v-i.c; cv=v.toFixed(2); up=(u>0?'+':'')+u.toFixed(2); upc=u>0?'pnl-positive':(u<0?'pnl-negative':'pnl-neutral'); }
-                hb.innerHTML+=`<tr><td><strong>${i.s}</strong></td><td>${i.b}</td><td>${i.t}</td><td>${i.q.toFixed(4)}</td><td>${(i.c/i.q).toFixed(2)}</td><td>${i.c.toFixed(2)}</td><td style="background:#f0fdf4; font-weight:bold;">${lp?lp.toFixed(2):'-'}</td><td style="background:#f0fdf4;">${cv}</td><td style="background:#f0fdf4;" class="${upc}">${up}</td></tr>`;
-            }
-            if(i.p!==0 && i.ht && i.s!=='EXPENSE' && i.s!=='CASH') pnb.innerHTML+=`<tr><td><strong>${i.s}</strong></td><td>${i.b}</td><td class="${i.p>0?'pnl-positive':'pnl-negative'}">${i.p>0?'+':''}${i.p.toFixed(2)}</td></tr>`;
-        });
-
-        Object.keys(bInv).sort().forEach(b=>bib.innerHTML+=`<tr><td><strong>${b}</strong></td><td>${bInv[b].toFixed(2)}</td></tr>`);
-        Object.keys(bLedger).sort().forEach(b=>{ let bal=bLedger[b]; totC+=bal; blb.innerHTML+=`<tr><td><strong>${b}</strong></td><td class="${bal>0?'pnl-positive':'pnl-negative'}">${bal>0?'+':''}${bal.toFixed(2)}</td></tr>`; });
-        Object.keys(bPnl).sort().forEach(b=>{ let p=bPnl[b]; if(p!==0) bpb.innerHTML+=`<tr><td><strong>${b}</strong></td><td class="${p>0?'pnl-positive':'pnl-negative'}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`; });
-
-        let tHtml=''; const mn=["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-        Object.keys(hPnl).sort().reverse().forEach(y=>{ let yd=hPnl[y]; if(yd.p===0)return; tHtml+=`<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> FY ${y}</span><span class="${yd.p>=0?'pnl-positive':'pnl-negative'}">${yd.p>0?'+':''}${yd.p.toFixed(2)}</span></div><div class="tree-children">`; Object.keys(yd.m).sort().reverse().forEach(m=>{ let md=yd.m[m]; if(md.p===0)return; tHtml+=`<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${mn[parseInt(m)]}</span><span class="${md.p>=0?'pnl-positive':'pnl-negative'}">${md.p>0?'+':''}${md.p.toFixed(2)}</span></div><div class="tree-children">`; Object.keys(md.d).sort().reverse().forEach(d=>{ let dd=md.d[d]; if(dd.p===0)return; tHtml+=`<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${d} ${mn[parseInt(m)].slice(0,3)}</span><span class="${dd.p>=0?'pnl-positive':'pnl-negative'}">${dd.p>0?'+':''}${dd.p.toFixed(2)}</span></div><div class="tree-children">`; Object.keys(dd.s).sort().forEach(s=>{ let sp=dd.s[s]; if(sp!==0) tHtml+=`<div class="tree-leaf"><span>${s}</span><span class="${sp>0?'pnl-positive':'pnl-negative'}">${sp>0?'+':''}${sp.toFixed(2)}</span></div>`; }); tHtml+=`</div></div>`; }); tHtml+=`</div></div>`; }); tHtml+=`</div></div>`; });
-        document.getElementById('eq-tree-body').innerHTML=tHtml||`<div style="text-align:center; padding:15px; color:#666;">No P&L</div>`;
-
-        document.getElementById('eq-investment').innerText=totE.toFixed(2); document.getElementById('mf-investment').innerText=totM.toFixed(2); document.getElementById('cash-balance').innerText=totC.toFixed(2); document.getElementById('realized-pnl').innerText=(oPnl>0?'+':'')+oPnl.toFixed(2); document.getElementById('realized-pnl').className=oPnl>=0?'pnl-positive':'pnl-negative';
-
-        const ub=[...new Set(eqTxs.map(t=>t.broker||'N/A'))].sort(); const us=[...new Set(eqTxs.map(t=>t.symbol))].sort(); const ur=[...new Set(eqTxs.map(t=>t.remark).filter(Boolean))].sort(); const uy=[...new Set(eqTxs.map(t=>t.date.substring(0,4)))].sort().reverse();
-        document.getElementById('eq-broker-list').innerHTML=ub.filter(b=>b!=='N/A').map(b=>`<option value="${b}">`).join(''); document.getElementById('eq-symbol-list').innerHTML=us.map(s=>`<option value="${s}">`).join(''); document.getElementById('eq-remark-list').innerHTML=ur.map(r=>`<option value="${r}">`).join('');
-        const bFilt=document.getElementById('eq-filter-broker'); let bSel=bFilt.value; bFilt.innerHTML='<option value="All">All Brokers</option>'+ub.map(b=>`<option value="${b}">${b}</option>`).join(''); bFilt.value=bSel||'All';
-        const dScr=document.getElementById('eq-dash-script'); let dsSel=Array.from(dScr.selectedOptions).map(o=>o.value); dScr.innerHTML=us.filter(s=>s!=='CASH').map(s=>`<option value="${s}">${s}</option>`).join(''); Array.from(dScr.options).forEach(o=>{if(dsSel.includes(o.value))o.selected=true;});
-        const dYr=document.getElementById('eq-dash-year'); let dySel=Array.from(dYr.selectedOptions).map(o=>o.value); dYr.innerHTML=uy.map(y=>`<option value="${y}">${y}</option>`).join(''); Array.from(dYr.options).forEach(o=>{if(dySel.includes(o.value))o.selected=true;});
-        
-        ['date','broker','assetClass','txType','symbol','remark','qty','price','total'].forEach(c=>{ let e=document.getElementById(`eq-sort-${c}`); if(e) e.innerText=(eqSort===c)?(eqDesc?' ↓':' ↑'):''; });
-
-        const sTxt=(document.getElementById('eq-search')?document.getElementById('eq-search').value:'').toLowerCase().trim();
-        const fd=document.getElementById('eq-flt-date').value.toLowerCase().trim(); const fb=document.getElementById('eq-flt-broker').value.toLowerCase().trim(); const fa=document.getElementById('eq-flt-asset').value.toLowerCase().trim(); const ft=document.getElementById('eq-flt-type').value.toLowerCase().trim(); const fs=document.getElementById('eq-flt-symbol').value.toLowerCase().trim(); const fr=document.getElementById('eq-flt-remark').value.toLowerCase().trim();
-        
-        let dyn = [...eqTxs].filter(t => {
-            let m=true; if(fd&&!(t.date||'').toLowerCase().includes(fd)) m=false; if(fb&&!(t.broker||'').toLowerCase().includes(fb)) m=false; if(fa&&!(t.assetClass||'').toLowerCase().includes(fa)) m=false; if(ft&&!(t.txType||'').toLowerCase().includes(ft)) m=false; if(fs&&!(t.symbol||'').toLowerCase().includes(fs)) m=false; if(fr&&!(t.remark||'').toLowerCase().includes(fr)) m=false;
-            if(sTxt){ let sm=(t.symbol||'').toLowerCase().includes(sTxt)||(t.broker||'').toLowerCase().includes(sTxt)||(t.txType||'').toLowerCase().includes(sTxt)||(t.remark||'').toLowerCase().includes(sTxt); if(!sm) m=false; } return m;
-        });
-
-        const tdEl = document.getElementById('eq-total-display');
-        if(ft||fs||fr||sTxt) { let s=dyn.reduce((acc,tx)=>acc+tx.total,0); tdEl.innerText=s.toFixed(2); tdEl.style.display='block'; } else tdEl.style.display='none';
-
-        dyn.sort((a,b)=>{
-            let va=a[eqSort]; let vb=b[eqSort];
-            if(eqSort==='date'){ va=new Date(va).getTime(); vb=new Date(vb).getTime(); } else if(['qty','price','total'].includes(eqSort)){ va=Number(va); vb=Number(vb); } else { va=String(va||'').toLowerCase(); vb=String(vb||'').toLowerCase(); }
-            if(va<vb) return eqDesc?1:-1; if(va>vb) return eqDesc?-1:1; return 0;
-        });
-
-        const lb=document.getElementById('eq-ledger-body'); lb.innerHTML='';
-        const tp = Math.ceil(dyn.length/pSize)||1; if(eqPage>tp) eqPage=tp;
-        dyn.slice((eqPage-1)*pSize, eqPage*pSize).forEach(tx => {
-            let bc=tx.txType.toLowerCase().replace(' ','-');
-            lb.innerHTML+=`<tr><td>${tx.date}</td><td>${tx.broker}</td><td>${tx.assetClass}</td><td><span class="badge ${bc}">${tx.txType}</span></td><td><strong>${tx.symbol}</strong></td><td>${tx.remark||'-'}</td><td>${tx.qty}</td><td>${tx.price}</td><td><strong>${tx.total}</strong></td><td><button class="btn-edit-tx" onclick="editEq('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteEq('${tx.id}')">Del</button></td></tr>`;
-        });
-        if(dyn.length===0) lb.innerHTML=`<tr><td colspan="10" style="text-align:center;">No data</td></tr>`;
-        document.getElementById('eq-page-indicator').innerText=`Page ${eqPage} of ${tp}`; document.getElementById('eq-btn-prev').disabled=eqPage===1; document.getElementById('eq-btn-next').disabled=eqPage===tp;
-    }
-
-    // =====================================
-    // WORKSPACE 2: OTHER PURPOSE
-    // =====================================
-    async function loadOth() { if(!currentUser) return; const s = await db.collection('other_transactions').where("userId", "==", currentUser.uid).get(); othTxs = s.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderOthApp(); }
-    function calcOthAmount() { let qty = parseFloat(document.getElementById('oth-qty').value) || 0; let rate = parseFloat(document.getElementById('oth-rate').value) || 0; document.getElementById('oth-amount').value = (qty * rate).toFixed(2); }
-
-    if(document.getElementById('oth-tx-form')) {
-        document.getElementById('oth-tx-form').addEventListener('submit', async function(e) {
-            e.preventDefault(); const btn = document.getElementById('oth-submit-btn'); btn.disabled = true; btn.innerText = "Saving...";
-            try {
-                const id = document.getElementById('oth-tx-id').value; 
-                const data = { userId: currentUser.uid, date: document.getElementById('oth-date').value, txType: document.getElementById('oth-tx-type').value, name: document.getElementById('oth-name').value.trim(), remark: document.getElementById('oth-remark').value.trim(), qty: parseFloat(document.getElementById('oth-qty').value) || 0, rate: parseFloat(document.getElementById('oth-rate').value) || 0, amount: parseFloat(document.getElementById('oth-amount').value) || 0 };
-                if (id) { await db.collection('other_transactions').doc(id).update(data); cancelOthEdit(); } else { await db.collection('other_transactions').add(data); document.getElementById('oth-tx-form').reset(); document.getElementById('oth-date').valueAsDate = new Date(); }
-                await loadOth();
-            } catch (err) { alert("Error: " + err.message); } finally { btn.disabled = false; btn.innerText = document.getElementById('oth-tx-id').value ? "Update" : "Add"; }
-        });
-    }
-
-    async function editOth(id) {
-        const d = await db.collection('other_transactions').doc(id).get(); if (!d.exists) return; const tx = d.data();
-        document.getElementById('oth-tx-id').value = id; document.getElementById('oth-date').value = tx.date; document.getElementById('oth-tx-type').value = tx.txType; document.getElementById('oth-name').value = tx.name || ''; document.getElementById('oth-remark').value = tx.remark || ''; document.getElementById('oth-qty').value = tx.qty; document.getElementById('oth-rate').value = tx.rate; document.getElementById('oth-amount').value = tx.amount;
-        document.getElementById('oth-submit-btn').innerText = 'Update'; document.getElementById('oth-cancel-btn').style.display = 'block'; togglePanel('oth-log-tx', 'oth-log-icon'); window.scrollTo(0,0);
-    }
-
-    function cancelOthEdit() { document.getElementById('oth-tx-id').value = ''; document.getElementById('oth-submit-btn').innerText = 'Add Transaction'; document.getElementById('oth-cancel-btn').style.display = 'none'; document.getElementById('oth-tx-form').reset(); document.getElementById('oth-date').valueAsDate = new Date(); }
-    async function deleteOth(id) { if (confirm("Delete?")) { await db.collection('other_transactions').doc(id).delete(); if (document.getElementById('oth-tx-id').value === id) cancelOthEdit(); await loadOth(); } }
-    function exportOthCSV() {
-        if (othTxs.length === 0) return alert("No data."); let c = "data:text/csv;charset=utf-8,ID,Date,Transaction Type,Transaction Party Name,Remark,Quantity,Rate,Amount\n";
-        othTxs.forEach(tx => { const e = ['Expense', 'Purchase', 'Cash Paid'].includes(tx.txType) ? -Math.abs(tx.amount) : Math.abs(tx.amount); c += [tx.id, tx.date, `"${tx.txType}"`, `"${tx.name || ''}"`, `"${tx.remark || ''}"`, tx.qty, tx.rate, e.toFixed(2)].join(",") + "\n"; });
-        const link = document.createElement("a"); link.setAttribute("href", encodeURI(c)); link.setAttribute("download", `Other_Export_${new Date().toISOString().split('T')[0]}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    }
-
-    function setOthSort(col) { if (othSort === col) { othDesc = !othDesc; } else { othSort = col; othDesc = col === 'date'; } othPage=1; renderOthApp(); }
-    function getOthEffAmt(tx) { return ['Expense', 'Purchase', 'Cash Paid'].includes(tx.txType) ? -Math.abs(tx.amount) : Math.abs(tx.amount); }
-    function getPartyEffAmt(tx) { let a = Math.abs(tx.amount); if (['Sale', 'Income', 'Cash Paid'].includes(tx.txType)) { return a; } else if (['Purchase', 'Expense', 'Cash Received'].includes(tx.txType)) { return -a; } return 0; }
-
-    function renderOthApp() {
-        let ni = 0, tr = 0, tp = 0, pBal = {}, hOth = {}; 
-        othTxs.forEach(tx => {
-            let e = getOthEffAmt(tx);
-            if (!['Cash Received', 'Cash Paid', 'Transfer'].includes(tx.txType)) {
-                ni += e; if (e >= 0) tr += e; else tp += Math.abs(e);
-                let d = new Date(tx.date); let y = d.getFullYear(); let ms = (d.getMonth() + 1).toString().padStart(2, '0'); let ds = d.getDate().toString().padStart(2, '0'); let n = tx.name || 'General';
-                if (!hOth[y]) hOth[y] = { p: 0, m: {} }; if (!hOth[y].m[ms]) hOth[y].m[ms] = { p: 0, d: {} }; if (!hOth[y].m[ms].d[ds]) hOth[y].m[ms].d[ds] = { p: 0, s: {} }; if (!hOth[y].m[ms].d[ds].s[n]) hOth[y].m[ms].d[ds].s[n] = 0;
-                hOth[y].p += e; hOth[y].m[ms].p += e; hOth[y].m[ms].d[ds].p += e; hOth[y].m[ms].d[ds].s[n] += e;
-            }
-            let pn = (tx.name || '').trim(); if (pn) { if (!pBal[pn]) pBal[pn] = 0; pBal[pn] += getPartyEffAmt(tx); }
-        });
-
-        document.getElementById('oth-net-income').innerText = (ni > 0 ? '+' : '') + ni.toFixed(2); document.getElementById('oth-net-income').className = ni >= 0 ? 'pnl-positive' : 'pnl-negative'; document.getElementById('oth-total-received').innerText = tr.toFixed(2); document.getElementById('oth-total-paid').innerText = tp.toFixed(2);
-        
-        let tHtml = ''; const mn = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-        Object.keys(hOth).sort().reverse().forEach(y => { let yd = hOth[y]; if (yd.p === 0) return; tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> Year ${y}</span><span class="${yd.p>=0?'pnl-positive':'pnl-negative'}">${yd.p>0?'+':''}${yd.p.toFixed(2)}</span></div><div class="tree-children">`; Object.keys(yd.m).sort().reverse().forEach(ms => { let md = yd.m[ms]; if (md.p === 0) return; tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${mn[parseInt(ms)]}</span><span class="${md.p>=0?'pnl-positive':'pnl-negative'}">${md.p>0?'+':''}${md.p.toFixed(2)}</span></div><div class="tree-children">`; Object.keys(md.d).sort().reverse().forEach(ds => { let dd = md.d[ds]; if (dd.p === 0) return; tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${ds} ${mn[parseInt(ms)].slice(0,3)}</span><span class="${dd.p>=0?'pnl-positive':'pnl-negative'}">${dd.p>0?'+':''}${dd.p.toFixed(2)}</span></div><div class="tree-children">`; Object.keys(dd.s).sort().forEach(s => { let sp = dd.s[s]; if(sp !== 0) tHtml += `<div class="tree-leaf"><span>${s}</span><span class="${sp>0?'pnl-positive':'pnl-negative'}">${sp>0?'+':''}${sp.toFixed(2)}</span></div>`; }); tHtml += `</div></div>`; }); tHtml += `</div></div>`; }); tHtml += `</div></div>`; });
-        document.getElementById('oth-tree-body').innerHTML = tHtml || `<div style="padding:15px;text-align:center;">No data</div>`;
-
-        const pBody = document.getElementById('oth-party-body'); pBody.innerHTML = '';
-        Object.keys(pBal).sort().forEach(p => { let b = pBal[p]; if (Math.abs(b) > 0.001) pBody.innerHTML += `<tr><td><strong>${p}</strong></td><td class="${b>0?'pnl-positive':'pnl-negative'}">${b>0?'+':''}${b.toFixed(2)}</td></tr>`; });
-        if(pBody.innerHTML==='') pBody.innerHTML=`<tr><td colspan="2" style="text-align:center;">All settled.</td></tr>`;
-
-        ['date', 'txType', 'name', 'remark', 'qty', 'rate', 'amount'].forEach(c => { const el = document.getElementById(`oth-sort-${c}`); if(el) el.innerText = (othSort === c) ? (othDesc ? ' ↓' : ' ↑') : ''; });
-
-        const sTxt = (document.getElementById('oth-search') ? document.getElementById('oth-search').value : '').toLowerCase().trim();
-        const fd = document.getElementById('oth-flt-date').value.toLowerCase().trim(); const ft = document.getElementById('oth-flt-type').value.toLowerCase().trim(); const fn = document.getElementById('oth-flt-name').value.toLowerCase().trim(); const fr = document.getElementById('oth-flt-remark').value.toLowerCase().trim();
-
-        let dyn = [...othTxs].filter(tx => {
-            let m = true; if(fd&&!(tx.date||'').toLowerCase().includes(fd)) m=false; if(ft&&!(tx.txType||'').toLowerCase().includes(ft)) m=false; if(fn&&!(tx.name||'').toLowerCase().includes(fn)) m=false; if(fr&&!(tx.remark||'').toLowerCase().includes(fr)) m=false;
-            if(sTxt){ let sm = (tx.name||'').toLowerCase().includes(sTxt)||(tx.txType||'').toLowerCase().includes(sTxt)||(tx.remark||'').toLowerCase().includes(sTxt); if(!sm) m=false; } return m;
-        });
-
-        const tdEl = document.getElementById('oth-flt-total-display');
-        if (ft||fn||fr||sTxt) { let s = dyn.reduce((acc, tx) => acc + getOthEffAmt(tx), 0); tdEl.innerText = s.toFixed(2); tdEl.style.display = 'block'; } else tdEl.style.display = 'none';
-
-        dyn.sort((a, b) => {
-            let va = a[othSort]; let vb = b[othSort];
-            if (othSort === 'date') { va = new Date(va).getTime(); vb = new Date(vb).getTime(); } else if (['qty', 'rate'].includes(othSort)) { va = Number(va); vb = Number(vb); } else if (othSort === 'amount') { va = getOthEffAmt(a); vb = getOthEffAmt(b); } else { va = String(va||'').toLowerCase(); vb = String(vb||'').toLowerCase(); }
-            if (va < vb) return othDesc ? 1 : -1; if (va > vb) return othDesc ? -1 : 1; return 0;
-        });
-
-        const tp = Math.ceil(dyn.length / pSize) || 1; if (othPage > tp) othPage = tp;
-        const lb = document.getElementById('oth-ledger-body'); lb.innerHTML = '';
-        dyn.slice((othPage - 1) * pSize, othPage * pSize).forEach(tx => {
-            let bc = tx.txType.toLowerCase().replace(' ', '-'); let e = getOthEffAmt(tx);
-            lb.innerHTML += `<tr><td>${tx.date}</td><td><span class="badge ${bc}">${tx.txType}</span></td><td><strong>${tx.name || '-'}</strong></td><td>${tx.remark || '-'}</td><td>${tx.qty}</td><td>${tx.rate.toFixed(2)}</td><td class="${e>=0?'pnl-positive':'pnl-negative'}"><strong>${e.toFixed(2)}</strong></td><td><button class="btn-edit-tx" onclick="editOth('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteOth('${tx.id}')">Del</button></td></tr>`;
-        });
-        if (dyn.length === 0) lb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data</td></tr>`;
-        document.getElementById('oth-page-indicator').innerText = `Page ${othPage} of ${tp}`; document.getElementById('oth-btn-prev').disabled = othPage === 1; document.getElementById('oth-btn-next').disabled = othPage === tp;
-    }
-
-
-    // =====================================
-    // WORKSPACE 3: MFD BUSINESS
-    // =====================================
+    // -------------------------------------------------------------
+    // WORKSPACE 3: MFD BUSINESS ENGINE
+    // -------------------------------------------------------------
     async function loadMfdData() {
         if (!currentUser) return;
         const cSnap = await db.collection('mfd_clients').where("userId", "==", currentUser.uid).get(); mfdClients = cSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -985,7 +644,7 @@
     async function editMfdClient(id) {
         const d = await db.collection('mfd_clients').doc(id).get(); if (!d.exists) return; const c = d.data();
         document.getElementById('mfd-cid').value = id; document.getElementById('mfd-c-name').value = c.name || ''; document.getElementById('mfd-c-group').value = c.group || ''; document.getElementById('mfd-c-pan').value = c.pan || ''; document.getElementById('mfd-c-ucc').value = c.ucc || ''; document.getElementById('mfd-c-phone').value = c.phone || ''; document.getElementById('mfd-c-folio').value = c.folio || ''; document.getElementById('mfd-c-address').value = c.address || ''; document.getElementById('mfd-c-city').value = c.city || ''; document.getElementById('mfd-c-state').value = c.state || ''; document.getElementById('mfd-c-pincode').value = c.pincode || ''; document.getElementById('mfd-c-nname').value = c.nomineeName || ''; document.getElementById('mfd-c-nphone').value = c.nomineePhone || '';
-        document.getElementById('mfd-c-btn').innerText = `Update`; document.getElementById('mfd-c-cancel').style.display = 'inline-block'; togglePanel('mfd-crm', 'mfd-crm-icon'); window.scrollTo(0,0);
+        document.getElementById('mfd-c-btn').innerText = `Update Client`; document.getElementById('mfd-c-cancel').style.display = 'inline-block'; togglePanel('mfd-crm', 'mfd-crm-icon'); window.scrollTo(0,0);
     }
     function cancelMfdC() { document.getElementById('mfd-cid').value = ''; document.getElementById('mfd-c-btn').innerText = 'Save Client'; document.getElementById('mfd-c-cancel').style.display = 'none'; document.getElementById('mfd-client-form').reset(); }
     async function deleteMfdClient(id) { if(confirm("Delete Client?")) { await db.collection('mfd_clients').doc(id).delete(); loadMfdData(); } }
@@ -1083,7 +742,7 @@
     function setMfdSort(col) { if (mfdSortCol === col) { mfdSortDesc = !mfdSortDesc; } else { mfdSortCol = col; mfdSortDesc = col === 'date'; } mfdPage=1; renderMfdApp(); }
 
     function renderMfdApp() {
-        // Dropdown Generation
+        // Group & Client Filter Dropdowns
         const gDrop = document.getElementById('mfd-report-group-filter'); let currG = gDrop ? gDrop.value : 'ALL';
         let uGrps = [...new Set(mfdClients.map(c => c.group).filter(g => g && g.trim() !== ''))].sort();
         let gHtml = `<option value="ALL">All Groups</option>`; uGrps.forEach(g => gHtml += `<option value="${g}">${g}</option>`);
@@ -1094,16 +753,16 @@
 
         const cb = document.getElementById('mfd-c-list'); const dl = document.getElementById('mfd-c-datalist'); cb.innerHTML = ''; dl.innerHTML = '';
         
-        let vClients = 0;
+        let cSet = new Set();
         mfdClients.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
             let iden = c.pan || c.ucc || '-'; let str = `${iden} - ${c.name}`;
-            dl.innerHTML += `<option value="${str}">`; 
+            dl.innerHTML += `<option value="${str}">`; // Everyone in manual entry datalist
             cb.innerHTML += `<tr><td><strong>${c.group||'-'}</strong></td><td><strong>${iden}</strong></td><td><strong>${c.name}</strong></td><td>${c.phone||'-'}</td><td><button class="btn-edit-tx" onclick="editMfdClient('${c.id}')">Edit</button><button class="btn-delete" onclick="deleteMfdClient('${c.id}')">Del</button></td></tr>`;
             
-            if (currG === 'ALL' || c.group === currG) { cHtml += `<option value="${iden}">${str}</option>`; vClients++; }
+            if (currG === 'ALL' || c.group === currG) { cHtml += `<option value="${iden}">${str}</option>`; cSet.add(c.id); }
         });
         
-        document.getElementById('mfd-total-clients').innerText = vClients;
+        document.getElementById('mfd-total-clients').innerText = cSet.size;
         if(cDrop) { cDrop.innerHTML = cHtml; cDrop.value = currC; if(!cDrop.value) cDrop.value = 'ALL'; }
 
         // Render Reports
@@ -1169,6 +828,7 @@
             let pnlImp = isI ? amt : (isR ? -amt : 0); mTree[y].n += pnlImp; mTree[y].m[m].n += pnlImp; mTree[y].m[m].c[tx.clientName] += pnlImp;
         });
 
+        // Valuations
         Object.keys(cMap).forEach(k => {
             let i = cMap[k]; let cv = 0; let cx = mfdTxs.filter(t => (t.pan_ucc || t.clientName) === k); let sb = {};
             cx.forEach(t => { let sKey = t.isin || t.scheme; if(!sb[sKey]) sb[sKey] = { u: 0, i: t.isin, fn: 0 }; let iR = (t.type||'').toLowerCase().includes('red'); sb[sKey].u += iR ? -t.unit : t.unit; if(t.nav > 0) sb[sKey].fn = t.nav; });
@@ -1180,22 +840,25 @@
         let sAumTotal = 0;
         Object.keys(sMap).forEach(k => { let i = sMap[k]; if (i.u > 0) { i.cv = i.u * (mfdNavs[i.isin] || 0); i.cf.push({ amt: i.cv, date: new Date() }); sAumTotal += i.cv; } });
 
-        document.getElementById('mfd-net-aum').innerText = cAum.toFixed(2); document.getElementById('mfd-net-inv').innerText = (tIn - tRed).toFixed(2); document.getElementById('mfd-gross-inflow').innerText = tIn.toFixed(2); document.getElementById('mfd-total-redemption').innerText = tRed.toFixed(2);
+        document.getElementById('mfd-current-val').innerText = cAum.toFixed(2);
+        document.getElementById('mfd-net-inv').innerText = (tIn - tRed).toFixed(2);
+        document.getElementById('mfd-gross-inflow').innerText = tIn.toFixed(2);
+        document.getElementById('mfd-total-redemption').innerText = tRed.toFixed(2);
 
-        // Rep 1
+        // Rep 1: Client Portfolio AUM
         const cb = document.getElementById('mfd-client-aum'); cb.innerHTML = ''; let sk = Object.keys(cMap).sort((a,b) => cMap[b].cv - cMap[a].cv);
-        if (sk.length === 0) { cb.innerHTML = `<tr><td colspan="6" style="text-align:center;">No data.</td></tr>`; } 
+        if (sk.length === 0) { cb.innerHTML = `<tr><td colspan="7" style="text-align:center;">No data.</td></tr>`; } 
         else {
             sk.forEach(k => {
                 let i = cMap[k]; if (gVal !== 'ALL' && i.grp !== gVal) return;
                 if (i.in > 0 || i.red > 0) {
                     let x = computeXIRR(i.cf); let xc = x >= 0 ? 'pnl-positive' : 'pnl-negative'; let pct = cAum > 0 ? ((i.cv / cAum) * 100).toFixed(2) + '%' : '0.00%';
-                    cb.innerHTML += `<tr><td><strong>${i.id}</strong></td><td><strong>${i.name}</strong></td><td class="pnl-positive">+${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${xc}">${x.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${pct}</span></td></tr>`;
+                    cb.innerHTML += `<tr><td>${i.grp||'-'}</td><td><strong>${i.id}</strong></td><td><strong>${i.name}</strong></td><td class="pnl-positive">+${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${xc}">${x.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${pct}</span></td></tr>`;
                 }
             });
         }
 
-        // Rep 2
+        // Rep 2: Scheme AUM
         const sb = document.getElementById('mfd-scheme-aum'); sb.innerHTML = ''; let sok = Object.keys(sMap).sort((a,b) => sMap[b].cv - sMap[a].cv);
         if (sok.length === 0) { sb.innerHTML = `<tr><td colspan="7" style="text-align:center;">No data.</td></tr>`; } 
         else {
@@ -1207,14 +870,14 @@
             });
         }
 
-        // Rep 3
+        // Rep 3: Client Details
         const cd = document.getElementById('mfd-client-details'); cd.innerHTML = '';
         mfdClients.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
             if (gVal !== 'ALL' && c.group !== gVal) return;
-            cd.innerHTML += `<tr><td><strong>${c.pan||c.ucc||'-'}</strong></td><td>${c.group||'-'}</td><td><strong>${c.name}</strong></td><td>${c.phone||'-'}</td><td>${c.city||'-'}</td><td>${c.nomineeName||'-'}</td></tr>`;
+            cd.innerHTML += `<tr><td><strong>${c.pan||c.ucc||'-'}</strong></td><td>${c.group||'-'}</td><td><strong>${c.name}</strong></td><td>${c.phone||'-'}</td><td>${c.city||'-'}${c.state ? ', ' + c.state : ''}</td><td>${c.nomineeName||'-'}</td></tr>`;
         });
 
-        // Rep 4
+        // Rep 4: Monthly Flow
         const t = document.getElementById('mfd-drilldown-tree'); let tHtml = ''; const mn = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
         Object.keys(mTree).sort().reverse().forEach(y => {
             let yd = mTree[y]; let yc = yd.n >= 0 ? 'pnl-positive' : 'pnl-negative';
