@@ -192,10 +192,11 @@
     </div>
 
     <div class="summary-container">
-        <div class="card equity"><h3>Equity Investment</h3><p id="equity-investment">0.00</p></div>
-        <div class="card mf"><h3>MF Investment</h3><p id="mf-investment">0.00</p></div>
-        <div class="card cash"><h3>Total Cash Balance</h3><p id="cash-balance">0.00</p></div>
-        <div class="card pnl"><h3>Realized P&L (Net)</h3><p id="realized-pnl">0.00</p></div>
+        <div class="card equity"><h3>Total Clients (Filtered)</h3><p id="mfd-total-clients">0</p></div>
+        <div class="card pnl"><h3>Net Investment</h3><p id="mfd-net-inv">0.00</p></div>
+        <div class="card purple" style="border-left-color: var(--purple);"><h3>Current Value (AUM)</h3><p id="mfd-net-aum">0.00</p></div>
+        <div class="card cash" style="border-left-color: var(--success);"><h3>Gross Inflows</h3><p id="mfd-gross-inflow" class="pnl-positive">0.00</p></div>
+        <div class="card mf" style="border-left-color: var(--danger);"><h3>Total Redemptions</h3><p id="mfd-total-redemption" class="pnl-negative">0.00</p></div>
     </div>
 
     <div class="main-grid">
@@ -563,22 +564,34 @@
         </div>
         <div id="mfd-analytics-content" class="collapsible-table-content active">
             
-            <div class="controls-row" style="background: #fffbeb; border: 1px solid #fde68a;">
+<div class="controls-row" style="background: #fffbeb; border: 1px solid #fde68a;">
                 <div class="form-group" style="flex: 1;">
                     <label>Filter by Group:</label>
-                    <select id="mfd-report-group-filter" onchange="renderMfdApp()">
-                        <option value="ALL">All Groups</option>
-                    </select>
+                    <select id="mfd-report-group-filter" onchange="renderMfdApp()"><option value="ALL">All Groups</option></select>
                 </div>
                 <div class="form-group" style="flex: 2;">
                     <label>Filter Scheme & XIRR Report by Investor:</label>
-                    <select id="mfd-report-client-filter" onchange="renderMfdReportsOnly()">
-                        <option value="ALL">All Investors (Master Portfolio)</option>
-                    </select>
+                    <select id="mfd-report-client-filter" onchange="renderMfdReportsOnly()"><option value="ALL">All Investors</option></select>
                 </div>
             </div>
 
             <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
+                <div class="table-container">
+                    <h3>Client Portfolio AUM Summary</h3>
+                    <table>
+                        <thead><tr><th>Group</th><th>PAN/UCC</th><th>Client Name</th><th>Invested</th><th>Current Val</th><th>XIRR</th><th style="background:#e2e8f0;">% Wgt</th></tr></thead>
+                        <tbody id="mfd-client-aum-body"></tbody>
+                    </table>
+                </div>
+
+                <div class="table-container">
+                    <h3>Scheme-wise Breakdown <span id="scheme-filter-lbl" style="color:var(--primary); font-size:0.8rem;">(All)</span></h3>
+                    <table>
+                        <thead><tr><th>Scheme / ISIN</th><th>Units</th><th>NAV</th><th>Invested</th><th>Current Val</th><th>XIRR</th><th style="background:#e2e8f0;">% Wgt</th></tr></thead>
+                        <tbody id="mfd-scheme-aum-body"></tbody>
+                    </table>
+                </div>
+            </div>
                 
                 <!-- REPORT 1: CLIENT-WISE AUM SUMMARY -->
                 <div class="table-container">
@@ -791,20 +804,20 @@
                 <button class="btn-export" onclick="exportMfdCSV()">Download CSV</button>
             </div>
             <div class="table-container">
-                <table>
+               <table>
                     <thead>
                         <tr>
-                            <th style="width: 40px; text-align: center;"><input type="checkbox" id="mfd-select-all" onclick="toggleAllMfdTx(this)" style="transform: scale(1.2); cursor: pointer;"></th>
-                            <th class="sortable" onclick="setMfdSort('date')">Date <span class="sort-icon" id="mfd-sort-date"></span><br><input type="text" id="mfd-flt-date" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('group')">Group <span class="sort-icon" id="mfd-sort-group"></span><br><input type="text" id="mfd-flt-group" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('pan_ucc')">PAN/UCC <span class="sort-icon" id="mfd-sort-ucc"></span><br><input type="text" id="mfd-flt-ucc" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('clientName')">Investor <span class="sort-icon" id="mfd-sort-name"></span><br><input type="text" id="mfd-flt-name" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('scheme')">Scheme <span class="sort-icon" id="mfd-sort-scheme"></span><br><input type="text" id="mfd-flt-scheme" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('isin')">ISIN <span class="sort-icon" id="mfd-sort-isin"></span><br><input type="text" id="mfd-flt-isin" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('type')">Type <span class="sort-icon" id="mfd-sort-type"></span><br><input type="text" id="mfd-flt-type" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
+                            <th style="width: 30px;"><input type="checkbox" id="mfd-select-all" onclick="toggleAllMfdTx(this)" style="transform: scale(1.2); cursor: pointer;"></th>
+                            <th class="sortable" onclick="setMfdSort('date')">Date <span id="mfd-sort-date"></span><br><input type="text" id="mfd-flt-date" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
+                            <th class="sortable" onclick="setMfdSort('group')">Group <span id="mfd-sort-group"></span><br><input type="text" id="mfd-flt-group" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
+                            <th class="sortable" onclick="setMfdSort('pan_ucc')">PAN/UCC <span id="mfd-sort-ucc"></span><br><input type="text" id="mfd-flt-ucc" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
+                            <th class="sortable" onclick="setMfdSort('clientName')">Investor <span id="mfd-sort-name"></span><br><input type="text" id="mfd-flt-name" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
+                            <th class="sortable" onclick="setMfdSort('scheme')">Scheme <span id="mfd-sort-scheme"></span><br><input type="text" id="mfd-flt-scheme" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
+                            <th class="sortable" onclick="setMfdSort('isin')">ISIN <span id="mfd-sort-isin"></span><br><input type="text" id="mfd-flt-isin" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
+                            <th class="sortable" onclick="setMfdSort('type')">Type <span id="mfd-sort-type"></span><br><input type="text" id="mfd-flt-type" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
                             <th>NAV</th>
                             <th>Unit</th>
-                            <th class="sortable" onclick="setMfdSort('amount')" style="min-width: 100px;">Amount <span class="sort-icon" id="mfd-sort-amount"></span><br><div id="mfd-flt-total-display" style="margin-top: 6px; padding: 4px; font-size: 0.85rem; font-weight: bold; color: var(--primary); background: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 3px; display: none; text-align: center;">0.00</div></th>
+                            <th class="sortable" onclick="setMfdSort('amount')">Amount <span id="mfd-sort-amount"></span><br><div id="mfd-flt-total-display" style="margin-top:6px; padding:4px; font-size:0.85rem; font-weight:bold; color:var(--primary); background:#e0e7ff; display:none; text-align:center;">0.00</div></th>
                             <th>Action</th>
                         </tr>
                     </thead>
