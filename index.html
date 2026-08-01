@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -54,7 +53,8 @@
         .card.equity { border-left-color: var(--primary); }
         .card.mf { border-left-color: var(--warning); }
         .card.cash { border-left-color: var(--success); }
-        .card.pnl { border-left-color: var(--purple); } 
+        .card.pnl { border-left-color: var(--info); } 
+        .card.purple { border-left-color: var(--purple); } 
         .card h3 { margin: 0 0 10px 0; font-size: 0.85rem; text-transform: uppercase; color: #666; }
         .card p { margin: 0; font-size: 1.5rem; font-weight: bold; }
         
@@ -185,8 +185,8 @@
             <button class="btn-logout" onclick="signOut()">Log Out</button>
         </div>
         <div class="header-actions">
-            <button class="btn-backup" onclick="backupData()">💾 Backup to JSON</button>
-            <button class="btn-restore" onclick="document.getElementById('import-file').click()">📂 Restore JSON</button>
+            <button class="btn-backup" onclick="backupData()">💾 Backup to JSON (Global)</button>
+            <button class="btn-restore" onclick="document.getElementById('import-file').click()">📂 Restore JSON (Global)</button>
             <input type="file" id="import-file" style="display:none" accept=".json" onchange="restoreData(event)">
         </div>
     </div>
@@ -385,6 +385,10 @@
             <span class="display-user-email">user@example.com</span>
             <button class="btn-logout" onclick="signOut()">Log Out</button>
         </div>
+        <div class="header-actions">
+            <button class="btn-backup" onclick="backupData()">💾 Backup to JSON (Global)</button>
+            <button class="btn-restore" onclick="document.getElementById('import-file').click()">📂 Restore JSON (Global)</button>
+        </div>
     </div>
     
     <!-- OTHER PURPOSE: SUMMARY DASHBOARD -->
@@ -521,19 +525,25 @@
             <span class="display-user-email">user@example.com</span>
             <button class="btn-logout" onclick="signOut()">Log Out</button>
         </div>
+        <div class="header-actions">
+            <button class="btn-backup" onclick="backupData()">💾 Backup to JSON (Global)</button>
+            <button class="btn-restore" onclick="document.getElementById('import-file').click()">📂 Restore JSON (Global)</button>
+        </div>
     </div>
 
     <!-- MFD TOP SUMMARY CARDS -->
     <div class="summary-container">
-        <div class="card equity"><h3>Total Clients</h3><p id="mfd-total-clients">0</p></div>
-        <div class="card pnl"><h3>Net Investment</h3><p id="mfd-net-inv">0.00</p></div>
-        <div class="card purple" style="border-left-color: var(--purple);"><h3>Current Value (AUM)</h3><p id="mfd-current-val">0.00</p></div>
-        <div class="card cash" style="border-left-color: var(--success);"><h3>Gross Inflows</h3><p id="mfd-gross-inflow" class="pnl-positive">0.00</p></div>
-        <div class="card mf" style="border-left-color: var(--danger);"><h3>Total Redemptions</h3><p id="mfd-total-redemption" class="pnl-negative">0.00</p></div>
-    </div>
+        <div class="card equity">
+            <h3>Total Clients (Filtered)</h3>
+            <p id="mfd-total-clients">0</p>
+        </div>
         <div class="card pnl">
-            <h3>Net AUM (Value)</h3>
-            <p id="mfd-net-aum">0.00</p>
+            <h3>Net Investment</h3>
+            <p id="mfd-net-inv">0.00</p>
+        </div>
+        <div class="card purple" style="border-left-color: var(--purple);">
+            <h3>Current Value (AUM)</h3>
+            <p id="mfd-current-val">0.00</p>
         </div>
         <div class="card cash" style="border-left-color: var(--success);">
             <h3>Gross Inflows</h3>
@@ -554,6 +564,12 @@
         <div id="mfd-analytics-content" class="collapsible-table-content active">
             
             <div class="controls-row" style="background: #fffbeb; border: 1px solid #fde68a;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Filter by Group:</label>
+                    <select id="mfd-report-group-filter" onchange="renderMfdApp()">
+                        <option value="ALL">All Groups</option>
+                    </select>
+                </div>
                 <div class="form-group" style="flex: 2;">
                     <label>Filter Scheme & XIRR Report by Investor:</label>
                     <select id="mfd-report-client-filter" onchange="renderMfdReportsOnly()">
@@ -569,17 +585,17 @@
                     <h3>Client Portfolio AUM Summary</h3>
                     <table>
                         <thead>
-        <tr>
-            <th>Group</th>
-            <th>PAN/UCC</th>
-            <th>Client Name</th>
-            <th>Invested</th>
-            <th>Current Val</th>
-            <th>XIRR</th>
-            <th style="background:#e2e8f0;">% Weight</th>
-        </tr>
-    </thead>
-                        <tbody id="mfd-client-aum-body"></tbody>
+                            <tr>
+                                <th>Group</th>
+                                <th>PAN/UCC</th>
+                                <th>Client Name</th>
+                                <th>Invested</th>
+                                <th>Current Val</th>
+                                <th>XIRR</th>
+                                <th style="background:#e2e8f0;">% Wgt</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mfd-client-aum"></tbody>
                     </table>
                 </div>
 
@@ -595,10 +611,10 @@
                                 <th>Invested</th>
                                 <th>Current Val</th>
                                 <th>XIRR</th>
-                                <th style="background:#e2e8f0;">% Weight</th>
+                                <th style="background:#e2e8f0;">% Wgt</th>
                             </tr>
                         </thead>
-                        <tbody id="mfd-scheme-aum-body"></tbody>
+                        <tbody id="mfd-scheme-aum"></tbody>
                     </table>
                 </div>
             </div>
@@ -617,7 +633,7 @@
                             <th>Nominee</th>
                         </tr>
                     </thead>
-                    <tbody id="mfd-client-details-body"></tbody>
+                    <tbody id="mfd-client-details"></tbody>
                 </table>
             </div>
 
@@ -776,22 +792,22 @@
             </div>
             <div class="table-container">
                 <table>
-                   <thead>
-        <tr>
-            <th style="width: 40px; text-align: center;"><input type="checkbox" id="mfd-select-all" onclick="toggleAllMfdTx(this)" style="transform: scale(1.2); cursor: pointer;"></th>
-            <th class="sortable" onclick="setMfdSort('date')">Date <span class="sort-icon" id="mfd-sort-date"></span><br><input type="text" id="mfd-flt-date" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-            <th class="sortable" onclick="setMfdSort('group')">Group <span class="sort-icon" id="mfd-sort-group"></span><br><input type="text" id="mfd-flt-group" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-            <th class="sortable" onclick="setMfdSort('pan_ucc')">PAN/UCC <span class="sort-icon" id="mfd-sort-ucc"></span><br><input type="text" id="mfd-flt-ucc" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-            <th class="sortable" onclick="setMfdSort('clientName')">Investor <span class="sort-icon" id="mfd-sort-name"></span><br><input type="text" id="mfd-flt-name" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-            <th class="sortable" onclick="setMfdSort('scheme')">Scheme <span class="sort-icon" id="mfd-sort-scheme"></span><br><input type="text" id="mfd-flt-scheme" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-            <th class="sortable" onclick="setMfdSort('isin')">ISIN <span class="sort-icon" id="mfd-sort-isin"></span><br><input type="text" id="mfd-flt-isin" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-            <th class="sortable" onclick="setMfdSort('type')">Type <span class="sort-icon" id="mfd-sort-type"></span><br><input type="text" id="mfd-flt-type" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-            <th>NAV</th>
-            <th>Unit</th>
-            <th class="sortable" onclick="setMfdSort('amount')" style="min-width: 100px;">Amount <span class="sort-icon" id="mfd-sort-amount"></span><br><div id="mfd-flt-total-display" style="margin-top: 6px; padding: 4px; font-size: 0.85rem; font-weight: bold; color: var(--primary); background: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 3px; display: none; text-align: center;">0.00</div></th>
-            <th>Action</th>
-        </tr>
-    </thead>
+                    <thead>
+                        <tr>
+                            <th style="width: 40px; text-align: center;"><input type="checkbox" id="mfd-select-all" onclick="toggleAllMfdTx(this)" style="transform: scale(1.2); cursor: pointer;"></th>
+                            <th class="sortable" onclick="setMfdSort('date')">Date <span class="sort-icon" id="mfd-sort-date"></span><br><input type="text" id="mfd-flt-date" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
+                            <th class="sortable" onclick="setMfdSort('group')">Group <span class="sort-icon" id="mfd-sort-group"></span><br><input type="text" id="mfd-flt-group" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
+                            <th class="sortable" onclick="setMfdSort('pan_ucc')">PAN/UCC <span class="sort-icon" id="mfd-sort-ucc"></span><br><input type="text" id="mfd-flt-ucc" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
+                            <th class="sortable" onclick="setMfdSort('clientName')">Investor <span class="sort-icon" id="mfd-sort-name"></span><br><input type="text" id="mfd-flt-name" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
+                            <th class="sortable" onclick="setMfdSort('scheme')">Scheme <span class="sort-icon" id="mfd-sort-scheme"></span><br><input type="text" id="mfd-flt-scheme" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
+                            <th class="sortable" onclick="setMfdSort('isin')">ISIN <span class="sort-icon" id="mfd-sort-isin"></span><br><input type="text" id="mfd-flt-isin" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
+                            <th class="sortable" onclick="setMfdSort('type')">Type <span class="sort-icon" id="mfd-sort-type"></span><br><input type="text" id="mfd-flt-type" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
+                            <th>NAV</th>
+                            <th>Unit</th>
+                            <th class="sortable" onclick="setMfdSort('amount')" style="min-width: 100px;">Amount <span class="sort-icon" id="mfd-sort-amount"></span><br><div id="mfd-flt-total-display" style="margin-top: 6px; padding: 4px; font-size: 0.85rem; font-weight: bold; color: var(--primary); background: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 3px; display: none; text-align: center;">0.00</div></th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
                     <tbody id="mfd-ledger-body"></tbody>
                 </table>
                 <div class="pagination-controls">
@@ -866,7 +882,7 @@
         errEl.innerText = msg; errEl.style.display = 'block'; 
     }
 
-    // Algorithmic XIRR Calculator
+    // Robust Algorithmic XIRR Calculator using Bisection
     function computeXIRR(cashflows) {
         if (!cashflows || cashflows.length < 2) return 0;
         let cfs = [...cashflows].sort((a,b) => a.date.getTime() - b.date.getTime());
@@ -889,6 +905,7 @@
         }
         return guess * 100;
     }
+
     // ==========================================
     // 4. AUTHENTICATION & ROUTING
     // ==========================================
@@ -928,9 +945,55 @@
     function forgotPassword() { const email = document.getElementById('auth-email').value.trim(); if (!email) return showError("Please enter your email address in the field above first, then click 'Forgot Password?'."); auth.sendPasswordResetEmail(email).then(() => { alert(`Password reset link sent to ${email}! Please check your email inbox (and spam folder).`); document.getElementById('auth-error').style.display = 'none'; }).catch(error => showError("Reset error: " + error.message)); }
     function signOut() { auth.signOut(); }
 
+    // ==========================================
+    // 5. GLOBAL BACKUP & RESTORE
+    // ==========================================
+    async function backupData() {
+        if(!currentUser) return;
+        try {
+            const uid = currentUser.uid;
+            const eqSnap = await db.collection('transactions').where("userId", "==", uid).get();
+            const othSnap = await db.collection('other_transactions').where("userId", "==", uid).get();
+            const mfdCSnap = await db.collection('mfd_clients').where("userId", "==", uid).get();
+            const mfdTSnap = await db.collection('mfd_transactions').where("userId", "==", uid).get();
+            const mfdNSnap = await db.collection('mfd_navs').get();
+
+            const backup = {
+                format: "pro-equity-full-backup", date: new Date().toISOString(),
+                transactions: eqSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
+                other_transactions: othSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
+                mfd_clients: mfdCSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
+                mfd_transactions: mfdTSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
+                mfd_navs: mfdNSnap.docs.map(d => {return {id: d.id, ...d.data()};})
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup));
+            const link = document.createElement("a"); link.setAttribute("href", dataStr); link.setAttribute("download", `Full_Backup_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        } catch(e) { alert('Backup failed: ' + e); }
+    }
+
+    async function restoreData(event) {
+        const file = event.target.files[0]; if (!file || !currentUser) return; const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (data.format === "pro-equity-full-backup" || data.transactions) {
+                    if(!confirm("Restore will ADD data to your current account. Continue?")) return;
+                    const batch = db.batch(); let count = 0;
+                    const addDocs = (collection, items) => { if(!items) return; items.forEach(item => { let ref = db.collection(collection).doc(); item.userId = currentUser.uid; batch.set(ref, item); count++; }); };
+                    addDocs('transactions', data.transactions); addDocs('other_transactions', data.other_transactions); addDocs('mfd_clients', data.mfd_clients); addDocs('mfd_transactions', data.mfd_transactions);
+                    if(data.mfd_navs) { data.mfd_navs.forEach(nav => { if(nav.id) { let ref = db.collection('mfd_navs').doc(nav.id); let ndata = {...nav}; delete ndata.id; batch.set(ref, ndata); count++; } }); }
+                    if(count > 0) { await batch.commit(); alert("Database restored successfully!"); window.location.reload(); } else { alert("No valid data found to restore."); }
+                } else { alert("Invalid backup file format."); }
+            } catch (err) { alert("Invalid backup file."); console.error(err); }
+            event.target.value = ''; 
+        }; reader.readAsText(file);
+    }
+
 
     // ==========================================
-    // 5. WORKSPACE 1: EQUITY & MF LOGIC (RESTORED COMPLETELY)
+    // 6. WORKSPACE 1: EQUITY & MF LOGIC 
     // ==========================================
     async function loadTransactions() {
         if(!currentUser) return;
@@ -970,11 +1033,6 @@
         renderApp();
     }
 
-    function toggleLogTx(forceOpen = false) { togglePanel('log-tx-content', 'log-tx-icon'); }
-    function toggleScriptDash(forceOpen = false) { togglePanel('script-dash-content', 'script-dash-icon'); }
-    function toggleHoldings() { togglePanel('holdings-content', 'holdings-icon'); }
-    function toggleLedger(forceOpen = false) { togglePanel('ledger-content', 'ledger-icon'); }
-
     function handleTxTypeChange() {
         const type = document.getElementById('tx-type').value;
         if (type === 'Cash Addition' || type === 'Cash Withdrawal') {
@@ -985,43 +1043,45 @@
         }
     }
 
-    document.getElementById('tx-form').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const txId = document.getElementById('tx-id').value; 
-        const txType = document.getElementById('tx-type').value;
-        const qty = parseFloat(document.getElementById('qty').value);
-        const price = parseFloat(document.getElementById('price').value);
-        
-        let finalSymbol = document.getElementById('symbol-input').value.toUpperCase().trim();
-        let finalBroker = document.getElementById('broker-input').value.trim();
-        let finalRemark = document.getElementById('remark-input').value.trim(); 
-        const isFlatAmount = ['Expense', 'Income', 'Cash Addition', 'Cash Withdrawal'].includes(txType);
+    if(document.getElementById('tx-form')) {
+        document.getElementById('tx-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const txId = document.getElementById('tx-id').value; 
+            const txType = document.getElementById('tx-type').value;
+            const qty = parseFloat(document.getElementById('qty').value);
+            const price = parseFloat(document.getElementById('price').value);
+            
+            let finalSymbol = document.getElementById('symbol-input').value.toUpperCase().trim();
+            let finalBroker = document.getElementById('broker-input').value.trim();
+            let finalRemark = document.getElementById('remark-input').value.trim(); 
+            const isFlatAmount = ['Expense', 'Income', 'Cash Addition', 'Cash Withdrawal'].includes(txType);
 
-        const txData = {
-            userId: currentUser.uid,
-            date: document.getElementById('date').value,
-            broker: finalBroker,
-            assetClass: document.getElementById('asset-class').value,
-            txType: txType,
-            symbol: finalSymbol,
-            remark: finalRemark,
-            qty: isFlatAmount ? 0 : qty,
-            price: price,
-            total: isFlatAmount ? price : (qty * price)
-        };
+            const txData = {
+                userId: currentUser.uid,
+                date: document.getElementById('date').value,
+                broker: finalBroker,
+                assetClass: document.getElementById('asset-class').value,
+                txType: txType,
+                symbol: finalSymbol,
+                remark: finalRemark,
+                qty: isFlatAmount ? 0 : qty,
+                price: price,
+                total: isFlatAmount ? price : (qty * price)
+            };
 
-        if (txId) {
-            await db.collection('transactions').doc(txId).update(txData);
-            cancelEdit();
-        } else {
-            await db.collection('transactions').add(txData);
-            document.getElementById('symbol-input').value = '';
-            document.getElementById('remark-input').value = '';
-            document.getElementById('qty').value = '0';
-            document.getElementById('price').value = '0';
-        }
-        await loadTransactions();
-    });
+            if (txId) {
+                await db.collection('transactions').doc(txId).update(txData);
+                cancelEdit();
+            } else {
+                await db.collection('transactions').add(txData);
+                document.getElementById('symbol-input').value = '';
+                document.getElementById('remark-input').value = '';
+                document.getElementById('qty').value = '0';
+                document.getElementById('price').value = '0';
+            }
+            await loadTransactions();
+        });
+    }
 
     async function editTx(id) {
         const docRef = await db.collection('transactions').doc(id).get();
@@ -1038,7 +1098,7 @@
         document.getElementById('price').value = tx.price;
         document.getElementById('submit-btn').innerText = 'Update Transaction';
         document.getElementById('cancel-edit-btn').style.display = 'block';
-        toggleLogTx(true);
+        togglePanel('log-tx-content', 'log-tx-icon');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -1075,39 +1135,6 @@
         document.body.removeChild(link);
     }
 
-    async function backupData() {
-        if(!currentUser) return;
-        const txsSnap = await db.collection('transactions').where("userId", "==", currentUser.uid).get();
-        const backupPayload = { format: "firestore-export-secure", transactions: txsSnap.docs.map(d => ({id: d.id, ...d.data()})) };
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupPayload));
-        const link = document.createElement("a");
-        link.setAttribute("href", dataStr);
-        link.setAttribute("download", `Cloud_Backup_${new Date().toISOString().split('T')[0]}.json`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    function restoreData(event) {
-        const file = event.target.files[0];
-        if (!file || !currentUser) return;
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            try {
-                const data = JSON.parse(e.target.result);
-                if (data.transactions && confirm(`Proceeding will import ${data.transactions.length} transactions. Continue?`)) {
-                    for(let t of data.transactions) {
-                        delete t.id; t.userId = currentUser.uid; 
-                        await db.collection('transactions').add(t);
-                    }
-                    alert("Database restored securely!"); window.location.reload(); 
-                }
-            } catch (err) { alert("Invalid backup file."); }
-            event.target.value = ''; 
-        };
-        reader.readAsText(file);
-    }
-
     function resetPageAndRender() { currentPage = 1; renderApp(); }
     function changePage(dir) { currentPage += dir; renderApp(); }
     function setSort(col) { if (sortCol === col) { sortDesc = !sortDesc; } else { sortCol = col; sortDesc = col === 'date' ? true : false; } resetPageAndRender(); }
@@ -1120,28 +1147,25 @@
         const dashScriptSelect = document.getElementById('dash-script');
         const dashYearSelect = document.getElementById('dash-year');
 
-        const currentReportBroker = brokerReportFilter.value;
-        const currentDashScripts = Array.from(dashScriptSelect.selectedOptions).map(o => o.value);
-        const currentDashYears = Array.from(dashYearSelect.selectedOptions).map(o => o.value);
+        const currentReportBroker = brokerReportFilter ? brokerReportFilter.value : 'All';
+        const currentDashScripts = dashScriptSelect ? Array.from(dashScriptSelect.selectedOptions).map(o => o.value) : [];
+        const currentDashYears = dashYearSelect ? Array.from(dashYearSelect.selectedOptions).map(o => o.value) : [];
 
         const uniqueSymbols = [...new Set(currentTxs.map(tx => tx.symbol))].sort();
         const uniqueBrokers = [...new Set(currentTxs.map(tx => tx.broker || 'N/A'))].sort();
         const uniqueRemarks = [...new Set(currentTxs.map(tx => tx.remark).filter(Boolean))].sort(); 
         const uniqueYears = [...new Set(currentTxs.map(tx => tx.date.substring(0, 4)))].sort().reverse();
 
-        symbolDatalist.innerHTML = uniqueSymbols.map(s => `<option value="${s}">`).join('');
-        brokerDatalist.innerHTML = uniqueBrokers.filter(b => b!=='N/A').map(b => `<option value="${b}">`).join('');
-        remarkDatalist.innerHTML = uniqueRemarks.map(r => `<option value="${r}">`).join(''); 
+        if(symbolDatalist) symbolDatalist.innerHTML = uniqueSymbols.map(s => `<option value="${s}">`).join('');
+        if(brokerDatalist) brokerDatalist.innerHTML = uniqueBrokers.filter(b => b!=='N/A').map(b => `<option value="${b}">`).join('');
+        if(remarkDatalist) remarkDatalist.innerHTML = uniqueRemarks.map(r => `<option value="${r}">`).join(''); 
 
-        brokerReportFilter.innerHTML = '<option value="All">All Brokers</option>' + uniqueBrokers.map(b => `<option value="${b}">${b}</option>`).join('');
+        if(brokerReportFilter) brokerReportFilter.innerHTML = '<option value="All">All Brokers</option>' + uniqueBrokers.map(b => `<option value="${b}">${b}</option>`).join('');
 
-        dashScriptSelect.innerHTML = uniqueSymbols.filter(s => s !== "CASH").map(s => `<option value="${s}">${s}</option>`).join('');
-        dashYearSelect.innerHTML = uniqueYears.map(y => `<option value="${y}">${y}</option>`).join('');
-
-        if (currentReportBroker) brokerReportFilter.value = currentReportBroker;
-        Array.from(dashScriptSelect.options).forEach(opt => { if (currentDashScripts.includes(opt.value)) opt.selected = true; });
-        Array.from(dashYearSelect.options).forEach(opt => { if (currentDashYears.includes(opt.value)) opt.selected = true; });
-        if (!brokerReportFilter.value) brokerReportFilter.value = 'All';
+        if(dashScriptSelect) { dashScriptSelect.innerHTML = uniqueSymbols.filter(s => s !== "CASH").map(s => `<option value="${s}">${s}</option>`).join(''); Array.from(dashScriptSelect.options).forEach(opt => { if (currentDashScripts.includes(opt.value)) opt.selected = true; }); }
+        if(dashYearSelect) { dashYearSelect.innerHTML = uniqueYears.map(y => `<option value="${y}">${y}</option>`).join(''); Array.from(dashYearSelect.options).forEach(opt => { if (currentDashYears.includes(opt.value)) opt.selected = true; }); }
+        
+        if (brokerReportFilter && currentReportBroker) brokerReportFilter.value = currentReportBroker;
     }
 
     function renderScriptDash() {
@@ -1216,6 +1240,7 @@
         populateFilterDropdowns();
 
         const ledgerBody = document.getElementById('ledger-body'); const holdingsBody = document.getElementById('holdings-body'); const brokerInvestmentBody = document.getElementById('broker-investment-body'); const brokerLedgerBody = document.getElementById('broker-ledger-body'); const pnlBody = document.getElementById('pnl-body'); const brokerPnlBody = document.getElementById('broker-pnl-body');
+        if(!ledgerBody) return; // safeguard if not on tab
         ledgerBody.innerHTML = ''; holdingsBody.innerHTML = ''; brokerInvestmentBody.innerHTML = ''; brokerLedgerBody.innerHTML = ''; pnlBody.innerHTML = ''; brokerPnlBody.innerHTML = '';
         
         let totalEquity = 0; let totalMF = 0; let totalCash = 0;
@@ -1395,7 +1420,7 @@
         pnlEl.innerText = (overallPnL > 0 ? '+' : '') + overallPnL.toFixed(2);
         pnlEl.className = overallPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
 
-        renderScriptDash();
+        if(document.getElementById('dash-script')) renderScriptDash();
 
         ['date', 'broker', 'assetClass', 'txType', 'symbol', 'remark', 'qty', 'price', 'total'].forEach(col => {
             const el = document.getElementById(`sort-${col}`);
@@ -1481,7 +1506,7 @@
 
 
     // ======================================================================
-    // 6. WORKSPACE 2: OTHER PURPOSE LOGIC
+    // 7. WORKSPACE 2: OTHER PURPOSE LOGIC
     // ======================================================================
     async function loadOtherTransactions() {
         if(!currentUser) return;
@@ -1490,50 +1515,47 @@
         renderOtherApp();
     }
 
-    function toggleOtherLogTx(forceOpen = false) { togglePanel('other-log-tx-content', 'other-log-tx-icon'); }
-    function toggleOtherLedger(forceOpen = false) { togglePanel('other-ledger-content', 'other-ledger-icon'); }
-    function toggleOtherDrilldown(forceOpen = false) { togglePanel('other-drilldown-content', 'other-drilldown-icon'); }
-    function toggleOtherPartyDash(forceOpen = false) { togglePanel('other-party-dash-content', 'other-party-dash-icon'); }
-
     function calcOtherAmount() {
-        let qty = parseFloat(document.getElementById('other-qty').value) || 0;
-        let rate = parseFloat(document.getElementById('other-rate').value) || 0;
-        document.getElementById('other-amount').value = (qty * rate).toFixed(2);
+        let qty = parseFloat(document.getElementById('oth-qty').value) || 0;
+        let rate = parseFloat(document.getElementById('oth-rate').value) || 0;
+        document.getElementById('oth-amount').value = (qty * rate).toFixed(2);
     }
 
-    document.getElementById('other-tx-form').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const btn = document.getElementById('other-submit-btn'); btn.disabled = true; btn.innerText = "Saving...";
-        try {
-            const txId = document.getElementById('other-tx-id').value; 
-            const txData = {
-                userId: currentUser.uid, date: document.getElementById('other-date').value, txType: document.getElementById('other-tx-type').value,
-                name: document.getElementById('other-name').value.trim(), remark: document.getElementById('other-remark').value.trim(),
-                qty: parseFloat(document.getElementById('other-qty').value) || 0, rate: parseFloat(document.getElementById('other-rate').value) || 0,
-                amount: parseFloat(document.getElementById('other-amount').value) || 0
-            };
-            if (txId) { await db.collection('other_transactions').doc(txId).update(txData); cancelOtherEdit(); } 
-            else { await db.collection('other_transactions').add(txData); document.getElementById('other-tx-form').reset(); document.getElementById('other-date').valueAsDate = new Date(); }
-            await loadOtherTransactions();
-        } catch (error) { alert("Error saving transaction: " + error.message); } finally { btn.disabled = false; btn.innerText = document.getElementById('other-tx-id').value ? "Update Transaction" : "Add Transaction"; }
-    });
+    if(document.getElementById('oth-tx-form')) {
+        document.getElementById('oth-tx-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('oth-submit-btn'); btn.disabled = true; btn.innerText = "Saving...";
+            try {
+                const txId = document.getElementById('oth-tx-id').value; 
+                const txData = {
+                    userId: currentUser.uid, date: document.getElementById('oth-date').value, txType: document.getElementById('oth-tx-type').value,
+                    name: document.getElementById('oth-name').value.trim(), remark: document.getElementById('oth-remark').value.trim(),
+                    qty: parseFloat(document.getElementById('oth-qty').value) || 0, rate: parseFloat(document.getElementById('oth-rate').value) || 0,
+                    amount: parseFloat(document.getElementById('oth-amount').value) || 0
+                };
+                if (txId) { await db.collection('other_transactions').doc(txId).update(txData); cancelOtherEdit(); } 
+                else { await db.collection('other_transactions').add(txData); document.getElementById('oth-tx-form').reset(); document.getElementById('oth-date').valueAsDate = new Date(); }
+                await loadOtherTransactions();
+            } catch (error) { alert("Error saving transaction: " + error.message); } finally { btn.disabled = false; btn.innerText = document.getElementById('oth-tx-id').value ? "Update Transaction" : "Add Transaction"; }
+        });
+    }
 
     async function editOtherTx(id) {
         const docRef = await db.collection('other_transactions').doc(id).get(); if (!docRef.exists) return; const tx = docRef.data();
-        document.getElementById('other-tx-id').value = id; document.getElementById('other-date').value = tx.date; document.getElementById('other-tx-type').value = tx.txType;
-        document.getElementById('other-name').value = tx.name || ''; document.getElementById('other-remark').value = tx.remark || '';
-        document.getElementById('other-qty').value = tx.qty; document.getElementById('other-rate').value = tx.rate; document.getElementById('other-amount').value = tx.amount;
-        document.getElementById('other-submit-btn').innerText = 'Update Transaction'; document.getElementById('other-cancel-edit-btn').style.display = 'block';
-        toggleOtherLogTx(true); window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById('oth-tx-id').value = id; document.getElementById('oth-date').value = tx.date; document.getElementById('oth-tx-type').value = tx.txType;
+        document.getElementById('oth-name').value = tx.name || ''; document.getElementById('oth-remark').value = tx.remark || '';
+        document.getElementById('oth-qty').value = tx.qty; document.getElementById('oth-rate').value = tx.rate; document.getElementById('oth-amount').value = tx.amount;
+        document.getElementById('oth-submit-btn').innerText = 'Update Transaction'; document.getElementById('oth-cancel-edit-btn').style.display = 'block';
+        togglePanel('oth-log-tx-content', 'oth-log-tx-icon'); window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function cancelOtherEdit() {
-        document.getElementById('other-tx-id').value = ''; document.getElementById('other-submit-btn').innerText = 'Add Transaction'; document.getElementById('other-cancel-edit-btn').style.display = 'none';
-        document.getElementById('other-tx-form').reset(); document.getElementById('other-date').valueAsDate = new Date();
+        document.getElementById('oth-tx-id').value = ''; document.getElementById('oth-submit-btn').innerText = 'Add Transaction'; document.getElementById('oth-cancel-edit-btn').style.display = 'none';
+        document.getElementById('oth-tx-form').reset(); document.getElementById('oth-date').valueAsDate = new Date();
     }
 
     async function deleteOtherTx(id) {
-        if (confirm("Are you sure you want to delete this transaction?")) { await db.collection('other_transactions').doc(id).delete(); if (document.getElementById('other-tx-id').value === id) cancelOtherEdit(); await loadOtherTransactions(); }
+        if (confirm("Are you sure you want to delete this transaction?")) { await db.collection('other_transactions').doc(id).delete(); if (document.getElementById('oth-tx-id').value === id) cancelOtherEdit(); await loadOtherTransactions(); }
     }
 
     function exportOtherCSV() {
@@ -1553,7 +1575,7 @@
     function getPartyEffectiveAmount(tx) { let amt = Math.abs(tx.amount); if (['Sale', 'Income', 'Cash Paid'].includes(tx.txType)) { return amt; } else if (['Purchase', 'Expense', 'Cash Received'].includes(tx.txType)) { return -amt; } return 0; }
 
     function renderOtherApp() {
-        const ledgerBody = document.getElementById('other-ledger-body'); ledgerBody.innerHTML = '';
+        const ledgerBody = document.getElementById('other-ledger-body'); if(!ledgerBody) return; ledgerBody.innerHTML = '';
         let netIncome = 0, totalReceived = 0, totalPaid = 0, partyBalances = {}, hierarchicalOther = {}; 
         
         function addOtherHierarchical(dateStr, name, amount) {
@@ -1599,10 +1621,10 @@
         ['date', 'txType', 'name', 'remark', 'qty', 'rate', 'amount'].forEach(col => { const el = document.getElementById(`other-sort-${col}`); if(el) el.innerText = (otherSortCol === col) ? (otherSortDesc ? ' ↓' : ' ↑') : ''; });
 
         const searchText = (document.getElementById('other-ledger-search') ? document.getElementById('other-ledger-search').value : '').toLowerCase().trim();
-        const fColDate = document.getElementById('other-flt-date').value.toLowerCase().trim();
-        const fColType = document.getElementById('other-flt-type').value.toLowerCase().trim();
-        const fColName = document.getElementById('other-flt-name').value.toLowerCase().trim();
-        const fColRemark = document.getElementById('other-flt-remark').value.toLowerCase().trim();
+        const fColDate = document.getElementById('oth-flt-date').value.toLowerCase().trim();
+        const fColType = document.getElementById('oth-flt-type').value.toLowerCase().trim();
+        const fColName = document.getElementById('oth-flt-name').value.toLowerCase().trim();
+        const fColRemark = document.getElementById('oth-flt-remark').value.toLowerCase().trim();
 
         let dynamicTxs = [...otherTxs].filter(tx => {
             let match = true;
@@ -1637,12 +1659,12 @@
 
 
     // ======================================================================
-    // 7. WORKSPACE 3: MFD BUSINESS LOGIC
+    // 8. WORKSPACE 3: MFD BUSINESS LOGIC
     // ======================================================================
     async function loadMfdData() {
         if (!currentUser) return;
-        const clientSnap = await db.collection('mfd_clients').where("userId", "==", currentUser.uid).get();
-        mfdClients = clientSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const cSnap = await db.collection('mfd_clients').where("userId", "==", currentUser.uid).get();
+        mfdClients = cSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         const txSnap = await db.collection('mfd_transactions').where("userId", "==", currentUser.uid).get();
         mfdTxs = txSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1653,25 +1675,22 @@
         renderMfdApp();
     }
 
-    function toggleMfdClientPanel() { togglePanel('mfd-client-content', 'mfd-client-icon'); }
-    function toggleMfdTxPanel() { togglePanel('mfd-tx-content', 'mfd-tx-icon'); }
-    function toggleMfdAnalyticsPanel() { togglePanel('mfd-analytics-content', 'mfd-analytics-icon'); }
-
-    // Client Master Form
-    document.getElementById('mfd-client-form').addEventListener('submit', async function(e) {
-        e.preventDefault(); const cid = document.getElementById('mfd-client-id').value;
-        const cData = {
-            userId: currentUser.uid, name: document.getElementById('mfd-client-name').value.trim(), group: document.getElementById('mfd-client-group').value.trim(),
-            pan: document.getElementById('mfd-client-pan').value.trim().toUpperCase(), ucc: document.getElementById('mfd-client-ucc').value.trim(), 
-            phone: document.getElementById('mfd-client-phone').value.trim(), folio: document.getElementById('mfd-client-folio').value.trim(),
-            address: document.getElementById('mfd-client-address').value.trim(), area: document.getElementById('mfd-client-area').value.trim(),
-            city: document.getElementById('mfd-client-city').value.trim(), state: document.getElementById('mfd-client-state').value.trim(),
-            pincode: document.getElementById('mfd-client-pincode').value.trim(), nomineeName: document.getElementById('mfd-client-nominee-name').value.trim(), nomineePhone: document.getElementById('mfd-client-nominee-phone').value.trim()
-        };
-        if (cid) { await db.collection('mfd_clients').doc(cid).update(cData); cancelMfdClientEdit(); } 
-        else { await db.collection('mfd_clients').add(cData); document.getElementById('mfd-client-form').reset(); }
-        loadMfdData();
-    });
+    if(document.getElementById('mfd-client-form')) {
+        document.getElementById('mfd-client-form').addEventListener('submit', async function(e) {
+            e.preventDefault(); const cid = document.getElementById('mfd-client-id').value;
+            const cData = {
+                userId: currentUser.uid, name: document.getElementById('mfd-client-name').value.trim(), group: document.getElementById('mfd-client-group').value.trim(),
+                pan: document.getElementById('mfd-client-pan').value.trim().toUpperCase(), ucc: document.getElementById('mfd-client-ucc').value.trim(), 
+                phone: document.getElementById('mfd-client-phone').value.trim(), folio: document.getElementById('mfd-client-folio').value.trim(),
+                address: document.getElementById('mfd-client-address').value.trim(), area: document.getElementById('mfd-client-area').value.trim(),
+                city: document.getElementById('mfd-client-city').value.trim(), state: document.getElementById('mfd-client-state').value.trim(),
+                pincode: document.getElementById('mfd-client-pincode').value.trim(), nomineeName: document.getElementById('mfd-client-nominee-name').value.trim(), nomineePhone: document.getElementById('mfd-client-nominee-phone').value.trim()
+            };
+            if (cid) { await db.collection('mfd_clients').doc(cid).update(cData); cancelMfdClientEdit(); } 
+            else { await db.collection('mfd_clients').add(cData); document.getElementById('mfd-client-form').reset(); }
+            loadMfdData();
+        });
+    }
 
     async function editMfdClient(id) {
         const d = await db.collection('mfd_clients').doc(id).get(); if (!d.exists) return; const c = d.data();
@@ -1680,28 +1699,29 @@
         document.getElementById('mfd-client-folio').value = c.folio || ''; document.getElementById('mfd-client-address').value = c.address || ''; document.getElementById('mfd-client-area').value = c.area || '';
         document.getElementById('mfd-client-city').value = c.city || ''; document.getElementById('mfd-client-state').value = c.state || ''; document.getElementById('mfd-client-pincode').value = c.pincode || '';
         document.getElementById('mfd-client-nominee-name').value = c.nomineeName || ''; document.getElementById('mfd-client-nominee-phone').value = c.nomineePhone || '';
-        document.getElementById('mfd-client-btn').innerText = `Update Client [${c.pan || c.ucc || '-'}]`; document.getElementById('mfd-client-cancel-btn').style.display = 'inline-block'; window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById('mfd-client-btn').innerText = `Update Client [${c.pan || c.ucc || '-'}]`; document.getElementById('mfd-client-cancel-btn').style.display = 'inline-block'; togglePanel('mfd-client-content', 'mfd-client-icon'); window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     function cancelMfdClientEdit() { document.getElementById('mfd-client-id').value = ''; document.getElementById('mfd-client-btn').innerText = 'Save Client'; document.getElementById('mfd-client-cancel-btn').style.display = 'none'; document.getElementById('mfd-client-form').reset(); }
     async function deleteMfdClient(id) { if(confirm("Delete this client? This will NOT delete their transactions.")) { await db.collection('mfd_clients').doc(id).delete(); loadMfdData(); } }
 
-    // Transaction Form
     function calcMfdManualTx() { let n = parseFloat(document.getElementById('mfd-tx-nav').value) || 0; let u = parseFloat(document.getElementById('mfd-tx-unit').value) || 0; if (n > 0 && u > 0) document.getElementById('mfd-tx-amount').value = (n * u).toFixed(2); }
     function calcMfdManualUnit() { let n = parseFloat(document.getElementById('mfd-tx-nav').value) || 0; let a = parseFloat(document.getElementById('mfd-tx-amount').value) || 0; if (n > 0 && a > 0) document.getElementById('mfd-tx-unit').value = (a / n).toFixed(4); }
 
-    document.getElementById('mfd-tx-form').addEventListener('submit', async function(e) {
-        e.preventDefault(); const tid = document.getElementById('mfd-tx-id').value; const rawInput = document.getElementById('mfd-tx-client').value.trim();
-        let tPanUcc = ''; let tName = rawInput; const sp = rawInput.indexOf(' - '); if (sp !== -1) { tPanUcc = rawInput.substring(0, sp).trim(); tName = rawInput.substring(sp + 3).trim(); }
-        const txData = {
-            userId: currentUser.uid, group: document.getElementById('mfd-tx-group').value.trim(), date: document.getElementById('mfd-tx-date').value,
-            pan_ucc: tPanUcc, clientName: tName, scheme: document.getElementById('mfd-tx-scheme').value.trim(), isin: document.getElementById('mfd-tx-isin').value.trim(),
-            type: document.getElementById('mfd-tx-type').value, nav: parseFloat(document.getElementById('mfd-tx-nav').value) || 0, unit: parseFloat(document.getElementById('mfd-tx-unit').value) || 0,
-            amount: parseFloat(document.getElementById('mfd-tx-amount').value) || 0, folio: document.getElementById('mfd-tx-folio').value.trim() 
-        };
-        if (tid) { await db.collection('mfd_transactions').doc(tid).update(txData); cancelMfdTxEdit(); } 
-        else { await db.collection('mfd_transactions').add(txData); document.getElementById('mfd-tx-form').reset(); document.getElementById('mfd-tx-date').valueAsDate = new Date(); }
-        loadMfdData();
-    });
+    if(document.getElementById('mfd-tx-form')) {
+        document.getElementById('mfd-tx-form').addEventListener('submit', async function(e) {
+            e.preventDefault(); const tid = document.getElementById('mfd-tx-id').value; const rawInput = document.getElementById('mfd-tx-client').value.trim();
+            let tPanUcc = ''; let tName = rawInput; const sp = rawInput.indexOf(' - '); if (sp !== -1) { tPanUcc = rawInput.substring(0, sp).trim(); tName = rawInput.substring(sp + 3).trim(); }
+            const txData = {
+                userId: currentUser.uid, group: document.getElementById('mfd-tx-group').value.trim(), date: document.getElementById('mfd-tx-date').value,
+                pan_ucc: tPanUcc, clientName: tName, scheme: document.getElementById('mfd-tx-scheme').value.trim(), isin: document.getElementById('mfd-tx-isin').value.trim(),
+                type: document.getElementById('mfd-tx-type').value, nav: parseFloat(document.getElementById('mfd-tx-nav').value) || 0, unit: parseFloat(document.getElementById('mfd-tx-unit').value) || 0,
+                amount: parseFloat(document.getElementById('mfd-tx-amount').value) || 0, folio: document.getElementById('mfd-tx-folio').value.trim() 
+            };
+            if (tid) { await db.collection('mfd_transactions').doc(tid).update(txData); cancelMfdTxEdit(); } 
+            else { await db.collection('mfd_transactions').add(txData); document.getElementById('mfd-tx-form').reset(); document.getElementById('mfd-tx-date').valueAsDate = new Date(); }
+            loadMfdData();
+        });
+    }
 
     async function editMfdTx(id) {
         const d = await db.collection('mfd_transactions').doc(id).get(); if (!d.exists) return; const tx = d.data();
@@ -1709,12 +1729,11 @@
         document.getElementById('mfd-tx-client').value = tx.pan_ucc ? `${tx.pan_ucc} - ${tx.clientName}` : tx.clientName; document.getElementById('mfd-tx-scheme').value = tx.scheme;
         document.getElementById('mfd-tx-isin').value = tx.isin || ''; document.getElementById('mfd-tx-type').value = tx.type; document.getElementById('mfd-tx-nav').value = tx.nav || 0;
         document.getElementById('mfd-tx-unit').value = tx.unit || 0; document.getElementById('mfd-tx-amount').value = tx.amount; document.getElementById('mfd-tx-folio').value = tx.folio || '';
-        document.getElementById('mfd-tx-btn').innerText = 'Update Transaction'; document.getElementById('mfd-tx-cancel-btn').style.display = 'inline-block'; window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById('mfd-tx-btn').innerText = 'Update Transaction'; document.getElementById('mfd-tx-cancel-btn').style.display = 'inline-block'; togglePanel('mfd-tx-content', 'mfd-tx-icon'); window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     function cancelMfdTxEdit() { document.getElementById('mfd-tx-id').value = ''; document.getElementById('mfd-tx-btn').innerText = 'Add Transaction'; document.getElementById('mfd-tx-cancel-btn').style.display = 'none'; document.getElementById('mfd-tx-form').reset(); document.getElementById('mfd-tx-date').valueAsDate = new Date(); }
     async function deleteMfdTx(id) { if(confirm("Delete transaction?")) { await db.collection('mfd_transactions').doc(id).delete(); loadMfdData(); } }
 
-    // Uploaders
     function uploadMfdNavCSV(e) {
         const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
         reader.onload = async function(ev) {
@@ -1744,9 +1763,6 @@
         }; reader.readAsText(file);
     }
 
-    // MFD Bulk Select & Filter Engine
-    function setMfdSort(col) { if (mfdSortCol === col) { mfdSortDesc = !mfdSortDesc; } else { mfdSortCol = col; mfdSortDesc = col === 'date' ? true : false; } mfdPage=1; renderMfdApp(); }
-    
     function toggleAllMfdTx(source) {
         const checkboxes = document.querySelectorAll('.mfd-chk');
         checkboxes.forEach(cb => cb.checked = source.checked);
@@ -1763,25 +1779,9 @@
             deleted++;
         }
         alert(`Successfully deleted ${deleted} transactions.`);
-        loadMfdData(); // Refresh UI completely
+        loadMfdData();
     }
     
-    function exportMfdCSV() {
-        // Will export based on the dynamically filtered set that's visible, if needed
-        // but typically better to just export what is on the screen or full table. We'll export the filtered view.
-        if (mfdTxs.length === 0) return alert("No data to export.");
-        let csvContent = "data:text/csv;charset=utf-8,ID,Group,Date,PAN/UCC,Investor Name,Scheme,ISIN,Type,NAV,Unit,Amount,Folio\n";
-        
-        // Use full MFD Array or grab filtered array logic
-        let dynamicTxs = filterMfdTxs();
-        
-        dynamicTxs.forEach(tx => {
-            csvContent += [tx.id, `"${tx.group || ''}"`, tx.date, `"${tx.pan_ucc || ''}"`, `"${tx.clientName || ''}"`, `"${tx.scheme || ''}"`, `"${tx.isin || ''}"`, tx.type, tx.nav, tx.unit, tx.amount, `"${tx.folio || ''}"`].join(",") + "\n";
-        });
-        const link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", `MFD_Transactions_Export_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    }
-
     function filterMfdTxs() {
         const searchText = (document.getElementById('mfd-search') ? document.getElementById('mfd-search').value : '').toLowerCase().trim();
         const fColDate = (document.getElementById('mfd-flt-date') ? document.getElementById('mfd-flt-date').value : '').toLowerCase().trim();
@@ -1810,9 +1810,20 @@
         });
     }
 
+    function exportMfdCSV() {
+        let dyn = filterMfdTxs(); if (dyn.length === 0) return alert("No data.");
+        let c = "data:text/csv;charset=utf-8,ID,Group,Date,PAN/UCC,Investor Name,Scheme,ISIN,Type,NAV,Unit,Amount,Folio\n";
+        dyn.forEach(tx => { c += [tx.id, `"${tx.group||''}"`, tx.date, `"${tx.pan_ucc||''}"`, `"${tx.clientName||''}"`, `"${tx.scheme||''}"`, `"${tx.isin||''}"`, tx.type, tx.nav, tx.unit, tx.amount, `"${tx.folio||''}"`].join(",") + "\n"; });
+        const link = document.createElement("a"); link.setAttribute("href", encodeURI(c)); link.setAttribute("download", `MFD_Transactions_Export_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+
+    function setMfdSort(col) { if (mfdSortCol === col) { mfdSortDesc = !mfdSortDesc; } else { mfdSortCol = col; mfdSortDesc = col === 'date'; } mfdPage=1; renderMfdApp(); }
+
     function renderMfdApp() {
+        // 1. Client Master & Datalist Setup
         const clientTable = document.getElementById('mfd-clients-list-body'); const datalist = document.getElementById('mfd-client-datalist');
-        clientTable.innerHTML = ''; datalist.innerHTML = '';
+        if(!clientTable) return; clientTable.innerHTML = ''; datalist.innerHTML = '';
 
         const filterDropdown = document.getElementById('mfd-report-client-filter'); let currentFilterVal = filterDropdown ? filterDropdown.value : 'ALL';
         const gDrop = document.getElementById('mfd-report-group-filter'); let currG = gDrop ? gDrop.value : 'ALL';
@@ -1840,12 +1851,14 @@
         
         document.getElementById('mfd-total-clients').innerText = cSet.size;
 
+        // 2. Render Reports
         renderMfdReportsOnly();
 
+        // 3. Render Advanced Filterable & Selectable Transaction Ledger
         const ledgerBody = document.getElementById('mfd-ledger-body'); ledgerBody.innerHTML = '';
         if(document.getElementById('mfd-select-all')) document.getElementById('mfd-select-all').checked = false;
 
-        ['date', 'group', 'ucc', 'name', 'scheme', 'isin', 'type', 'amount'].forEach(col => { const el = document.getElementById(`mfd-sort-${col}`); if(el) el.innerText = (mfdSortCol === col) ? (mfdSortDesc ? ' ↓' : ' ↑') : ''; });
+        ['date', 'group', 'pan_ucc', 'clientName', 'scheme', 'isin', 'type', 'amount'].forEach(col => { const el = document.getElementById(`mfd-sort-${col}`); if(el) el.innerText = (mfdSortCol === col) ? (mfdSortDesc ? ' ↓' : ' ↑') : ''; });
 
         let dynamicTxs = filterMfdTxs();
 
@@ -1907,7 +1920,8 @@
         document.getElementById('mfd-page-indicator').innerText = `Page ${mfdPage} of ${totalPages}`;
         document.getElementById('mfd-btn-prev').disabled = mfdPage === 1;
         document.getElementById('mfd-btn-next').disabled = mfdPage === totalPages;
-    }  
+    }
+
     function renderMfdReportsOnly() {
         const filterVal = document.getElementById('mfd-report-client-filter').value;
         const gVal = document.getElementById('mfd-report-group-filter').value;
@@ -1953,6 +1967,7 @@
             monthlyTree[yStr].net += pnlImpact; monthlyTree[yStr].months[mStr].net += pnlImpact; monthlyTree[yStr].months[mStr].clients[tx.clientName] += pnlImpact;
         });
 
+        // Resolve Valuations via Global NAV
         Object.keys(clientAumMap).forEach(k => {
             let item = clientAumMap[k]; let curVal = 0; let cTxs = mfdTxs.filter(t => (t.pan_ucc || t.clientName) === k); let sBal = {};
             cTxs.forEach(t => { let sk = t.isin || t.scheme; if(!sBal[sk]) sBal[sk] = { u: 0, i: t.isin, fn: 0 }; let iR = (t.type||'').toLowerCase().includes('red'); sBal[sk].u += iR ? -t.unit : t.unit; if(t.nav > 0) sBal[sk].fn = t.nav; });
@@ -1969,61 +1984,61 @@
         document.getElementById('mfd-gross-inflow').innerText = totalGrossInflow.toFixed(2);
         document.getElementById('mfd-total-redemption').innerText = totalRedemption.toFixed(2);
 
-       // Rep 1: Client Portfolio AUM
+        // Rep 1: Client Portfolio AUM
         const cb = document.getElementById('mfd-client-aum'); cb.innerHTML = ''; 
         let sk = Object.keys(cMap).sort((a,b) => cMap[b].cv - cMap[a].cv);
-        
-        if (sk.length === 0) { 
-            cb.innerHTML = `<tr><td colspan="7" style="text-align:center;">No data.</td></tr>`; 
-        } 
+        if (sk.length === 0) { cb.innerHTML = `<tr><td colspan="7" style="text-align:center;">No data.</td></tr>`; } 
         else {
             sk.forEach(k => {
-                let i = cMap[k]; 
-                if (gVal !== 'ALL' && i.grp !== gVal) return;
-                
+                let i = cMap[k]; if (gVal !== 'ALL' && i.grp !== gVal) return;
                 if (i.in > 0 || i.red > 0) {
-                    let x = computeXIRR(i.cf); 
-                    let xc = x >= 0 ? 'pnl-positive' : 'pnl-negative'; 
-                    let pct = cAum > 0 ? ((i.cv / cAum) * 100).toFixed(2) + '%' : '0.00%';
-                    
-                    // FIXED: Added <td>${i.grp || '-'}</td> so the columns align perfectly
-                    cb.innerHTML += `<tr>
-                        <td>${i.grp || '-'}</td>
-                        <td><strong>${i.id}</strong></td>
-                        <td><strong>${i.name}</strong></td>
-                        <td class="pnl-positive">+${i.in.toFixed(2)}</td>
-                        <td><strong>${i.cv.toFixed(2)}</strong></td>
-                        <td class="${xc}">${x.toFixed(2)}%</td>
-                        <td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${pct}</span></td>
-                    </tr>`;
+                    let x = computeXIRR(i.cf); let xc = x >= 0 ? 'pnl-positive' : 'pnl-negative'; 
+                    let pct = currentValAum > 0 ? ((i.cv / currentValAum) * 100).toFixed(2) + '%' : '0.00%';
+                    cb.innerHTML += `<tr><td>${i.grp || '-'}</td><td><strong>${i.id}</strong></td><td><strong>${i.name}</strong></td><td class="pnl-positive">+${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${xc}">${x.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${pct}</span></td></tr>`;
                 }
             });
         }
 
         // Rep 2: Scheme-wise AUM Breakdown
-        const schemeAumBody = document.getElementById('mfd-scheme-aum-body'); schemeAumBody.innerHTML = '';
-        let sortedSchemeKeys = Object.keys(schemeAumMap).sort((a,b) => schemeAumMap[b].curValue - schemeAumMap[a].curValue);
+        const sb = document.getElementById('mfd-scheme-aum'); sb.innerHTML = '';
+        let sok = Object.keys(sMap).sort((a,b) => sMap[b].cv - sMap[a].cv);
 
-        if (sortedSchemeKeys.length === 0) { schemeAumBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:15px; color:#666;">No scheme transactions logged.</td></tr>`; } 
+        if (sok.length === 0) { sb.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:15px; color:#666;">No scheme transactions logged.</td></tr>`; } 
         else {
-            sortedSchemeKeys.forEach(s => {
-                let item = schemeAumMap[s];
-                if(item.units > 0.001 || item.redemption > 0) {
-                    let rNav = mfdNavs[item.isin] || 0; let xirrVal = computeXIRR(item.cashflows); let xClass = xirrVal >= 0 ? 'pnl-positive' : 'pnl-negative'; 
-                    let pct = sAumTotal > 0 ? ((item.curValue / sAumTotal) * 100).toFixed(2) + '%' : '0.00%';
-                    schemeAumBody.innerHTML += `<tr><td><strong>${item.scheme}</strong><br><small style="color:#64748b;">${item.isin}</small></td><td>${item.units.toFixed(4)}</td><td>${rNav.toFixed(4)}</td><td>${item.inflow.toFixed(2)}</td><td><strong>${item.curValue.toFixed(2)}</strong></td><td class="${xClass}">${xirrVal.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${pct}</span></td></tr>`;
+            sok.forEach(s => {
+                let i = sMap[s];
+                if(i.units > 0.001 || i.red > 0) {
+                    let rNav = mfdNavs[i.isin] || 0; let x = computeXIRR(i.cf); let xc = x >= 0 ? 'pnl-positive' : 'pnl-negative'; 
+                    let pct = sAumTotal > 0 ? ((i.cv / sAumTotal) * 100).toFixed(2) + '%' : '0.00%';
+                    sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.units.toFixed(4)}</td><td>${rNav.toFixed(4)}</td><td>${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${xc}">${x.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${pct}</span></td></tr>`;
                 }
             });
         }
 
-        // Rep 3 & Rep 4 stay the same (Omitted for brevity to ensure you easily paste the core logic above)
-        const clientDetailsBody = document.getElementById('mfd-client-details-body'); if(clientDetailsBody) {
+        // Rep 3: Comprehensive Client Details
+        const clientDetailsBody = document.getElementById('mfd-client-details'); if(clientDetailsBody) {
             clientDetailsBody.innerHTML = '';
             mfdClients.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
                 if (gVal !== 'ALL' && c.group !== gVal) return;
                 let key = c.pan || c.ucc || c.name; clientDetailsBody.innerHTML += `<tr><td><strong>${key}</strong></td><td>${c.group || '-'}</td><td><strong>${c.name}</strong></td><td>${c.phone || '-'}</td><td>${c.city || '-'}${c.state ? ', ' + c.state : ''}</td><td>${c.nomineeName || '-'}</td></tr>`;
             });
         }
+
+        // Rep 4: Monthly Flow
+        const t = document.getElementById('mfd-drilldown-tree'); let tHtml = ''; const mn = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        Object.keys(mTree).sort().reverse().forEach(y => {
+            let yd = mTree[y]; let yc = yd.n >= 0 ? 'pnl-positive' : 'pnl-negative';
+            tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> Year ${y}</span><span class="${yc}">${yd.n>0?'+':''}${yd.n.toFixed(2)}</span></div><div class="tree-children">`;
+            Object.keys(yd.m).sort().reverse().forEach(ms => {
+                let md = yd.m[ms]; let mc = md.n >= 0 ? 'pnl-positive' : 'pnl-negative';
+                tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${mn[parseInt(ms)]}</span><span class="${mc}">${md.n>0?'+':''}${md.n.toFixed(2)}</span></div><div class="tree-children">`;
+                Object.keys(md.c).sort().forEach(cn => {
+                    let cv = md.c[cn]; if (cv !== 0) { let cc = cv > 0 ? 'pnl-positive' : 'pnl-negative'; tHtml += `<div class="tree-leaf"><span>${cn}</span><span class="${cc}">${cv>0?'+':''}${cv.toFixed(2)}</span></div>`; }
+                });
+                tHtml += `</div></div>`;
+            }); tHtml += `</div></div>`;
+        });
+        t.innerHTML = tHtml || `<div style="padding:15px; text-align:center;">No data.</div>`;
     }
 </script>
 </body>
