@@ -1969,27 +1969,31 @@
         document.getElementById('mfd-gross-inflow').innerText = totalGrossInflow.toFixed(2);
         document.getElementById('mfd-total-redemption').innerText = totalRedemption.toFixed(2);
 
-        // Rep 1: Client Portfolio AUM
-        const clientAumBody = document.getElementById('mfd-client-aum-body'); clientAumBody.innerHTML = '';
-        let sortedClientKeys = Object.keys(clientAumMap).sort((a,b) => clientAumMap[b].curValue - clientAumMap[a].curValue);
+       // Rep 1: Client Portfolio AUM
+        const cb = document.getElementById('mfd-client-aum'); cb.innerHTML = ''; 
+        let sk = Object.keys(cMap).sort((a,b) => cMap[b].cv - cMap[a].cv);
         
-        if (sortedClientKeys.length === 0) {
-            clientAumBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:15px; color:#666;">No client data available.</td></tr>`;
-        } else {
-            sortedClientKeys.forEach(k => {
-                let item = clientAumMap[k];
-                if (gVal !== 'ALL' && item.grp !== gVal) return;
-                if (item.inflow > 0 || item.redemption > 0) {
-                    let xirrVal = computeXIRR(item.cashflows); let xClass = xirrVal >= 0 ? 'pnl-positive' : 'pnl-negative'; 
-                    let pct = currentValAum > 0 ? ((item.curValue / currentValAum) * 100).toFixed(2) + '%' : '0.00%';
+        if (sk.length === 0) { 
+            cb.innerHTML = `<tr><td colspan="7" style="text-align:center;">No data.</td></tr>`; 
+        } 
+        else {
+            sk.forEach(k => {
+                let i = cMap[k]; 
+                if (gVal !== 'ALL' && i.grp !== gVal) return;
+                
+                if (i.in > 0 || i.red > 0) {
+                    let x = computeXIRR(i.cf); 
+                    let xc = x >= 0 ? 'pnl-positive' : 'pnl-negative'; 
+                    let pct = cAum > 0 ? ((i.cv / cAum) * 100).toFixed(2) + '%' : '0.00%';
                     
-                    clientAumBody.innerHTML += `<tr>
-                        <td>${item.grp || '-'}</td>
-                        <td><strong>${item.pan_ucc}</strong></td>
-                        <td><strong>${item.name}</strong></td>
-                        <td class="pnl-positive">+${item.inflow.toFixed(2)}</td>
-                        <td><strong>${item.curValue.toFixed(2)}</strong></td>
-                        <td class="${xClass}">${xirrVal.toFixed(2)}%</td>
+                    // FIXED: Added <td>${i.grp || '-'}</td> so the columns align perfectly
+                    cb.innerHTML += `<tr>
+                        <td>${i.grp || '-'}</td>
+                        <td><strong>${i.id}</strong></td>
+                        <td><strong>${i.name}</strong></td>
+                        <td class="pnl-positive">+${i.in.toFixed(2)}</td>
+                        <td><strong>${i.cv.toFixed(2)}</strong></td>
+                        <td class="${xc}">${x.toFixed(2)}%</td>
                         <td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${pct}</span></td>
                     </tr>`;
                 }
