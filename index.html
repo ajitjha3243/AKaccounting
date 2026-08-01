@@ -525,10 +525,12 @@
 
     <!-- MFD TOP SUMMARY CARDS -->
     <div class="summary-container">
-        <div class="card equity">
-            <h3>Total Clients</h3>
-            <p id="mfd-total-clients">0</p>
-        </div>
+        <div class="card equity"><h3>Total Clients</h3><p id="mfd-total-clients">0</p></div>
+        <div class="card pnl"><h3>Net Investment</h3><p id="mfd-net-inv">0.00</p></div>
+        <div class="card purple" style="border-left-color: var(--purple);"><h3>Current Value (AUM)</h3><p id="mfd-current-val">0.00</p></div>
+        <div class="card cash" style="border-left-color: var(--success);"><h3>Gross Inflows</h3><p id="mfd-gross-inflow" class="pnl-positive">0.00</p></div>
+        <div class="card mf" style="border-left-color: var(--danger);"><h3>Total Redemptions</h3><p id="mfd-total-redemption" class="pnl-negative">0.00</p></div>
+    </div>
         <div class="card pnl">
             <h3>Net AUM (Value)</h3>
             <p id="mfd-net-aum">0.00</p>
@@ -567,14 +569,16 @@
                     <h3>Client Portfolio AUM Summary</h3>
                     <table>
                         <thead>
-                            <tr>
-                                <th>PAN/UCC</th>
-                                <th>Client Name</th>
-                                <th>Invested</th>
-                                <th>Current Val</th>
-                                <th>XIRR</th>
-                            </tr>
-                        </thead>
+        <tr>
+            <th>Group</th>
+            <th>PAN/UCC</th>
+            <th>Client Name</th>
+            <th>Invested</th>
+            <th>Current Val</th>
+            <th>XIRR</th>
+            <th style="background:#e2e8f0;">% Weight</th>
+        </tr>
+    </thead>
                         <tbody id="mfd-client-aum-body"></tbody>
                     </table>
                 </div>
@@ -772,21 +776,22 @@
             </div>
             <div class="table-container">
                 <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 40px; text-align: center;"><input type="checkbox" id="mfd-select-all" onclick="toggleAllMfdTx(this)" style="transform: scale(1.2); cursor: pointer;"></th>
-                            <th class="sortable" onclick="setMfdSort('date')">Date <span class="sort-icon" id="mfd-sort-date"></span><br><input type="text" id="mfd-flt-date" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('pan_ucc')">PAN/UCC <span class="sort-icon" id="mfd-sort-ucc"></span><br><input type="text" id="mfd-flt-ucc" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('clientName')">Investor <span class="sort-icon" id="mfd-sort-name"></span><br><input type="text" id="mfd-flt-name" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('scheme')">Scheme <span class="sort-icon" id="mfd-sort-scheme"></span><br><input type="text" id="mfd-flt-scheme" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('isin')">ISIN <span class="sort-icon" id="mfd-sort-isin"></span><br><input type="text" id="mfd-flt-isin" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('type')">Type <span class="sort-icon" id="mfd-sort-type"></span><br><input type="text" id="mfd-flt-type" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th>NAV</th>
-                            <th>Unit</th>
-                            <th class="sortable" onclick="setMfdSort('amount')" style="min-width: 100px;">Amount <span class="sort-icon" id="mfd-sort-amount"></span><br><div id="mfd-flt-total-display" style="margin-top: 6px; padding: 4px; font-size: 0.85rem; font-weight: bold; color: var(--primary); background: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 3px; display: none; text-align: center;">0.00</div></th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
+                   <thead>
+        <tr>
+            <th style="width: 40px; text-align: center;"><input type="checkbox" id="mfd-select-all" onclick="toggleAllMfdTx(this)" style="transform: scale(1.2); cursor: pointer;"></th>
+            <th class="sortable" onclick="setMfdSort('date')">Date <span class="sort-icon" id="mfd-sort-date"></span><br><input type="text" id="mfd-flt-date" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
+            <th class="sortable" onclick="setMfdSort('group')">Group <span class="sort-icon" id="mfd-sort-group"></span><br><input type="text" id="mfd-flt-group" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
+            <th class="sortable" onclick="setMfdSort('pan_ucc')">PAN/UCC <span class="sort-icon" id="mfd-sort-ucc"></span><br><input type="text" id="mfd-flt-ucc" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
+            <th class="sortable" onclick="setMfdSort('clientName')">Investor <span class="sort-icon" id="mfd-sort-name"></span><br><input type="text" id="mfd-flt-name" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
+            <th class="sortable" onclick="setMfdSort('scheme')">Scheme <span class="sort-icon" id="mfd-sort-scheme"></span><br><input type="text" id="mfd-flt-scheme" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
+            <th class="sortable" onclick="setMfdSort('isin')">ISIN <span class="sort-icon" id="mfd-sort-isin"></span><br><input type="text" id="mfd-flt-isin" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
+            <th class="sortable" onclick="setMfdSort('type')">Type <span class="sort-icon" id="mfd-sort-type"></span><br><input type="text" id="mfd-flt-type" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
+            <th>NAV</th>
+            <th>Unit</th>
+            <th class="sortable" onclick="setMfdSort('amount')" style="min-width: 100px;">Amount <span class="sort-icon" id="mfd-sort-amount"></span><br><div id="mfd-flt-total-display" style="margin-top: 6px; padding: 4px; font-size: 0.85rem; font-weight: bold; color: var(--primary); background: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 3px; display: none; text-align: center;">0.00</div></th>
+            <th>Action</th>
+        </tr>
+    </thead>
                     <tbody id="mfd-ledger-body"></tbody>
                 </table>
                 <div class="pagination-controls">
@@ -863,28 +868,27 @@
 
     // Algorithmic XIRR Calculator
     function computeXIRR(cashflows) {
-        if (cashflows.length < 2) return 0;
+        if (!cashflows || cashflows.length < 2) return 0;
+        let cfs = [...cashflows].sort((a,b) => a.date.getTime() - b.date.getTime());
         let hasPos = false, hasNeg = false;
-        cashflows.forEach(cf => { if(cf.amt > 0) hasPos = true; if(cf.amt < 0) hasNeg = true; });
+        cfs.forEach(cf => { if(cf.amt > 0) hasPos = true; if(cf.amt < 0) hasNeg = true; });
         if(!hasPos || !hasNeg) return 0;
 
-        let guess = 0.1;
-        let d0 = cashflows[0].date;
+        let d0 = cfs[0].date.getTime();
+        const npv = (r) => cfs.reduce((s, cf) => s + cf.amt / Math.pow(1 + r, (cf.date.getTime() - d0) / 86400000 / 365.25), 0);
+        
+        let low = -0.9999; 
+        let high = 10000; 
+        let guess = 0;
         for (let i = 0; i < 100; i++) {
-            let f = 0, df = 0;
-            for (let j = 0; j < cashflows.length; j++) {
-                let t = (cashflows[j].date - d0) / (1000 * 3600 * 24 * 365);
-                f += cashflows[j].amt / Math.pow(1 + guess, t);
-                df -= (t * cashflows[j].amt) / Math.pow(1 + guess, t + 1);
-            }
-            if (Math.abs(f) < 0.0001) return guess * 100; 
-            let nextGuess = guess - f / df;
-            if (Math.abs(nextGuess - guess) < 0.00001) return nextGuess * 100;
-            guess = nextGuess;
+            guess = (low + high) / 2;
+            let npvGuess = npv(guess);
+            if (Math.abs(npvGuess) < 0.001) return guess * 100;
+            if (npv(low) * npvGuess < 0) high = guess;
+            else low = guess;
         }
-        return 0; // Failed to converge
+        return guess * 100;
     }
-
     // ==========================================
     // 4. AUTHENTICATION & ROUTING
     // ==========================================
@@ -1781,6 +1785,7 @@
     function filterMfdTxs() {
         const searchText = (document.getElementById('mfd-search') ? document.getElementById('mfd-search').value : '').toLowerCase().trim();
         const fColDate = (document.getElementById('mfd-flt-date') ? document.getElementById('mfd-flt-date').value : '').toLowerCase().trim();
+        const fColGroup = (document.getElementById('mfd-flt-group') ? document.getElementById('mfd-flt-group').value : '').toLowerCase().trim();
         const fColUcc = (document.getElementById('mfd-flt-ucc') ? document.getElementById('mfd-flt-ucc').value : '').toLowerCase().trim();
         const fColName = (document.getElementById('mfd-flt-name') ? document.getElementById('mfd-flt-name').value : '').toLowerCase().trim();
         const fColScheme = (document.getElementById('mfd-flt-scheme') ? document.getElementById('mfd-flt-scheme').value : '').toLowerCase().trim();
@@ -1788,19 +1793,20 @@
         const fColType = (document.getElementById('mfd-flt-type') ? document.getElementById('mfd-flt-type').value : '').toLowerCase().trim();
 
         return [...mfdTxs].filter(tx => {
-            let match = true;
-            if(fColDate && !(tx.date || '').toLowerCase().includes(fColDate)) match = false;
-            if(fColUcc && !(tx.pan_ucc || '').toLowerCase().includes(fColUcc)) match = false;
-            if(fColName && !(tx.clientName || '').toLowerCase().includes(fColName)) match = false;
-            if(fColScheme && !(tx.scheme || '').toLowerCase().includes(fColScheme)) match = false;
-            if(fColIsin && !(tx.isin || '').toLowerCase().includes(fColIsin)) match = false;
-            if(fColType && !(tx.type || '').toLowerCase().includes(fColType)) match = false;
+            let m = true;
+            if(fColDate && !(tx.date || '').toLowerCase().includes(fColDate)) m = false;
+            if(fColGroup && !(tx.group || '').toLowerCase().includes(fColGroup)) m = false;
+            if(fColUcc && !(tx.pan_ucc || '').toLowerCase().includes(fColUcc)) m = false;
+            if(fColName && !(tx.clientName || '').toLowerCase().includes(fColName)) m = false;
+            if(fColScheme && !(tx.scheme || '').toLowerCase().includes(fColScheme)) m = false;
+            if(fColIsin && !(tx.isin || '').toLowerCase().includes(fColIsin)) m = false;
+            if(fColType && !(tx.type || '').toLowerCase().includes(fColType)) m = false;
             
             if(searchText) {
-                const sm = (tx.clientName||'').toLowerCase().includes(searchText) || (tx.pan_ucc||'').toLowerCase().includes(searchText) || (tx.scheme||'').toLowerCase().includes(searchText) || (tx.isin||'').toLowerCase().includes(searchText);
-                if(!sm) match = false;
+                const sm = (tx.clientName||'').toLowerCase().includes(searchText) || (tx.pan_ucc||'').toLowerCase().includes(searchText) || (tx.scheme||'').toLowerCase().includes(searchText) || (tx.group||'').toLowerCase().includes(searchText) || (tx.isin||'').toLowerCase().includes(searchText);
+                if(!sm) m = false;
             }
-            return match;
+            return m;
         });
     }
 
