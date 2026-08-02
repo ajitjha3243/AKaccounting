@@ -16,8 +16,11 @@
             --warning: #f59e0b; --info: #0ea5e9; --purple: #8b5cf6; --border: #e5e7eb;
         }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; }
+        .container { max-width: 1200px; margin: 0 auto; display: none; /* Hidden by default until auth */ }
         
+        /* Optional Auth Overlay if login happens on this page */
+        #auth-fallback { display: none; justify-content: center; align-items: center; height: 100vh; font-size: 1.2rem; color: #666; }
+
         .header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 15px;}
         .user-controls { display: flex; align-items: center; gap: 15px; background: #e2e8f0; padding: 8px 15px; border-radius: 8px; font-weight: 500; font-size: 0.95rem; }
         .btn-logout { background: #64748b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
@@ -106,6 +109,8 @@
 </head>
 <body>
 
+<div id="auth-fallback">Redirecting to login...</div>
+
 <div class="container" id="workspace-mfd">
     <div class="header-top">
         <h1>MFD Business Dashboard</h1>
@@ -113,7 +118,6 @@
             <span class="display-user-email">Loading...</span>
         </div>
         <div class="header-actions">
-            <!-- Link to switch back to Personal Dashboard -->
             <a href="index.html" class="btn-nav-switch">⬅ Switch to Personal Finance</a>
             <button class="btn-backup" onclick="backupData()">💾 Backup Data</button>
             <button class="btn-logout" onclick="signOut()">Log Out</button>
@@ -377,37 +381,55 @@
         return guess * 100;
     }
 
-    // -------------------------------------------------------------
-    // 4. AUTHENTICATION (Redirects to index.html if not logged in)
-    // -------------------------------------------------------------
-   auth.onAuthStateChanged(user => {
-    if (user) {
-        currentUser = user;
-        // 1. Hide the login screen
-        document.getElementById('auth-overlay').style.display = 'none';
-        
-        // 2. Show the MFD workspace
-        document.getElementById('workspace-mfd').style.display = 'block';
-        
-        // 3. Update UI with user email
-        document.querySelectorAll('.display-user-email').forEach(el => { 
-            el.innerText = user.email || "Logged in"; 
-        });
-
-        // 4. Set today's date in forms
-        if(document.getElementById('mfd-tx-date')) {
-            document.getElementById('mfd-tx-date').valueAsDate = new Date();
-        }
-
-        // 5. Load the MFD Data
-        loadMfdData();
-
-    } else {
-        currentUser = null;
-        document.getElementById('workspace-mfd').style.display = 'none';
-        document.getElementById('auth-overlay').style.display = 'flex';
+    function updateSortIcons() {
+        document.querySelectorAll('.sort-icon').forEach(el => el.innerText = '');
+        let map = { date: 'mfd-sort-date', group: 'mfd-sort-group', pan_ucc: 'mfd-sort-ucc', clientName: 'mfd-sort-name', scheme: 'mfd-sort-scheme', isin: 'mfd-sort-isin', type: 'mfd-sort-type', amount: 'mfd-sort-amount' };
+        let el = document.getElementById(map[mfdSortCol]);
+        if(el) el.innerText = mfdSortDesc ? '▼' : '▲';
     }
-});
+
+    // -------------------------------------------------------------
+    // 4. AUTHENTICATION (Safely handles login / missing overlays)
+    // -------------------------------------------------------------
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            currentUser = user;
+            
+            // 1. Hide the login screen (Safely check if element exists first)
+            const authOverlay = document.getElementById('auth-overlay');
+            const authFallback = document.getElementById('auth-fallback');
+            if (authOverlay) authOverlay.style.display = 'none';
+            if (authFallback) authFallback.style.display = 'none';
+            
+            // 2. Show the MFD workspace
+            document.getElementById('workspace-mfd').style.display = 'block';
+            
+            // 3. Update UI with user email
+            document.querySelectorAll('.display-user-email').forEach(el => { 
+                el.innerText = user.email || "Logged in"; 
+            });
+
+            // 4. Set today's date in forms
+            if(document.getElementById('mfd-tx-date')) {
+                document.getElementById('mfd-tx-date').valueAsDate = new Date();
+            }
+
+            // 5. Load the MFD Data
+            loadMfdData();
+        } else {
+            currentUser = null;
+            document.getElementById('workspace-mfd').style.display = 'none';
+            
+            const authOverlay = document.getElementById('auth-overlay');
+            if (authOverlay) {
+                authOverlay.style.display = 'flex';
+            } else {
+                // If login overlay isn't in this HTML, redirect them to index.html
+                document.getElementById('auth-fallback').style.display = 'flex';
+                window.location.href = 'index.html'; 
+            }
+        }
+    });
 
     function signOut() { auth.signOut().then(() => window.location.href = 'index.html'); }
 
@@ -481,7 +503,7 @@
         document.getElementById('mfd-client-folio').value = c.folio || ''; document.getElementById('mfd-client-address').value = c.address || ''; document.getElementById('mfd-client-area').value = c.area || '';
         document.getElementById('mfd-client-city').value = c.city || ''; document.getElementById('mfd-client-state').value = c.state || ''; document.getElementById('mfd-client-pincode').value = c.pincode || '';
         document.getElementById('mfd-client-nominee-name').value = c.nomineeName || ''; document.getElementById('mfd-client-nominee-phone').value = c.nomineePhone || '';
-        document.getElementById('mfd-client-btn').innerText = `Update Client`; document.getElementById('mfd-client-cancel-btn').style.display = 'inline-block'; togglePanel('mfd-client-content', 'mfd-client-icon'); window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById('mfd-client-btn').innerText = `Update Client`; document.getElementById('mfd-client-cancel-btn').style.display = 'inline-block'; togglePanel('mfd-crm', 'mfd-crm-icon'); window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     function cancelMfdClientEdit() { document.getElementById('mfd-client-id').value = ''; document.getElementById('mfd-client-btn').innerText = 'Save Client'; document.getElementById('mfd-client-cancel-btn').style.display = 'none'; document.getElementById('mfd-client-form').reset(); }
     async function deleteMfdClient(id) { if(confirm("Delete this client? This will NOT delete their transactions.")) { await db.collection('mfd_clients').doc(id).delete(); loadMfdData(); } }
@@ -512,7 +534,7 @@
         document.getElementById('mfd-tx-client').value = tx.pan_ucc ? `${tx.pan_ucc} - ${tx.clientName}` : tx.clientName; document.getElementById('mfd-tx-scheme').value = tx.scheme;
         document.getElementById('mfd-tx-isin').value = tx.isin || ''; document.getElementById('mfd-tx-type').value = tx.type; document.getElementById('mfd-tx-nav').value = tx.nav || 0;
         document.getElementById('mfd-tx-unit').value = tx.unit || 0; document.getElementById('mfd-tx-amount').value = tx.amount; document.getElementById('mfd-tx-folio').value = tx.folio || '';
-        document.getElementById('mfd-tx-btn').innerText = 'Update Transaction'; document.getElementById('mfd-tx-cancel-btn').style.display = 'inline-block'; togglePanel('mfd-tx-content', 'mfd-tx-icon'); window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById('mfd-tx-btn').innerText = 'Update Transaction'; document.getElementById('mfd-tx-cancel-btn').style.display = 'inline-block'; togglePanel('mfd-tx', 'mfd-tx-icon'); window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     function cancelMfdTxEdit() { document.getElementById('mfd-tx-id').value = ''; document.getElementById('mfd-tx-btn').innerText = 'Add Transaction'; document.getElementById('mfd-tx-cancel-btn').style.display = 'none'; document.getElementById('mfd-tx-form').reset(); document.getElementById('mfd-tx-date').valueAsDate = new Date(); }
     async function deleteMfdTx(id) { if(confirm("Delete transaction?")) { await db.collection('mfd_transactions').doc(id).delete(); loadMfdData(); } }
@@ -598,65 +620,86 @@
     function setMfdSort(col) { if (mfdSortCol === col) { mfdSortDesc = !mfdSortDesc; } else { mfdSortCol = col; mfdSortDesc = col === 'date'; } mfdPage=1; renderMfdApp(); }
 
     function renderMfdApp() {
-       // Rep 1: Client Portfolio AUM
-        const cb = document.getElementById('mfd-client-aum-body'); 
-        if (cb) cb.innerHTML = ''; 
-        let sk = Object.keys(clientAumMap).sort((a,b) => clientAumMap[b].curValue - clientAumMap[a].curValue);
-        if (sk.length === 0 && cb) { cb.innerHTML = `<tr><td colspan="7" style="text-align:center;">No data.</td></tr>`; } 
-        else if (cb) {
-            sk.forEach(k => {
-                let i = clientAumMap[k]; if (gVal !== 'ALL' && i.grp !== gVal) return;
-                if (i.inflow > 0 || i.redemption > 0) {
-                    let x = computeXIRR(i.cashflows); let xc = x >= 0 ? 'pnl-positive' : 'pnl-negative'; 
-                    let pct = currentValAum > 0 ? ((i.curValue / currentValAum) * 100).toFixed(2) + '%' : '0.00%';
-                    cb.innerHTML += `<tr><td>${i.grp || '-'}</td><td><strong>${i.pan_ucc}</strong></td><td><strong>${i.name}</strong></td><td class="pnl-positive">+${i.inflow.toFixed(2)}</td><td><strong>${i.curValue.toFixed(2)}</strong></td><td class="${xc}">${x.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${pct}</span></td></tr>`;
-                }
-            });
-        }
+        // 1. Populate CRM Forms and Filters
+        const dList = document.getElementById('mfd-client-datalist');
+        const cListBody = document.getElementById('mfd-clients-list-body');
+        const clientFilter = document.getElementById('mfd-report-client-filter');
+        const groupFilter = document.getElementById('mfd-report-group-filter');
 
-        // Rep 2: Scheme-wise AUM Breakdown
-        const sb = document.getElementById('mfd-scheme-aum'); 
-        if(sb) sb.innerHTML = '';
-        let sok = Object.keys(schemeAumMap).sort((a,b) => schemeAumMap[b].curValue - schemeAumMap[a].curValue);
+        const currClientFlt = clientFilter ? clientFilter.value : 'ALL';
+        const currGroupFlt = groupFilter ? groupFilter.value : 'ALL';
 
-        if (sok.length === 0 && sb) { sb.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:15px; color:#666;">No scheme transactions logged.</td></tr>`; } 
-        else if (sb) {
-            sok.forEach(s => {
-                let i = schemeAumMap[s];
-                if(i.units > 0.001 || i.redemption > 0) {
-                    let rNav = mfdNavs[i.isin] || 0; let x = computeXIRR(i.cashflows); let xc = x >= 0 ? 'pnl-positive' : 'pnl-negative'; 
-                    let pct = sAumTotal > 0 ? ((i.curValue / sAumTotal) * 100).toFixed(2) + '%' : '0.00%';
-                    sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.units.toFixed(4)}</td><td>${rNav.toFixed(4)}</td><td>${i.inflow.toFixed(2)}</td><td><strong>${i.curValue.toFixed(2)}</strong></td><td class="${xc}">${x.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${pct}</span></td></tr>`;
-                }
-            });
-        }
+        if(dList) dList.innerHTML = '';
+        if(cListBody) cListBody.innerHTML = '';
 
-        // Rep 3: Comprehensive Client Details
-        const clientDetailsBody = document.getElementById('mfd-client-details'); if(clientDetailsBody) {
-            clientDetailsBody.innerHTML = '';
-            mfdClients.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
-                if (gVal !== 'ALL' && c.group !== gVal) return;
-                let key = c.pan || c.ucc || c.name; clientDetailsBody.innerHTML += `<tr><td><strong>${key}</strong></td><td>${c.group || '-'}</td><td><strong>${c.name}</strong></td><td>${c.phone || '-'}</td><td>${c.city || '-'}${c.state ? ', ' + c.state : ''}</td><td>${c.nomineeName || '-'}</td></tr>`;
-            });
-        }
+        let groups = new Set();
+        let clients = new Set();
 
-        // Rep 4: Monthly Flow
-        const t = document.getElementById('mfd-drilldown-tree'); let tHtml = ''; const mn = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-        Object.keys(monthlyTree).sort().reverse().forEach(y => {
-            let yd = monthlyTree[y]; let yc = yd.net >= 0 ? 'pnl-positive' : 'pnl-negative';
-            tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> Year ${y}</span><span class="${yc}">${yd.net>0?'+':''}${yd.net.toFixed(2)}</span></div><div class="tree-children">`;
-            Object.keys(yd.months).sort().reverse().forEach(ms => {
-                let md = yd.months[ms]; let mc = md.net >= 0 ? 'pnl-positive' : 'pnl-negative';
-                tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${mn[parseInt(ms)]}</span><span class="${mc}">${md.net>0?'+':''}${md.net.toFixed(2)}</span></div><div class="tree-children">`;
-                Object.keys(md.clients).sort().forEach(cn => {
-                    let cv = md.clients[cn]; if (cv !== 0) { let cc = cv > 0 ? 'pnl-positive' : 'pnl-negative'; tHtml += `<div class="tree-leaf"><span>${cn}</span><span class="${cc}">${cv>0?'+':''}${cv.toFixed(2)}</span></div>`; }
-                });
-                tHtml += `</div></div>`;
-            }); tHtml += `</div></div>`;
+        mfdClients.forEach(c => {
+            let key = c.pan || c.ucc || c.name;
+            let val = c.pan || c.ucc ? `${key} - ${c.name}` : c.name;
+            
+            if(dList) dList.innerHTML += `<option value="${val}">`;
+            if(c.group) groups.add(c.group);
+            clients.add(key);
+            
+            if(cListBody) {
+                cListBody.innerHTML += `<tr>
+                    <td>${c.group || '-'}</td>
+                    <td><strong>${key}</strong></td>
+                    <td><strong>${c.name}</strong></td>
+                    <td>${c.phone || '-'}</td>
+                    <td>
+                        <button class="btn-edit-tx" onclick="editMfdClient('${c.id}')">Edit</button>
+                        <button class="btn-delete" onclick="deleteMfdClient('${c.id}')">Del</button>
+                    </td>
+                </tr>`;
+            }
         });
-        if(t) t.innerHTML = tHtml || `<div style="padding:15px; text-align:center;">No data.</div>`;
-        const tp = Math.ceil(dyn.length / pageSize) || 1; if (mfdPage > tp) mfdPage = tp;
-        const startIdx = (mfdPage - 1) * pageSize; const pageTxs = dyn.slice(startIdx, startIdx + pageSize);
+
+        if(groupFilter) {
+            groupFilter.innerHTML = '<option value="ALL">All Groups</option>';
+            [...groups].sort().forEach(g => {
+                groupFilter.innerHTML += `<option value="${g}" ${g===currGroupFlt?'selected':''}>${g}</option>`;
+            });
+        }
+        
+        if(clientFilter) {
+            clientFilter.innerHTML = '<option value="ALL">All Investors</option>';
+            [...clients].sort().forEach(c => {
+                let cObj = mfdClients.find(x => x.pan===c || x.ucc===c || x.name===c);
+                let n = cObj ? cObj.name : c;
+                clientFilter.innerHTML += `<option value="${c}" ${c===currClientFlt?'selected':''}>${c} - ${n}</option>`;
+            });
+        }
+
+        // 2. Compute Data and Render Analytics Panels Cleanly
+        renderMfdReportsOnly();
+
+        // 3. Render Transaction Ledger
+        updateSortIcons();
+        const dyn = filterMfdTxs();
+
+        // Sort Ledger dynamically
+        dyn.sort((a,b) => {
+            let v1 = a[mfdSortCol] || ''; let v2 = b[mfdSortCol] || '';
+            if(mfdSortCol === 'amount' || mfdSortCol === 'nav' || mfdSortCol === 'unit') {
+                v1 = parseFloat(v1) || 0; v2 = parseFloat(v2) || 0;
+            } else {
+                v1 = v1.toString().toLowerCase(); v2 = v2.toString().toLowerCase();
+            }
+            if (v1 < v2) return mfdSortDesc ? 1 : -1;
+            if (v1 > v2) return mfdSortDesc ? -1 : 1;
+            return 0;
+        });
+
+        const lb = document.getElementById('mfd-ledger-body');
+        if(lb) lb.innerHTML = '';
+        
+        const tp = Math.ceil(dyn.length / pageSize) || 1; 
+        if (mfdPage > tp) mfdPage = tp;
+        const startIdx = (mfdPage - 1) * pageSize; 
+        const pageTxs = dyn.slice(startIdx, startIdx + pageSize);
 
         pageTxs.forEach(tx => {
             let txTypeStr = (tx.type || '').trim().toLowerCase();
@@ -664,26 +707,28 @@
             let badgeClass = isRedeem ? 'redemption' : 'sip'; if (txTypeStr.includes('lump')) badgeClass = 'lumpsum';
             let amtClass = isRedeem ? 'pnl-negative' : 'pnl-positive';
 
-            lb.innerHTML += `<tr>
-                <td style="text-align: center;"><input type="checkbox" class="mfd-chk" value="${tx.id}" style="transform: scale(1.2); cursor: pointer;"></td>
-                <td>${tx.date}</td>
-                <td><strong>${tx.group || '-'}</strong></td>
-                <td><strong>${tx.pan_ucc || '-'}</strong></td>
-                <td><strong>${tx.clientName}</strong></td>
-                <td>${tx.scheme}</td>
-                <td><small style="color:#64748b;">${tx.isin || '-'}</small></td>
-                <td><span class="badge ${badgeClass}">${tx.type}</span></td>
-                <td>${tx.nav > 0 ? tx.nav.toFixed(4) : '-'}</td>
-                <td>${tx.unit > 0 ? tx.unit.toFixed(4) : '-'}</td>
-                <td class="${amtClass}">${isRedeem ? '-' : '+'}${(tx.amount||0).toFixed(2)}</td>
-                <td>
-                    <button class="btn-edit-tx" onclick="editMfdTx('${tx.id}')">Edit</button>
-                    <button class="btn-delete" onclick="deleteMfdTx('${tx.id}')">Del</button>
-                </td>
-            </tr>`;
+            if(lb) {
+                lb.innerHTML += `<tr>
+                    <td style="text-align: center;"><input type="checkbox" class="mfd-chk" value="${tx.id}" style="transform: scale(1.2); cursor: pointer;"></td>
+                    <td>${tx.date}</td>
+                    <td><strong>${tx.group || '-'}</strong></td>
+                    <td><strong>${tx.pan_ucc || '-'}</strong></td>
+                    <td><strong>${tx.clientName}</strong></td>
+                    <td>${tx.scheme}</td>
+                    <td><small style="color:#64748b;">${tx.isin || '-'}</small></td>
+                    <td><span class="badge ${badgeClass}">${tx.type}</span></td>
+                    <td>${tx.nav > 0 ? tx.nav.toFixed(4) : '-'}</td>
+                    <td>${tx.unit > 0 ? tx.unit.toFixed(4) : '-'}</td>
+                    <td class="${amtClass}">${isRedeem ? '-' : '+'}${(tx.amount||0).toFixed(2)}</td>
+                    <td>
+                        <button class="btn-edit-tx" onclick="editMfdTx('${tx.id}')">Edit</button>
+                        <button class="btn-delete" onclick="deleteMfdTx('${tx.id}')">Del</button>
+                    </td>
+                </tr>`;
+            }
         });
 
-        if (pageTxs.length === 0) {
+        if (pageTxs.length === 0 && lb) {
             lb.innerHTML = `<tr><td colspan="12" style="text-align:center; padding:15px; color:#666;">No transactions found matching your criteria.</td></tr>`;
         }
 
@@ -726,6 +771,7 @@
             let pnlImp = isI ? amt : (isR ? -amt : 0); mTree[y].n += pnlImp; mTree[y].m[m].n += pnlImp; mTree[y].m[m].c[tx.clientName] += pnlImp;
         });
 
+        // Compute Client AUM mapping and Total Filtered AUM
         Object.keys(cMap).forEach(k => {
             let i = cMap[k]; let cv = 0; let cx = mfdTxs.filter(t => (t.pan_ucc || t.clientName) === k); let sb = {};
             cx.forEach(t => { let sKey = t.isin || t.scheme; if(!sb[sKey]) sb[sKey] = { u: 0, i: t.isin, fn: 0 }; let iR = (t.type||'').toLowerCase().includes('red'); sb[sKey].u += iR ? -t.unit : t.unit; if(t.nav > 0) sb[sKey].fn = t.nav; });
@@ -734,14 +780,18 @@
             if (gVal === 'ALL' || i.grp === gVal) currentValAum += cv;
         });
 
+        // Compute Scheme AUM Map
         let sAumTotal = 0;
         Object.keys(sMap).forEach(k => { let i = sMap[k]; if (i.u > 0) { i.cv = i.u * (mfdNavs[i.isin] || 0); i.cf.push({ amt: i.cv, date: new Date() }); sAumTotal += i.cv; } });
 
+        // Update Top Summary Cards
         if(document.getElementById('mfd-current-val')) document.getElementById('mfd-current-val').innerText = currentValAum.toFixed(2);
         if(document.getElementById('mfd-net-inv')) document.getElementById('mfd-net-inv').innerText = (tIn - tRed).toFixed(2);
         if(document.getElementById('mfd-gross-inflow')) document.getElementById('mfd-gross-inflow').innerText = tIn.toFixed(2);
         if(document.getElementById('mfd-total-redemption')) document.getElementById('mfd-total-redemption').innerText = tRed.toFixed(2);
+        if(document.getElementById('mfd-total-clients')) document.getElementById('mfd-total-clients').innerText = Object.keys(cMap).filter(k => cMap[k].in > 0 || cMap[k].red > 0).length;
 
+        // Render Client Portfolio AUM Table
         const cb = document.getElementById('mfd-client-aum-body'); 
         if(cb) {
             cb.innerHTML = ''; 
@@ -759,6 +809,7 @@
             }
         }
 
+        // Render Scheme AUM Breakdown Table
         const sb = document.getElementById('mfd-scheme-aum-body'); 
         if(sb) {
             sb.innerHTML = ''; 
@@ -776,6 +827,7 @@
             }
         }
 
+        // Render Comprehensive Client Details 
         const cd = document.getElementById('mfd-client-details-body'); 
         if(cd) {
             cd.innerHTML = '';
@@ -786,6 +838,7 @@
             });
         }
 
+        // Render Drill-Down Flow Tree
         const t = document.getElementById('mfd-drilldown-tree'); 
         if(t) {
             let tHtml = ''; const mn = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
