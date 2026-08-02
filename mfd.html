@@ -268,48 +268,68 @@
 
         <div class="panel">
             <div class="panel-header" onclick="togglePanel('mfd-tx', 'mfd-tx-icon')">
-                <h2>Log Transaction / NAV & TX Uploads</h2><span id="mfd-tx-icon">▲</span>
+                <h2>NAV & Transaction Management</h2><span id="mfd-tx-icon">▲</span>
             </div>
             <div id="mfd-tx" class="collapsible-table-content active">
-                <div class="upload-box success">
-                    <h3>📈 Global NAV Update via CSV</h3>
-                    <p><strong>Format:</strong> <code>ISIN, NAV</code></p>
-                    <input type="file" id="mfd-nav-csv" accept=".csv" onchange="uploadMfdNavCSV(event)">
-                </div>
-
-                <div class="upload-box primary">
-                    <h3>📂 Bulk Transaction Upload via CSV</h3>
-                    <p><strong>Format:</strong> <code>Group, Investor Name, UCC, Type, Purchase date, Folio No., Scheme, ISIN, NAV, Unit, Inv Amount</code></p>
-                    <input type="file" id="mfd-tx-csv" accept=".csv" onchange="uploadMfdTxCSV(event)">
-                </div>
-
-                <h3>Manual Transaction Entry</h3>
-                <form id="mfd-tx-form">
-                    <input type="hidden" id="mfd-tx-id">
-                    <div class="controls-row">
-                        <div class="form-group"><label>Group</label><input type="text" id="mfd-tx-group"></div>
-                        <div class="form-group"><label>Investor Name (Select via PAN/UCC)</label><input type="text" id="mfd-tx-client" list="mfd-client-datalist" required><datalist id="mfd-client-datalist"></datalist></div>
+                
+                <!-- NEW SECTION: NAV MANAGEMENT -->
+                <div style="border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-bottom: 25px; background: #f8fafc;">
+                    <h3 style="margin-top: 0; color: var(--success); border-bottom: 1px solid var(--border); padding-bottom: 10px;">1. Update Scheme NAVs</h3>
+                    
+                    <div class="upload-box success" style="background: #fff; margin-bottom: 15px;">
+                        <h3 style="margin-top: 0;">📈 Bulk NAV Update via CSV</h3>
+                        <p><strong>Format:</strong> <code>ISIN, NAV, Date (YYYY-MM-DD)</code></p>
+                        <input type="file" id="mfd-nav-csv" accept=".csv" onchange="uploadMfdNavCSV(event)">
                     </div>
-                    <div class="controls-row">
-                        <div class="form-group">
-                            <label>Transaction Type</label>
-                            <select id="mfd-tx-type" required><option value="SIP">SIP</option><option value="Lumpsum">Lumpsum Purchase</option><option value="Redemption">Redemption</option></select>
+
+                    <h4 style="margin: 0 0 10px 0;">Or Enter NAV Manually</h4>
+                    <form id="mfd-nav-form" class="controls-row" style="background: #fff; border-color: #bbf7d0;" onsubmit="handleManualNav(event)">
+                        <div class="form-group" style="flex: 2;"><label>ISIN / Scheme Code</label><input type="text" id="mfd-manual-nav-isin" required placeholder="INF209K01157"></div>
+                        <div class="form-group"><label>Latest NAV</label><input type="number" id="mfd-manual-nav-val" step="any" min="0" required></div>
+                        <div class="form-group"><label>NAV Date</label><input type="date" id="mfd-manual-nav-date" required></div>
+                        <button type="submit" class="btn-primary" style="width: auto; padding: 10px 20px; background: var(--success);">Save NAV</button>
+                    </form>
+                </div>
+
+                <!-- EXISTING SECTION: TRANSACTION MANAGEMENT -->
+                <div style="border: 1px solid var(--border); padding: 15px; border-radius: 6px; background: #f8fafc;">
+                    <h3 style="margin-top: 0; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 10px;">2. Log Client Transactions</h3>
+                    
+                    <div class="upload-box primary" style="background: #fff;">
+                        <h3 style="margin-top: 0;">📂 Bulk Transaction Upload via CSV</h3>
+                        <p><strong>Format:</strong> <code>Group, Investor Name, UCC, Type, Purchase date, Folio No., Scheme, ISIN, NAV, Unit, Inv Amount</code></p>
+                        <input type="file" id="mfd-tx-csv" accept=".csv" onchange="uploadMfdTxCSV(event)">
+                    </div>
+
+                    <h4 style="margin: 15px 0 10px 0;">Manual Transaction Entry</h4>
+                    <form id="mfd-tx-form" style="background: #fff; padding: 15px; border-radius: 6px; border: 1px solid #c7d2fe;">
+                        <input type="hidden" id="mfd-tx-id">
+                        <div class="controls-row" style="background: none; border: none; padding: 0; margin-bottom: 10px;">
+                            <div class="form-group"><label>Group</label><input type="text" id="mfd-tx-group"></div>
+                            <div class="form-group"><label>Investor Name (Select via PAN/UCC)</label><input type="text" id="mfd-tx-client" list="mfd-client-datalist" required><datalist id="mfd-client-datalist"></datalist></div>
                         </div>
-                        <div class="form-group"><label>Purchase Date</label><input type="date" id="mfd-tx-date" required></div>
-                        <div class="form-group"><label>Folio No.</label><input type="text" id="mfd-tx-folio"></div>
-                    </div>
-                    <div class="controls-row">
-                        <div class="form-group" style="flex:2;"><label>Scheme</label><input type="text" id="mfd-tx-scheme" required></div>
-                        <div class="form-group"><label>ISIN</label><input type="text" id="mfd-tx-isin" required></div>
-                    </div>
-                    <div class="controls-row" style="background:#f8fafc;">
-                        <div class="form-group"><label>NAV</label><input type="number" id="mfd-tx-nav" step="any" min="0" oninput="calcMfdManualTx()"></div>
-                        <div class="form-group"><label>Unit</label><input type="number" id="mfd-tx-unit" step="any" min="0" oninput="calcMfdManualTx()"></div>
-                        <div class="form-group"><label>Inv Amount</label><input type="number" id="mfd-tx-amount" step="any" min="0" oninput="calcMfdManualUnit()" required></div>
-                    </div>
-                    <button type="submit" id="mfd-tx-btn" class="btn-primary" style="margin-top:15px;">Add Transaction</button>
-                    <button type="button" id="mfd-tx-cancel-btn" style="display:none; margin-top:10px;" class="btn-secondary" onclick="cancelMfdTxEdit()">Cancel Edit</button>
-                </form>
+                        <div class="controls-row" style="background: none; border: none; padding: 0; margin-bottom: 10px;">
+                            <div class="form-group">
+                                <label>Transaction Type</label>
+                                <select id="mfd-tx-type" required><option value="SIP">SIP</option><option value="Lumpsum">Lumpsum Purchase</option><option value="Redemption">Redemption</option></select>
+                            </div>
+                            <div class="form-group"><label>Purchase Date</label><input type="date" id="mfd-tx-date" required></div>
+                            <div class="form-group"><label>Folio No.</label><input type="text" id="mfd-tx-folio"></div>
+                        </div>
+                        <div class="controls-row" style="background: none; border: none; padding: 0; margin-bottom: 10px;">
+                            <div class="form-group" style="flex:2;"><label>Scheme</label><input type="text" id="mfd-tx-scheme" required></div>
+                            <div class="form-group"><label>ISIN</label><input type="text" id="mfd-tx-isin" required></div>
+                        </div>
+                        <div class="controls-row" style="background: #e0e7ff; border: 1px solid #c7d2fe;">
+                            <div class="form-group"><label>NAV</label><input type="number" id="mfd-tx-nav" step="any" min="0" oninput="calcMfdManualTx()"></div>
+                            <div class="form-group"><label>Unit</label><input type="number" id="mfd-tx-unit" step="any" min="0" oninput="calcMfdManualTx()"></div>
+                            <div class="form-group"><label>Inv Amount</label><input type="number" id="mfd-tx-amount" step="any" min="0" oninput="calcMfdManualUnit()" required></div>
+                        </div>
+                        <button type="submit" id="mfd-tx-btn" class="btn-primary" style="margin-top:15px;">Add Transaction</button>
+                        <button type="button" id="mfd-tx-cancel-btn" style="display:none; margin-top:10px;" class="btn-secondary" onclick="cancelMfdTxEdit()">Cancel Edit</button>
+                    </form>
+                </div>
+
             </div>
         </div>
     </div>
@@ -392,7 +412,7 @@
         if(c && i){ c.classList.toggle('active'); i.innerText = c.classList.contains('active') ? '▲' : '▼'; } 
     }
     
-  // Bulletproof XIRR: Handles same-day math, fallback loops, and extreme returns
+    // Bulletproof XIRR: Handles same-day math, fallback loops, and extreme returns
     function computeXIRR(cashflows) {
         if (!cashflows || cashflows.length < 2) return 0;
 
@@ -428,7 +448,7 @@
         const tolerance = 0.00001;
         const maxIter = 100;
         
-        // Step 1: Newton-Raphson with multiple starting guesses (Excel's secret trick)
+        // Step 1: Newton-Raphson with multiple starting guesses
         const guesses = [0.1, -0.1, 0.5, -0.5, 1.0];
         
         for (let g = 0; g < guesses.length; g++) {
@@ -449,7 +469,7 @@
             }
         }
 
-        // Step 2: If Newton-Raphson completely fails, fallback to brute-force Bisection
+        // Step 2: If Newton-Raphson fails, fallback to Bisection
         let low = -0.99999, high = 10000, guess = 0;
         for (let i = 0; i < 100; i++) {
             guess = (low + high) / 2;
@@ -458,8 +478,10 @@
             if (npv(low) * currentNpv < 0) high = guess; else low = guess;
         }
 
-        return guess * 100; // Final best effort
-    }    function updateSortIcons() {
+        return guess * 100;
+    }
+
+    function updateSortIcons() {
         document.querySelectorAll('.sort-icon').forEach(el => el.innerText = '');
         let map = { date: 'mfd-sort-date', group: 'mfd-sort-group', pan_ucc: 'mfd-sort-ucc', clientName: 'mfd-sort-name', scheme: 'mfd-sort-scheme', isin: 'mfd-sort-isin', type: 'mfd-sort-type', amount: 'mfd-sort-amount' };
         let el = document.getElementById(map[mfdSortCol]);
@@ -500,6 +522,9 @@
 
             if(document.getElementById('mfd-tx-date')) {
                 document.getElementById('mfd-tx-date').valueAsDate = new Date();
+            }
+            if(document.getElementById('mfd-manual-nav-date')) {
+                document.getElementById('mfd-manual-nav-date').valueAsDate = new Date();
             }
 
             loadMfdData();
@@ -618,17 +643,50 @@
     function cancelMfdTxEdit() { document.getElementById('mfd-tx-id').value = ''; document.getElementById('mfd-tx-btn').innerText = 'Add Transaction'; document.getElementById('mfd-tx-cancel-btn').style.display = 'none'; document.getElementById('mfd-tx-form').reset(); document.getElementById('mfd-tx-date').valueAsDate = new Date(); }
     async function deleteMfdTx(id) { if(confirm("Delete transaction?")) { await db.collection('mfd_transactions').doc(id).delete(); loadMfdData(); } }
 
-    // Uploaders
+    // Uploaders & Manual NAV
     function uploadMfdNavCSV(e) {
         const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
         reader.onload = async function(ev) {
             const lines = ev.target.result.split('\n'); let sCount = 0; const batch = db.batch();
             for (let i = 1; i < lines.length; i++) {
                 const c = lines[i].split(',').map(x => x.replace(/^"|"$/g, '').trim());
-                if (c.length >= 2 && c[0] && parseFloat(c[1])>0) { batch.set(db.collection('mfd_navs').doc(c[0]), { nav: parseFloat(c[1]), updated: new Date().toISOString() }); sCount++; }
+                if (c.length >= 2 && c[0] && parseFloat(c[1]) > 0) { 
+                    let dDate = c[2] ? c[2] : new Date().toISOString().split('T')[0];
+                    batch.set(db.collection('mfd_navs').doc(c[0]), { 
+                        nav: parseFloat(c[1]), 
+                        date: dDate, 
+                        updated: new Date().toISOString() 
+                    }); 
+                    sCount++; 
+                }
             }
-            if (sCount > 0) { await batch.commit(); alert(`Updated ${sCount} NAV records globally!`); } else { alert("No valid NAV records found."); } e.target.value = ''; loadMfdData();
+            if (sCount > 0) { await batch.commit(); alert(`Updated ${sCount} NAV records globally!`); } else { alert("No valid NAV records found."); } 
+            e.target.value = ''; loadMfdData();
         }; reader.readAsText(file);
+    }
+
+    async function handleManualNav(e) {
+        e.preventDefault();
+        const isin = document.getElementById('mfd-manual-nav-isin').value.trim();
+        const navVal = parseFloat(document.getElementById('mfd-manual-nav-val').value);
+        const dateVal = document.getElementById('mfd-manual-nav-date').value;
+        
+        if(!isin || !navVal || !dateVal) return alert("Please fill all NAV fields.");
+        if(!currentUser) return alert("You must be logged in.");
+        
+        try {
+            await db.collection('mfd_navs').doc(isin).set({
+                nav: navVal,
+                date: dateVal,
+                updated: new Date().toISOString()
+            });
+            alert(`Successfully updated NAV for ${isin}`);
+            document.getElementById('mfd-nav-form').reset();
+            document.getElementById('mfd-manual-nav-date').valueAsDate = new Date();
+            loadMfdData();
+        } catch(error) {
+            alert("Error saving NAV: " + error.message);
+        }
     }
 
     function uploadMfdTxCSV(e) {
