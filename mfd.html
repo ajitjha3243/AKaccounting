@@ -598,54 +598,63 @@
     function setMfdSort(col) { if (mfdSortCol === col) { mfdSortDesc = !mfdSortDesc; } else { mfdSortCol = col; mfdSortDesc = col === 'date'; } mfdPage=1; renderMfdApp(); }
 
     function renderMfdApp() {
-        // 1. Group & Client Filters
-        const gDrop = document.getElementById('mfd-report-group-filter'); let currG = gDrop ? gDrop.value : 'ALL';
-        let uGrps = [...new Set(mfdClients.map(c => c.group).filter(g => g && g.trim() !== ''))].sort();
-        if(gDrop) { let gHtml = `<option value="ALL">All Groups</option>`; uGrps.forEach(g => gHtml += `<option value="${g}">${g}</option>`); gDrop.innerHTML = gHtml; gDrop.value = currG || 'ALL'; currG = gDrop.value; }
+       // Rep 1: Client Portfolio AUM
+        const cb = document.getElementById('mfd-client-aum-body'); 
+        if (cb) cb.innerHTML = ''; 
+        let sk = Object.keys(clientAumMap).sort((a,b) => clientAumMap[b].curValue - clientAumMap[a].curValue);
+        if (sk.length === 0 && cb) { cb.innerHTML = `<tr><td colspan="7" style="text-align:center;">No data.</td></tr>`; } 
+        else if (cb) {
+            sk.forEach(k => {
+                let i = clientAumMap[k]; if (gVal !== 'ALL' && i.grp !== gVal) return;
+                if (i.inflow > 0 || i.redemption > 0) {
+                    let x = computeXIRR(i.cashflows); let xc = x >= 0 ? 'pnl-positive' : 'pnl-negative'; 
+                    let pct = currentValAum > 0 ? ((i.curValue / currentValAum) * 100).toFixed(2) + '%' : '0.00%';
+                    cb.innerHTML += `<tr><td>${i.grp || '-'}</td><td><strong>${i.pan_ucc}</strong></td><td><strong>${i.name}</strong></td><td class="pnl-positive">+${i.inflow.toFixed(2)}</td><td><strong>${i.curValue.toFixed(2)}</strong></td><td class="${xc}">${x.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${pct}</span></td></tr>`;
+                }
+            });
+        }
 
-        const cDrop = document.getElementById('mfd-report-client-filter'); let currC = cDrop ? cDrop.value : 'ALL';
-        let cHtml = `<option value="ALL">All Investors</option>`;
+        // Rep 2: Scheme-wise AUM Breakdown
+        const sb = document.getElementById('mfd-scheme-aum'); 
+        if(sb) sb.innerHTML = '';
+        let sok = Object.keys(schemeAumMap).sort((a,b) => schemeAumMap[b].curValue - schemeAumMap[a].curValue);
 
-        const cb = document.getElementById('mfd-clients-list-body'); const dl = document.getElementById('mfd-client-datalist'); 
-        if(cb) cb.innerHTML = ''; if(dl) dl.innerHTML = '';
-        
-        let cSet = new Set();
-        mfdClients.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
-            let identifier = c.pan || c.ucc || '-'; let str = `${identifier} - ${c.name}`;
-            if(dl) dl.innerHTML += `<option value="${str}">`; 
-            if(cb) cb.innerHTML += `<tr><td><strong>${c.group||'-'}</strong></td><td><strong>${identifier}</strong></td><td><strong>${c.name}</strong></td><td>${c.phone||'-'}</td><td><button class="btn-edit-tx" onclick="editMfdClient('${c.id}')">Edit</button><button class="btn-delete" onclick="deleteMfdClient('${c.id}')">Del</button></td></tr>`;
-            
-            if (currG === 'ALL' || c.group === currG) { cHtml += `<option value="${identifier}">${str}</option>`; cSet.add(identifier); }
+        if (sok.length === 0 && sb) { sb.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:15px; color:#666;">No scheme transactions logged.</td></tr>`; } 
+        else if (sb) {
+            sok.forEach(s => {
+                let i = schemeAumMap[s];
+                if(i.units > 0.001 || i.redemption > 0) {
+                    let rNav = mfdNavs[i.isin] || 0; let x = computeXIRR(i.cashflows); let xc = x >= 0 ? 'pnl-positive' : 'pnl-negative'; 
+                    let pct = sAumTotal > 0 ? ((i.curValue / sAumTotal) * 100).toFixed(2) + '%' : '0.00%';
+                    sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.units.toFixed(4)}</td><td>${rNav.toFixed(4)}</td><td>${i.inflow.toFixed(2)}</td><td><strong>${i.curValue.toFixed(2)}</strong></td><td class="${xc}">${x.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${pct}</span></td></tr>`;
+                }
+            });
+        }
+
+        // Rep 3: Comprehensive Client Details
+        const clientDetailsBody = document.getElementById('mfd-client-details'); if(clientDetailsBody) {
+            clientDetailsBody.innerHTML = '';
+            mfdClients.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
+                if (gVal !== 'ALL' && c.group !== gVal) return;
+                let key = c.pan || c.ucc || c.name; clientDetailsBody.innerHTML += `<tr><td><strong>${key}</strong></td><td>${c.group || '-'}</td><td><strong>${c.name}</strong></td><td>${c.phone || '-'}</td><td>${c.city || '-'}${c.state ? ', ' + c.state : ''}</td><td>${c.nomineeName || '-'}</td></tr>`;
+            });
+        }
+
+        // Rep 4: Monthly Flow
+        const t = document.getElementById('mfd-drilldown-tree'); let tHtml = ''; const mn = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        Object.keys(monthlyTree).sort().reverse().forEach(y => {
+            let yd = monthlyTree[y]; let yc = yd.net >= 0 ? 'pnl-positive' : 'pnl-negative';
+            tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> Year ${y}</span><span class="${yc}">${yd.net>0?'+':''}${yd.net.toFixed(2)}</span></div><div class="tree-children">`;
+            Object.keys(yd.months).sort().reverse().forEach(ms => {
+                let md = yd.months[ms]; let mc = md.net >= 0 ? 'pnl-positive' : 'pnl-negative';
+                tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${mn[parseInt(ms)]}</span><span class="${mc}">${md.net>0?'+':''}${md.net.toFixed(2)}</span></div><div class="tree-children">`;
+                Object.keys(md.clients).sort().forEach(cn => {
+                    let cv = md.clients[cn]; if (cv !== 0) { let cc = cv > 0 ? 'pnl-positive' : 'pnl-negative'; tHtml += `<div class="tree-leaf"><span>${cn}</span><span class="${cc}">${cv>0?'+':''}${cv.toFixed(2)}</span></div>`; }
+                });
+                tHtml += `</div></div>`;
+            }); tHtml += `</div></div>`;
         });
-        
-        if(document.getElementById('mfd-total-clients')) document.getElementById('mfd-total-clients').innerText = cSet.size;
-        if(cDrop) { cDrop.innerHTML = cHtml; cDrop.value = currC; if(!cDrop.value) cDrop.value = 'ALL'; }
-
-        // 2. Render Reports
-        renderMfdReportsOnly();
-
-        // 3. Render Advanced Ledger
-        const lb = document.getElementById('mfd-ledger-body'); 
-        if(!lb) return;
-        lb.innerHTML = '';
-        if(document.getElementById('mfd-select-all')) document.getElementById('mfd-select-all').checked = false;
-
-        ['date', 'group', 'pan_ucc', 'clientName', 'scheme', 'isin', 'type', 'amount'].forEach(col => { const el = document.getElementById(`mfd-sort-${col}`); if(el) el.innerText = (mfdSortCol === col) ? (mfdSortDesc ? ' ↓' : ' ↑') : ''; });
-
-        let dyn = filterMfdTxs();
-        const td = document.getElementById('mfd-flt-total-display');
-        let isFlt = (document.getElementById('mfd-search')&&document.getElementById('mfd-search').value) || (document.getElementById('mfd-flt-date')&&document.getElementById('mfd-flt-date').value) || (document.getElementById('mfd-flt-group')&&document.getElementById('mfd-flt-group').value) || (document.getElementById('mfd-flt-ucc')&&document.getElementById('mfd-flt-ucc').value) || (document.getElementById('mfd-flt-name')&&document.getElementById('mfd-flt-name').value) || (document.getElementById('mfd-flt-scheme')&&document.getElementById('mfd-flt-scheme').value) || (document.getElementById('mfd-flt-isin')&&document.getElementById('mfd-flt-isin').value) || (document.getElementById('mfd-flt-type')&&document.getElementById('mfd-flt-type').value);
-
-        if (isFlt && td) { let sum = 0; dyn.forEach(tx => { let isR = (tx.type||'').toLowerCase().includes('red'); sum += isR ? -Math.abs(tx.amount) : Math.abs(tx.amount); }); td.innerText = sum.toFixed(2); td.style.display = 'block'; } else if (td) { td.style.display = 'none'; }
-
-        dyn.sort((a, b) => {
-            let valA = a[mfdSortCol]; let valB = b[mfdSortCol];
-            if (mfdSortCol === 'date') { valA = new Date(valA).getTime(); valB = new Date(valB).getTime(); } 
-            else if (mfdSortCol === 'amount') { let irA = (a.type||'').toLowerCase().includes('red'); let irB = (b.type||'').toLowerCase().includes('red'); valA = irA ? -a.amount : a.amount; valB = irB ? -b.amount : b.amount; } 
-            else { valA = String(valA || '').toLowerCase(); valB = String(valB || '').toLowerCase(); }
-            if (valA < valB) return mfdSortDesc ? 1 : -1; if (valA > valB) return mfdSortDesc ? -1 : 1; return 0;
-        });
-
+        if(t) t.innerHTML = tHtml || `<div style="padding:15px; text-align:center;">No data.</div>`;
         const tp = Math.ceil(dyn.length / pageSize) || 1; if (mfdPage > tp) mfdPage = tp;
         const startIdx = (mfdPage - 1) * pageSize; const pageTxs = dyn.slice(startIdx, startIdx + pageSize);
 
