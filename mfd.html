@@ -392,27 +392,64 @@
         if(c && i){ c.classList.toggle('active'); i.innerText = c.classList.contains('active') ? '▲' : '▼'; } 
     }
     
-    // Robust Algorithmic XIRR Calculator using Bisection
+   // Industry-Standard Algorithmic XIRR Calculator using Newton-Raphson Method
     function computeXIRR(cashflows) {
         if (!cashflows || cashflows.length < 2) return 0;
+        
+        // Sort cashflows chronologically
         let cfs = [...cashflows].sort((a,b) => a.date.getTime() - b.date.getTime());
+        
+        // Ensure there is at least one investment (negative) and one return (positive)
         let hasPos = false, hasNeg = false;
         cfs.forEach(cf => { if(cf.amt > 0) hasPos = true; if(cf.amt < 0) hasNeg = true; });
         if(!hasPos || !hasNeg) return 0;
 
         let d0 = cfs[0].date.getTime();
-        const npv = (r) => cfs.reduce((s, cf) => s + cf.amt / Math.pow(1 + r, (cf.date.getTime() - d0) / 86400000 / 365.25), 0);
         
-        let low = -0.9999; let high = 10000; let guess = 0;
-        for (let i = 0; i < 100; i++) {
-            guess = (low + high) / 2;
-            let npvGuess = npv(guess);
-            if (Math.abs(npvGuess) < 0.001) return guess * 100;
-            if (npv(low) * npvGuess < 0) high = guess; else low = guess;
+        // Helper to calculate difference in years
+        const getYears = (date) => (date.getTime() - d0) / (86400000 * 365.25);
+        
+        // NPV (Net Present Value) Function
+        const npv = (rate) => cfs.reduce((sum, cf) => sum + (cf.amt / Math.pow(1 + rate, getYears(cf.date))), 0);
+        
+        // Derivative of NPV Function
+        const npvDerivative = (rate) => cfs.reduce((sum, cf) => {
+            let t = getYears(cf.date);
+            if (t === 0) return sum;
+            return sum - (cf.amt * t) / Math.pow(1 + rate, t + 1);
+        }, 0);
+        
+        // Newton-Raphson Algorithm
+        let guess = 0.1; // Start with a 10% realistic guess
+        const maxIter = 100;
+        const tolerance = 0.00001;
+        
+        for (let i = 0; i < maxIter; i++) {
+            let currentNpv = npv(guess);
+            
+            // If NPV is practically zero, we found the rate
+            if (Math.abs(currentNpv) < tolerance) {
+                return guess * 100; 
+            }
+            
+            let derivative = npvDerivative(guess);
+            if (Math.abs(derivative) < 1e-10) break; // Avoid division by zero
+            
+            let nextGuess = guess - (currentNpv / derivative);
+            
+            // XIRR rate mathematically cannot drop below -100% (-1.0)
+            if (nextGuess <= -1) nextGuess = -0.999999; 
+            
+            // If the guess stops changing, we have converged
+            if (Math.abs(nextGuess - guess) < tolerance) {
+                return nextGuess * 100; 
+            }
+            guess = nextGuess;
         }
-        return guess * 100;
+        
+        // Fallback to 0 if the equation fails to converge (rare edge cases)
+        return 0;
     }
-
     function updateSortIcons() {
         document.querySelectorAll('.sort-icon').forEach(el => el.innerText = '');
         let map = { date: 'mfd-sort-date', group: 'mfd-sort-group', pan_ucc: 'mfd-sort-ucc', clientName: 'mfd-sort-name', scheme: 'mfd-sort-scheme', isin: 'mfd-sort-isin', type: 'mfd-sort-type', amount: 'mfd-sort-amount' };
