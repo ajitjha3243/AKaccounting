@@ -380,17 +380,34 @@
     // -------------------------------------------------------------
     // 4. AUTHENTICATION (Redirects to index.html if not logged in)
     // -------------------------------------------------------------
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            currentUser = user;
-            document.querySelectorAll('.display-user-email').forEach(el => { el.innerText = user.email; });
-            if(document.getElementById('mfd-tx-date')) document.getElementById('mfd-tx-date').valueAsDate = new Date();
-            loadMfdData();
-        } else {
-            // Security fallback: if they aren't logged in, redirect them to the main page
-            window.location.href = 'index.html';
+   auth.onAuthStateChanged(user => {
+    if (user) {
+        currentUser = user;
+        // 1. Hide the login screen
+        document.getElementById('auth-overlay').style.display = 'none';
+        
+        // 2. Show the MFD workspace
+        document.getElementById('workspace-mfd').style.display = 'block';
+        
+        // 3. Update UI with user email
+        document.querySelectorAll('.display-user-email').forEach(el => { 
+            el.innerText = user.email || "Logged in"; 
+        });
+
+        // 4. Set today's date in forms
+        if(document.getElementById('mfd-tx-date')) {
+            document.getElementById('mfd-tx-date').valueAsDate = new Date();
         }
-    });
+
+        // 5. Load the MFD Data
+        loadMfdData();
+
+    } else {
+        currentUser = null;
+        document.getElementById('workspace-mfd').style.display = 'none';
+        document.getElementById('auth-overlay').style.display = 'flex';
+    }
+});
 
     function signOut() { auth.signOut().then(() => window.location.href = 'index.html'); }
 
