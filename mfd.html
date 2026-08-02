@@ -887,7 +887,16 @@
             let amt = Math.abs(parseFloat(tx.amount))||0; let u = Math.abs(parseFloat(tx.unit))||0; 
             let ck = tx.pan_ucc || tx.clientName; let sk = tx.isin || tx.scheme || 'Uncategorized';
             let tp = (tx.type||'').toLowerCase(); let isR = tp.includes('red') || tp.includes('sale'); let isI = tp.includes('sip') || tp.includes('lump') || tp.includes('pur');
-            let d = new Date(tx.date);
+            // Safely parse DD-MM-YYYY or YYYY-MM-DD formats
+let d;
+if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) {
+    // Looks like DD-MM-YYYY
+    let parts = tx.date.split('-');
+    d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
+} else {
+    // Fallback to standard parsing
+    d = new Date(tx.date);
+}
             
             if (!cMap[ck]) cMap[ck] = { id: ck, name: tx.clientName, grp: tx.group||'', in: 0, red: 0, u: 0, cv: 0, cf: [] };
             if (!sMap[sk]) sMap[sk] = { isin: tx.isin, scheme: tx.scheme, in: 0, red: 0, u: 0, cv: 0, cf: [] };
