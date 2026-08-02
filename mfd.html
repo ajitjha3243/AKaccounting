@@ -16,10 +16,23 @@
             --warning: #f59e0b; --info: #0ea5e9; --purple: #8b5cf6; --border: #e5e7eb;
         }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; display: none; /* Hidden by default until auth */ }
         
-        /* Optional Auth Overlay if login happens on this page */
-        #auth-fallback { display: none; justify-content: center; align-items: center; height: 100vh; font-size: 1.2rem; color: #666; }
+        /* The main dashboard is hidden by default until the user logs in */
+        .container { max-width: 1200px; margin: 0 auto; display: none; }
+        
+        /* Login Overlay Styles */
+        #auth-overlay {
+            display: flex; justify-content: center; align-items: center; 
+            height: 100vh; background-color: var(--bg-color); 
+            position: fixed; top: 0; left: 0; width: 100%; z-index: 9999;
+        }
+        .login-box {
+            background: var(--card-bg); padding: 30px; border-radius: 8px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center;
+        }
+        .login-box h2 { margin-top: 0; margin-bottom: 20px; color: var(--text-color); }
+        .login-box label { display: block; margin-bottom: 5px; font-size: 0.9rem; font-weight: 500; text-align: left; }
+        .login-box input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; margin-bottom: 15px; }
 
         .header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 15px;}
         .user-controls { display: flex; align-items: center; gap: 15px; background: #e2e8f0; padding: 8px 15px; border-radius: 8px; font-weight: 500; font-size: 0.95rem; }
@@ -109,8 +122,26 @@
 </head>
 <body>
 
-<div id="auth-fallback">Redirecting to login...</div>
+<!-- LOGIN OVERLAY -->
+<div id="auth-overlay">
+    <div class="login-box">
+        <h2>Dashboard Login</h2>
+        <form id="login-form" onsubmit="handleLogin(event)">
+            <div>
+                <label>Email</label>
+                <input type="email" id="login-email" required>
+            </div>
+            <div>
+                <label>Password</label>
+                <input type="password" id="login-password" required>
+            </div>
+            <button type="submit" class="btn-primary">Log In</button>
+            <p id="login-error" style="color: #dc2626; font-size: 0.85rem; display: none; margin-top: 15px;"></p>
+        </form>
+    </div>
+</div>
 
+<!-- MAIN DASHBOARD -->
 <div class="container" id="workspace-mfd">
     <div class="header-top">
         <h1>MFD Business Dashboard</h1>
@@ -118,6 +149,7 @@
             <span class="display-user-email">Loading...</span>
         </div>
         <div class="header-actions">
+            <!-- Link to switch back to Personal Dashboard -->
             <a href="index.html" class="btn-nav-switch">⬅ Switch to Personal Finance</a>
             <button class="btn-backup" onclick="backupData()">💾 Backup Data</button>
             <button class="btn-logout" onclick="signOut()">Log Out</button>
@@ -389,49 +421,50 @@
     }
 
     // -------------------------------------------------------------
-    // 4. AUTHENTICATION (Safely handles login / missing overlays)
+    // 4. AUTHENTICATION & LOGIN LOGIC
     // -------------------------------------------------------------
+    function handleLogin(e) {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        const errorEl = document.getElementById('login-error');
+        
+        auth.signInWithEmailAndPassword(email, password)
+            .then(() => {
+                errorEl.style.display = 'none';
+            })
+            .catch(error => {
+                errorEl.style.display = 'block';
+                errorEl.innerText = "Login failed: " + error.message;
+            });
+    }
+
     auth.onAuthStateChanged(user => {
+        const authOverlay = document.getElementById('auth-overlay');
+        const workspace = document.getElementById('workspace-mfd');
+
         if (user) {
             currentUser = user;
-            
-            // 1. Hide the login screen (Safely check if element exists first)
-            const authOverlay = document.getElementById('auth-overlay');
-            const authFallback = document.getElementById('auth-fallback');
             if (authOverlay) authOverlay.style.display = 'none';
-            if (authFallback) authFallback.style.display = 'none';
+            if (workspace) workspace.style.display = 'block';
             
-            // 2. Show the MFD workspace
-            document.getElementById('workspace-mfd').style.display = 'block';
-            
-            // 3. Update UI with user email
             document.querySelectorAll('.display-user-email').forEach(el => { 
                 el.innerText = user.email || "Logged in"; 
             });
 
-            // 4. Set today's date in forms
             if(document.getElementById('mfd-tx-date')) {
                 document.getElementById('mfd-tx-date').valueAsDate = new Date();
             }
 
-            // 5. Load the MFD Data
             loadMfdData();
         } else {
             currentUser = null;
-            document.getElementById('workspace-mfd').style.display = 'none';
-            
-            const authOverlay = document.getElementById('auth-overlay');
-            if (authOverlay) {
-                authOverlay.style.display = 'flex';
-            } else {
-                // If login overlay isn't in this HTML, redirect them to index.html
-                document.getElementById('auth-fallback').style.display = 'flex';
-                window.location.href = 'index.html'; 
-            }
+            if (workspace) workspace.style.display = 'none';
+            if (authOverlay) authOverlay.style.display = 'flex';
         }
     });
 
-    function signOut() { auth.signOut().then(() => window.location.href = 'index.html'); }
+    function signOut() { auth.signOut(); }
 
     // -------------------------------------------------------------
     // 5. GLOBAL BACKUP
