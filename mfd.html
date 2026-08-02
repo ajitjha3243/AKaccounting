@@ -149,7 +149,6 @@
             <span class="display-user-email">Loading...</span>
         </div>
         <div class="header-actions">
-            <!-- Link to switch back to Personal Dashboard -->
             <a href="index.html" class="btn-nav-switch">⬅ Switch to Personal Finance</a>
             <button class="btn-backup" onclick="backupData()">💾 Backup Data</button>
             <button class="btn-logout" onclick="signOut()">Log Out</button>
@@ -577,7 +576,12 @@
         mfdTxs = txSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         const navSnap = await db.collection('mfd_navs').get();
-        mfdNavs = {}; navSnap.docs.forEach(doc => { mfdNavs[doc.id] = doc.data().nav; });
+        mfdNavs = {}; 
+        
+        // FIX: Store the full NAV object so we can read the Date later
+        navSnap.docs.forEach(doc => { 
+            mfdNavs[doc.id] = doc.data(); 
+        });
 
         renderMfdApp();
     }
@@ -887,16 +891,15 @@
             let amt = Math.abs(parseFloat(tx.amount))||0; let u = Math.abs(parseFloat(tx.unit))||0; 
             let ck = tx.pan_ucc || tx.clientName; let sk = tx.isin || tx.scheme || 'Uncategorized';
             let tp = (tx.type||'').toLowerCase(); let isR = tp.includes('red') || tp.includes('sale'); let isI = tp.includes('sip') || tp.includes('lump') || tp.includes('pur');
-            // Safely parse DD-MM-YYYY or YYYY-MM-DD formats
-let d;
-if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) {
-    // Looks like DD-MM-YYYY
-    let parts = tx.date.split('-');
-    d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
-} else {
-    // Fallback to standard parsing
-    d = new Date(tx.date);
-}
+            
+            // FIX: Safely parse DD-MM-YYYY formats specifically to avoid JS Month/Day swap
+            let d;
+            if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) {
+                let parts = tx.date.split('-');
+                d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
+            } else {
+                d = new Date(tx.date);
+            }
             
             if (!cMap[ck]) cMap[ck] = { id: ck, name: tx.clientName, grp: tx.group||'', in: 0, red: 0, u: 0, cv: 0, cf: [] };
             if (!sMap[sk]) sMap[sk] = { isin: tx.isin, scheme: tx.scheme, in: 0, red: 0, u: 0, cv: 0, cf: [] };
@@ -917,18 +920,57 @@ if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) {
             let pnlImp = isI ? amt : (isR ? -amt : 0); mTree[y].n += pnlImp; mTree[y].m[m].n += pnlImp; mTree[y].m[m].c[tx.clientName] += pnlImp;
         });
 
-        // Compute Client AUM mapping and Total Filtered AUM
+        // FIX: Compute Client AUM mapping and Total Filtered AUM Using NAV Date
+        let latestGlobalNavDate = new Date(0);
+        
         Object.keys(cMap).forEach(k => {
             let i = cMap[k]; let cv = 0; let cx = mfdTxs.filter(t => (t.pan_ucc || t.clientName) === k); let sb = {};
-            cx.forEach(t => { let sKey = t.isin || t.scheme; if(!sb[sKey]) sb[sKey] = { u: 0, i: t.isin, fn: 0 }; let iR = (t.type||'').toLowerCase().includes('red'); sb[sKey].u += iR ? -t.unit : t.unit; if(t.nav > 0) sb[sKey].fn = t.nav; });
-            Object.keys(sb).forEach(sKey => { if (sb[sKey].u > 0) cv += (sb[sKey].u * (mfdNavs[sb[sKey].i] || sb[sKey].fn || 0)); });
-            i.cv = cv; if (cv > 0) i.cf.push({ amt: cv, date: new Date() });
+            let latestClientNavDate = new Date(0);
+
+            cx.forEach(t => { 
+                let sKey = t.isin || t.scheme; 
+                if(!sb[sKey]) sb[sKey] = { u: 0, i: t.isin, fn: 0 }; 
+                let iR = (t.type||'').toLowerCase().includes('red'); 
+                sb[sKey].u += iR ? -t.unit : t.unit; 
+                if(t.nav > 0) sb[sKey].fn = t.nav; 
+            });
+
+            Object.keys(sb).forEach(sKey => { 
+                if (sb[sKey].u > 0) {
+                    let navObj = mfdNavs[sb[sKey].i];
+                    let rN = navObj ? navObj.nav : (sb[sKey].fn || 0);
+                    let nDate = navObj && navObj.date ? new Date(navObj.date) : new Date();
+                    
+                    if (nDate > latestClientNavDate) latestClientNavDate = nDate;
+                    if (nDate > latestGlobalNavDate) latestGlobalNavDate = nDate;
+                    
+                    cv += (sb[sKey].u * rN);
+                }
+            });
+            
+            i.cv = cv; 
+            if (cv > 0) {
+                // Attach the CV cashflow to the exact day the NAV was valued, not the system clock
+                let finalDate = latestClientNavDate.getTime() > 0 ? latestClientNavDate : new Date();
+                i.cf.push({ amt: cv, date: finalDate });
+            }
             if (gVal === 'ALL' || i.grp === gVal) currentValAum += cv;
         });
 
-        // Compute Scheme AUM Map
+        // FIX: Compute Scheme AUM Map Using NAV Date
         let sAumTotal = 0;
-        Object.keys(sMap).forEach(k => { let i = sMap[k]; if (i.u > 0) { i.cv = i.u * (mfdNavs[i.isin] || 0); i.cf.push({ amt: i.cv, date: new Date() }); sAumTotal += i.cv; } });
+        Object.keys(sMap).forEach(k => { 
+            let i = sMap[k]; 
+            if (i.u > 0) { 
+                let navObj = mfdNavs[i.isin];
+                let rN = navObj ? navObj.nav : 0;
+                let finalDate = navObj && navObj.date ? new Date(navObj.date) : new Date();
+
+                i.cv = i.u * rN; 
+                i.cf.push({ amt: i.cv, date: finalDate }); 
+                sAumTotal += i.cv; 
+            } 
+        });
 
         // Update Top Summary Cards
         if(document.getElementById('mfd-current-val')) document.getElementById('mfd-current-val').innerText = currentValAum.toFixed(2);
@@ -965,7 +1007,9 @@ if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) {
                 sok.forEach(s => {
                     let i = sMap[s];
                     if(i.u > 0.001 || i.red > 0) {
-                        let rN = mfdNavs[i.isin] || 0; let x = computeXIRR(i.cf); let xc = x >= 0 ? 'pnl-positive' : 'pnl-negative'; 
+                        let navObj = mfdNavs[i.isin];
+                        let rN = navObj ? navObj.nav : 0;
+                        let x = computeXIRR(i.cf); let xc = x >= 0 ? 'pnl-positive' : 'pnl-negative'; 
                         let pct = sAumTotal > 0 ? ((i.cv / sAumTotal) * 100).toFixed(2) + '%' : '0.00%';
                         sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.u.toFixed(4)}</td><td>${rN.toFixed(4)}</td><td>${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${xc}">${x.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${pct}</span></td></tr>`;
                     }
