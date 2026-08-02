@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Equity, MF & MFD Dashboard</title>
+    <title>Pro Equity & Dashboard</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
@@ -127,7 +127,7 @@
         .pagination-controls button { padding: 8px 16px; border: 1px solid var(--border); background: var(--card-bg); cursor: pointer; border-radius: 4px; font-weight: 600; transition: background 0.2s; }
         .pagination-controls button:hover:not(:disabled) { background: #e2e8f0; }
         .pagination-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
-        #page-indicator, #other-page-indicator, #mfd-page-indicator { font-weight: 500; color: #64748b; font-size: 0.95rem; }
+        #page-indicator, #other-page-indicator { font-weight: 500; color: #64748b; font-size: 0.95rem; }
 
         .tree-container { font-size: 0.9rem; background: #fff; }
         .tree-node { margin-bottom: 4px; }
@@ -154,7 +154,8 @@
             <p>Select Workspace:</p>
             <label><input type="radio" name="workspace" value="equity" checked> Equity & MF</label>
             <label><input type="radio" name="workspace" value="other"> Other Purpose</label>
-            <label><input type="radio" name="workspace" value="mfd"> MFD Business</label>
+            
+            <a href="mfd.html" style="display: block; margin-top: 15px; font-size: 0.95rem; color: var(--primary); text-decoration: none; font-weight: 600; text-align: center; border: 1px solid var(--primary); padding: 8px; border-radius: 4px;">🔗 Go to MFD Business Dashboard</a>
         </div>
 
         <button id="btn-google-login" class="btn-google" onclick="signInWithGoogle()">Sign in with Google</button>
@@ -185,8 +186,8 @@
             <button class="btn-logout" onclick="signOut()">Log Out</button>
         </div>
         <div class="header-actions">
-            <button class="btn-backup" onclick="backupData()">💾 Backup to JSON (Global)</button>
-            <button class="btn-restore" onclick="document.getElementById('import-file').click()">📂 Restore JSON (Global)</button>
+            <button class="btn-backup" onclick="backupData()">💾 Backup to JSON</button>
+            <button class="btn-restore" onclick="document.getElementById('import-file').click()">📂 Restore JSON</button>
             <input type="file" id="import-file" style="display:none" accept=".json" onchange="restoreData(event)">
         </div>
     </div>
@@ -386,8 +387,8 @@
             <button class="btn-logout" onclick="signOut()">Log Out</button>
         </div>
         <div class="header-actions">
-            <button class="btn-backup" onclick="backupData()">💾 Backup to JSON (Global)</button>
-            <button class="btn-restore" onclick="document.getElementById('import-file').click()">📂 Restore JSON (Global)</button>
+            <button class="btn-backup" onclick="backupData()">💾 Backup to JSON</button>
+            <button class="btn-restore" onclick="document.getElementById('import-file').click()">📂 Restore JSON</button>
         </div>
     </div>
     
@@ -515,311 +516,6 @@
     </div>
 </div>
 
-<!-- ========================================================= -->
-<!-- WORKSPACE 3: MFD BUSINESS DASHBOARD -->
-<!-- ========================================================= -->
-<div class="container" id="workspace-mfd" style="display: none;">
-    <div class="header-top">
-        <h1>MFD Business Dashboard</h1>
-        <div class="user-controls">
-            <span class="display-user-email">user@example.com</span>
-            <button class="btn-logout" onclick="signOut()">Log Out</button>
-        </div>
-        <div class="header-actions">
-            <button class="btn-backup" onclick="backupData()">💾 Backup to JSON (Global)</button>
-            <button class="btn-restore" onclick="document.getElementById('import-file').click()">📂 Restore JSON (Global)</button>
-        </div>
-    </div>
-
-    <!-- MFD TOP SUMMARY CARDS -->
-    <div class="summary-container">
-        <div class="card equity">
-            <h3>Total Clients (Filtered)</h3>
-            <p id="mfd-total-clients">0</p>
-        </div>
-        <div class="card pnl">
-            <h3>Net Investment</h3>
-            <p id="mfd-net-inv">0.00</p>
-        </div>
-        <div class="card purple" style="border-left-color: var(--purple);">
-            <h3>Current Value (AUM)</h3>
-            <p id="mfd-current-val">0.00</p>
-        </div>
-        <div class="card cash" style="border-left-color: var(--success);">
-            <h3>Gross Inflows</h3>
-            <p id="mfd-gross-inflow" class="pnl-positive">0.00</p>
-        </div>
-        <div class="card mf" style="border-left-color: var(--danger);">
-            <h3>Total Redemptions</h3>
-            <p id="mfd-total-redemption" class="pnl-negative">0.00</p>
-        </div>
-    </div>
-
-    <!-- MFD BUSINESS & CLIENT ANALYTICS PANEL -->
-    <div class="panel" style="padding-top: 10px; margin-bottom: 25px;">
-        <div class="panel-header" onclick="togglePanel('mfd-analytics-content', 'mfd-analytics-icon')">
-            <h2>Business & Client Analytics Reports</h2>
-            <span id="mfd-analytics-icon">▲</span>
-        </div>
-        <div id="mfd-analytics-content" class="collapsible-table-content active">
-            
-            <div class="controls-row" style="background: #fffbeb; border: 1px solid #fde68a;">
-                <div class="form-group" style="flex: 1;">
-                    <label>Filter by Group:</label>
-                    <select id="mfd-report-group-filter" onchange="renderMfdApp()">
-                        <option value="ALL">All Groups</option>
-                    </select>
-                </div>
-                <div class="form-group" style="flex: 2;">
-                    <label>Filter Scheme & XIRR Report by Investor:</label>
-                    <select id="mfd-report-client-filter" onchange="renderMfdReportsOnly()">
-                        <option value="ALL">All Investors (Master Portfolio)</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
-                
-                <!-- REPORT 1: CLIENT-WISE AUM SUMMARY -->
-                <div class="table-container">
-                    <h3>Client Portfolio AUM Summary</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Group</th>
-                                <th>PAN/UCC</th>
-                                <th>Client Name</th>
-                                <th>Invested</th>
-                                <th>Current Val</th>
-                                <th>XIRR</th>
-                                <th style="background:#e2e8f0;">% Wgt</th>
-                            </tr>
-                        </thead>
-                       <tbody id="mfd-client-aum-body"></tbody>
-                    </table>
-                </div>
-
-                <!-- REPORT 2: SCHEME-WISE AUM BREAKDOWN (FILTERABLE WITH %) -->
-                <div class="table-container">
-                    <h3>Scheme-wise AUM Breakdown <span id="scheme-filter-lbl" style="color:var(--primary); font-size:0.8rem;">(All)</span></h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Scheme / ISIN</th>
-                                <th>Units</th>
-                                <th>NAV</th>
-                                <th>Invested</th>
-                                <th>Current Val</th>
-                                <th>XIRR</th>
-                                <th style="background:#e2e8f0;">% Wgt</th>
-                            </tr>
-                        </thead>
-                        <tbody id="mfd-scheme-aum"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- REPORT 3: COMPREHENSIVE CLIENT DETAILS -->
-            <div class="table-container" style="margin-top: 25px;">
-                <h3 style="border-bottom: 2px solid var(--border); padding-bottom: 5px;">Comprehensive Client Details Report</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>PAN/UCC</th>
-                            <th>Group</th>
-                            <th>Client Name</th>
-                            <th>Mobile</th>
-                            <th>City / State</th>
-                            <th>Nominee</th>
-                        </tr>
-                    </thead>
-                    <tbody id="mfd-client-details"></tbody>
-                </table>
-            </div>
-
-            <!-- REPORT 4: MONTHLY BUSINESS FLOW DRILLDOWN -->
-            <div style="margin-top: 25px;">
-                <h3 style="border-bottom: 2px solid var(--border); padding-bottom: 5px;">Monthly Business Flow Drilldown (Year -> Month -> Client)</h3>
-                <div id="mfd-drilldown-tree" class="tree-container" style="max-width: 800px;"></div>
-            </div>
-
-        </div>
-    </div>
-
-    <div class="main-grid">
-        <!-- ADVANCED CLIENT MASTER PANEL -->
-        <div class="panel">
-            <div class="panel-header" onclick="togglePanel('mfd-client-content', 'mfd-client-icon')">
-                <h2>Client Master (CRM)</h2>
-                <span id="mfd-client-icon">▲</span>
-            </div>
-            <div id="mfd-client-content" class="collapsible-table-content active">
-                <form id="mfd-client-form">
-                    <input type="hidden" id="mfd-client-id">
-                    
-                    <div class="controls-row">
-                        <div class="form-group"><label>Client Name*</label><input type="text" id="mfd-client-name" required></div>
-                        <div class="form-group"><label>Group / Family</label><input type="text" id="mfd-client-group"></div>
-                    </div>
-                    <div class="controls-row">
-                        <div class="form-group"><label>PAN</label><input type="text" id="mfd-client-pan" style="text-transform: uppercase;"></div>
-                        <div class="form-group"><label>UCC</label><input type="text" id="mfd-client-ucc"></div>
-                    </div>
-                    <div class="controls-row">
-                        <div class="form-group"><label>Mobile</label><input type="tel" id="mfd-client-phone"></div>
-                        <div class="form-group"><label>Folio Number(s)</label><input type="text" id="mfd-client-folio"></div>
-                    </div>
-                    <div class="controls-row">
-                        <div class="form-group"><label>Address</label><input type="text" id="mfd-client-address"></div>
-                        <div class="form-group"><label>Area</label><input type="text" id="mfd-client-area"></div>
-                    </div>
-                    <div class="controls-row">
-                        <div class="form-group"><label>City</label><input type="text" id="mfd-client-city"></div>
-                        <div class="form-group"><label>State</label><input type="text" id="mfd-client-state"></div>
-                        <div class="form-group"><label>PIN Code</label><input type="text" id="mfd-client-pincode"></div>
-                    </div>
-                    <div class="controls-row">
-                        <div class="form-group"><label>Nominee Name</label><input type="text" id="mfd-client-nominee-name"></div>
-                        <div class="form-group"><label>Nominee Mobile</label><input type="tel" id="mfd-client-nominee-phone"></div>
-                    </div>
-
-                    <button type="submit" id="mfd-client-btn" class="btn-primary">Save Client</button>
-                    <button type="button" id="mfd-client-cancel-btn" style="display:none; margin-top:10px;" class="btn-secondary" onclick="cancelMfdClientEdit()">Cancel Edit</button>
-                </form>
-
-                <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border);">
-
-                <h3>Saved Clients Directory</h3>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Group</th>
-                                <th>PAN/UCC</th>
-                                <th>Client Name</th>
-                                <th>Mobile</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="mfd-clients-list-body"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TRANSACTION LOGGING & CSV UPLOAD PANEL -->
-        <div class="panel">
-            <div class="panel-header" onclick="togglePanel('mfd-tx-content', 'mfd-tx-icon')">
-                <h2>Log Transaction / LATEST NAV & TX Bulk Uploads</h2>
-                <span id="mfd-tx-icon">▲</span>
-            </div>
-            <div id="mfd-tx-content" class="collapsible-table-content active">
-                
-                <!-- NAV UPLOAD SECTION -->
-                <div style="background: #f0fdf4; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #bbf7d0;">
-                    <h3 style="margin-top: 0; font-size: 1rem; color: var(--success);">📈 Global NAV Update via CSV</h3>
-                    <p style="font-size: 0.85rem; color: #475569; margin-bottom: 5px;"><strong>CSV columns required:</strong> <code>ISIN, NAV</code></p>
-                    <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 10px;"><em>*Updates latest NAV for portfolio valuation and XIRR globally.</em></p>
-                    <input type="file" id="mfd-nav-csv-input" accept=".csv" onchange="uploadMfdNavCSV(event)">
-                </div>
-
-                <!-- CSV TX UPLOAD SECTION -->
-                <div style="background: #e0e7ff; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #c7d2fe;">
-                    <h3 style="margin-top: 0; font-size: 1rem; color: var(--primary);">📂 Bulk Transaction Upload via CSV</h3>
-                    <p style="font-size: 0.85rem; color: #475569; margin-bottom: 5px;"><strong>CSV columns EXACTLY as:</strong> <code>Group, Investor Name, PAN/UCC, Type, Purchase date, Folio No., Scheme, ISIN, NAV, Unit, Inv Amount</code></p>
-                    <p style="font-size: 0.75rem; color: var(--danger); margin-bottom: 10px;"><em>*System strictly maps using Column 3 (PAN/UCC). If the PAN or UCC doesn't exist in Master, the row is skipped.</em></p>
-                    <input type="file" id="mfd-csv-input" accept=".csv" onchange="uploadMfdTxCSV(event)">
-                </div>
-
-                <h3>Manual Transaction Entry</h3>
-                <form id="mfd-tx-form">
-                    <input type="hidden" id="mfd-tx-id">
-                    
-                    <div class="controls-row">
-                        <div class="form-group"><label>Group</label><input type="text" id="mfd-tx-group" placeholder="Optional"></div>
-                        <div class="form-group">
-                            <label>Investor Name (Select via PAN/UCC)</label>
-                            <input type="text" id="mfd-tx-client" list="mfd-client-datalist" placeholder="E.g., ABCDE1234F - Rahul" required>
-                            <datalist id="mfd-client-datalist"></datalist>
-                        </div>
-                    </div>
-
-                    <div class="controls-row">
-                        <div class="form-group">
-                            <label>Transaction Type</label>
-                            <select id="mfd-tx-type" required>
-                                <option value="SIP">SIP</option>
-                                <option value="Lumpsum">Lumpsum Purchase</option>
-                                <option value="Redemption">Redemption</option>
-                            </select>
-                        </div>
-                        <div class="form-group"><label>Purchase Date</label><input type="date" id="mfd-tx-date" required></div>
-                        <div class="form-group"><label>Folio No.</label><input type="text" id="mfd-tx-folio"></div>
-                    </div>
-
-                    <div class="controls-row">
-                        <div class="form-group" style="flex:2;"><label>Scheme</label><input type="text" id="mfd-tx-scheme" required></div>
-                        <div class="form-group"><label>ISIN</label><input type="text" id="mfd-tx-isin" required></div>
-                    </div>
-
-                    <div class="controls-row" style="background:#f8fafc;">
-                        <div class="form-group"><label>NAV</label><input type="number" id="mfd-tx-nav" step="any" min="0" oninput="calcMfdManualTx()"></div>
-                        <div class="form-group"><label>Unit</label><input type="number" id="mfd-tx-unit" step="any" min="0" oninput="calcMfdManualTx()"></div>
-                        <div class="form-group"><label>Inv Amount</label><input type="number" id="mfd-tx-amount" step="any" min="0" oninput="calcMfdManualUnit()" required></div>
-                    </div>
-
-                    <button type="submit" id="mfd-tx-btn" class="btn-primary" style="margin-top:15px;">Add Transaction</button>
-                    <button type="button" id="mfd-tx-cancel-btn" style="display:none; margin-top:10px;" class="btn-secondary" onclick="cancelMfdTxEdit()">Cancel Edit</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- MFD TRANSACTION LEDGER WITH FILTERS AND BULK SELECT -->
-    <div class="panel" style="padding-top: 10px;">
-        <div class="panel-header" onclick="togglePanel('mfd-ledger-panel', 'mfd-ledger-icon')">
-            <h2>MFD Transaction Ledger</h2>
-            <span id="mfd-ledger-icon">▲</span>
-        </div>
-        <div id="mfd-ledger-panel" class="collapsible-table-content active">
-            <div class="controls-row" style="background: #e0e7ff; border-color: #c7d2fe; display: flex; align-items: flex-end; gap: 10px;">
-                <div class="form-group" style="flex: 2; min-width: 250px;">
-                    <label>Global Live Search</label>
-                    <input type="text" id="mfd-search" placeholder="Search globally..." oninput="mfdPage=1; renderMfdApp();" style="border-color: #a5b4fc;">
-                </div>
-                <button style="background: var(--danger); color: white; border: none; padding: 9px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content;" onclick="deleteSelectedMfdTx()">Delete Selected</button>
-                <button class="btn-export" onclick="exportMfdCSV()">Download CSV</button>
-            </div>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 40px; text-align: center;"><input type="checkbox" id="mfd-select-all" onclick="toggleAllMfdTx(this)" style="transform: scale(1.2); cursor: pointer;"></th>
-                            <th class="sortable" onclick="setMfdSort('date')">Date <span class="sort-icon" id="mfd-sort-date"></span><br><input type="text" id="mfd-flt-date" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('group')">Group <span class="sort-icon" id="mfd-sort-group"></span><br><input type="text" id="mfd-flt-group" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('pan_ucc')">PAN/UCC <span class="sort-icon" id="mfd-sort-ucc"></span><br><input type="text" id="mfd-flt-ucc" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('clientName')">Investor <span class="sort-icon" id="mfd-sort-name"></span><br><input type="text" id="mfd-flt-name" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('scheme')">Scheme <span class="sort-icon" id="mfd-sort-scheme"></span><br><input type="text" id="mfd-flt-scheme" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('isin')">ISIN <span class="sort-icon" id="mfd-sort-isin"></span><br><input type="text" id="mfd-flt-isin" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('type')">Type <span class="sort-icon" id="mfd-sort-type"></span><br><input type="text" id="mfd-flt-type" class="col-filter" placeholder="Filter..." onclick="event.stopPropagation()" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th>NAV</th>
-                            <th>Unit</th>
-                            <th class="sortable" onclick="setMfdSort('amount')" style="min-width: 100px;">Amount <span class="sort-icon" id="mfd-sort-amount"></span><br><div id="mfd-flt-total-display" style="margin-top: 6px; padding: 4px; font-size: 0.85rem; font-weight: bold; color: var(--primary); background: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 3px; display: none; text-align: center;">0.00</div></th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="mfd-ledger-body"></tbody>
-                </table>
-                <div class="pagination-controls">
-                    <button id="mfd-btn-prev" onclick="mfdPage--; renderMfdApp();">Previous</button>
-                    <span id="mfd-page-indicator">Page 1 of 1</span>
-                    <button id="mfd-btn-next" onclick="mfdPage++; renderMfdApp();">Next</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
     // ==========================================
     // 1. FIREBASE CONFIGURATION
@@ -856,14 +552,6 @@
     let otherCurrentPage = 1; 
     let otherSortCol = 'date'; 
     let otherSortDesc = true;
-
-    // Workspace 3 (MFD Business)
-    let mfdClients = [];
-    let mfdTxs = [];
-    let mfdNavs = {}; // Map ISIN -> Latest NAV
-    let mfdPage = 1; 
-    let mfdSortCol = 'date'; 
-    let mfdSortDesc = true;
 
     // ==========================================
     // 3. UI HELPERS & SHARED LOGIC
@@ -917,24 +605,20 @@
 
             if(document.getElementById('date')) document.getElementById('date').valueAsDate = new Date();
             if(document.getElementById('other-date')) document.getElementById('other-date').valueAsDate = new Date();
-            if(document.getElementById('mfd-tx-date')) document.getElementById('mfd-tx-date').valueAsDate = new Date();
 
             const selectedWorkspace = document.querySelector('input[name="workspace"]:checked').value;
             
             if (selectedWorkspace === 'equity') {
-                document.getElementById('workspace-equity').style.display = 'block'; document.getElementById('workspace-other').style.display = 'none'; document.getElementById('workspace-mfd').style.display = 'none';
+                document.getElementById('workspace-equity').style.display = 'block'; document.getElementById('workspace-other').style.display = 'none';
                 loadTransactions(); 
             } else if (selectedWorkspace === 'other') {
-                document.getElementById('workspace-equity').style.display = 'none'; document.getElementById('workspace-other').style.display = 'block'; document.getElementById('workspace-mfd').style.display = 'none';
+                document.getElementById('workspace-equity').style.display = 'none'; document.getElementById('workspace-other').style.display = 'block';
                 loadOtherTransactions();
-            } else if (selectedWorkspace === 'mfd') {
-                document.getElementById('workspace-equity').style.display = 'none'; document.getElementById('workspace-other').style.display = 'none'; document.getElementById('workspace-mfd').style.display = 'block';
-                loadMfdData();
             }
 
         } else {
             currentUser = null;
-            document.getElementById('workspace-equity').style.display = 'none'; document.getElementById('workspace-other').style.display = 'none'; document.getElementById('workspace-mfd').style.display = 'none';
+            document.getElementById('workspace-equity').style.display = 'none'; document.getElementById('workspace-other').style.display = 'none';
             document.getElementById('auth-overlay').style.display = 'flex';
         }
     });
@@ -954,17 +638,11 @@
             const uid = currentUser.uid;
             const eqSnap = await db.collection('transactions').where("userId", "==", uid).get();
             const othSnap = await db.collection('other_transactions').where("userId", "==", uid).get();
-            const mfdCSnap = await db.collection('mfd_clients').where("userId", "==", uid).get();
-            const mfdTSnap = await db.collection('mfd_transactions').where("userId", "==", uid).get();
-            const mfdNSnap = await db.collection('mfd_navs').get();
 
             const backup = {
                 format: "pro-equity-full-backup", date: new Date().toISOString(),
                 transactions: eqSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
-                other_transactions: othSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
-                mfd_clients: mfdCSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
-                mfd_transactions: mfdTSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
-                mfd_navs: mfdNSnap.docs.map(d => {return {id: d.id, ...d.data()};})
+                other_transactions: othSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;})
             };
 
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup));
@@ -982,8 +660,7 @@
                     if(!confirm("Restore will ADD data to your current account. Continue?")) return;
                     const batch = db.batch(); let count = 0;
                     const addDocs = (collection, items) => { if(!items) return; items.forEach(item => { let ref = db.collection(collection).doc(); item.userId = currentUser.uid; batch.set(ref, item); count++; }); };
-                    addDocs('transactions', data.transactions); addDocs('other_transactions', data.other_transactions); addDocs('mfd_clients', data.mfd_clients); addDocs('mfd_transactions', data.mfd_transactions);
-                    if(data.mfd_navs) { data.mfd_navs.forEach(nav => { if(nav.id) { let ref = db.collection('mfd_navs').doc(nav.id); let ndata = {...nav}; delete ndata.id; batch.set(ref, ndata); count++; } }); }
+                    addDocs('transactions', data.transactions); addDocs('other_transactions', data.other_transactions);
                     if(count > 0) { await batch.commit(); alert("Database restored successfully!"); window.location.reload(); } else { alert("No valid data found to restore."); }
                 } else { alert("Invalid backup file format."); }
             } catch (err) { alert("Invalid backup file."); console.error(err); }
@@ -1655,390 +1332,6 @@
         if (pageTxs.length === 0) { ledgerBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #64748b;">No transactions logged yet.</td></tr>`; }
         document.getElementById('other-page-indicator').innerText = `Page ${otherCurrentPage} of ${totalPages}`;
         document.getElementById('other-btn-prev').disabled = otherCurrentPage === 1; document.getElementById('other-btn-next').disabled = otherCurrentPage === totalPages;
-    }
-
-
-    // ======================================================================
-    // 8. WORKSPACE 3: MFD BUSINESS LOGIC
-    // ======================================================================
-    async function loadMfdData() {
-        if (!currentUser) return;
-        const cSnap = await db.collection('mfd_clients').where("userId", "==", currentUser.uid).get();
-        mfdClients = cSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        const txSnap = await db.collection('mfd_transactions').where("userId", "==", currentUser.uid).get();
-        mfdTxs = txSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        const navSnap = await db.collection('mfd_navs').get();
-        mfdNavs = {}; navSnap.docs.forEach(doc => { mfdNavs[doc.id] = doc.data().nav; });
-
-        renderMfdApp();
-    }
-
-    if(document.getElementById('mfd-client-form')) {
-        document.getElementById('mfd-client-form').addEventListener('submit', async function(e) {
-            e.preventDefault(); const cid = document.getElementById('mfd-client-id').value;
-            const cData = {
-                userId: currentUser.uid, name: document.getElementById('mfd-client-name').value.trim(), group: document.getElementById('mfd-client-group').value.trim(),
-                pan: document.getElementById('mfd-client-pan').value.trim().toUpperCase(), ucc: document.getElementById('mfd-client-ucc').value.trim(), 
-                phone: document.getElementById('mfd-client-phone').value.trim(), folio: document.getElementById('mfd-client-folio').value.trim(),
-                address: document.getElementById('mfd-client-address').value.trim(), area: document.getElementById('mfd-client-area').value.trim(),
-                city: document.getElementById('mfd-client-city').value.trim(), state: document.getElementById('mfd-client-state').value.trim(),
-                pincode: document.getElementById('mfd-client-pincode').value.trim(), nomineeName: document.getElementById('mfd-client-nominee-name').value.trim(), nomineePhone: document.getElementById('mfd-client-nominee-phone').value.trim()
-            };
-            if (cid) { await db.collection('mfd_clients').doc(cid).update(cData); cancelMfdClientEdit(); } 
-            else { await db.collection('mfd_clients').add(cData); document.getElementById('mfd-client-form').reset(); }
-            loadMfdData();
-        });
-    }
-
-    async function editMfdClient(id) {
-        const d = await db.collection('mfd_clients').doc(id).get(); if (!d.exists) return; const c = d.data();
-        document.getElementById('mfd-client-id').value = id; document.getElementById('mfd-client-name').value = c.name || ''; document.getElementById('mfd-client-group').value = c.group || '';
-        document.getElementById('mfd-client-pan').value = c.pan || ''; document.getElementById('mfd-client-ucc').value = c.ucc || ''; document.getElementById('mfd-client-phone').value = c.phone || '';
-        document.getElementById('mfd-client-folio').value = c.folio || ''; document.getElementById('mfd-client-address').value = c.address || ''; document.getElementById('mfd-client-area').value = c.area || '';
-        document.getElementById('mfd-client-city').value = c.city || ''; document.getElementById('mfd-client-state').value = c.state || ''; document.getElementById('mfd-client-pincode').value = c.pincode || '';
-        document.getElementById('mfd-client-nominee-name').value = c.nomineeName || ''; document.getElementById('mfd-client-nominee-phone').value = c.nomineePhone || '';
-        document.getElementById('mfd-client-btn').innerText = `Update Client [${c.pan || c.ucc || '-'}]`; document.getElementById('mfd-client-cancel-btn').style.display = 'inline-block'; togglePanel('mfd-client-content', 'mfd-client-icon'); window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-    function cancelMfdClientEdit() { document.getElementById('mfd-client-id').value = ''; document.getElementById('mfd-client-btn').innerText = 'Save Client'; document.getElementById('mfd-client-cancel-btn').style.display = 'none'; document.getElementById('mfd-client-form').reset(); }
-    async function deleteMfdClient(id) { if(confirm("Delete this client? This will NOT delete their transactions.")) { await db.collection('mfd_clients').doc(id).delete(); loadMfdData(); } }
-
-    function calcMfdManualTx() { let n = parseFloat(document.getElementById('mfd-tx-nav').value) || 0; let u = parseFloat(document.getElementById('mfd-tx-unit').value) || 0; if (n > 0 && u > 0) document.getElementById('mfd-tx-amount').value = (n * u).toFixed(2); }
-    function calcMfdManualUnit() { let n = parseFloat(document.getElementById('mfd-tx-nav').value) || 0; let a = parseFloat(document.getElementById('mfd-tx-amount').value) || 0; if (n > 0 && a > 0) document.getElementById('mfd-tx-unit').value = (a / n).toFixed(4); }
-
-    if(document.getElementById('mfd-tx-form')) {
-        document.getElementById('mfd-tx-form').addEventListener('submit', async function(e) {
-            e.preventDefault(); const tid = document.getElementById('mfd-tx-id').value; const rawInput = document.getElementById('mfd-tx-client').value.trim();
-            let tPanUcc = ''; let tName = rawInput; const sp = rawInput.indexOf(' - '); if (sp !== -1) { tPanUcc = rawInput.substring(0, sp).trim(); tName = rawInput.substring(sp + 3).trim(); }
-            const txData = {
-                userId: currentUser.uid, group: document.getElementById('mfd-tx-group').value.trim(), date: document.getElementById('mfd-tx-date').value,
-                pan_ucc: tPanUcc, clientName: tName, scheme: document.getElementById('mfd-tx-scheme').value.trim(), isin: document.getElementById('mfd-tx-isin').value.trim(),
-                type: document.getElementById('mfd-tx-type').value, nav: parseFloat(document.getElementById('mfd-tx-nav').value) || 0, unit: parseFloat(document.getElementById('mfd-tx-unit').value) || 0,
-                amount: parseFloat(document.getElementById('mfd-tx-amount').value) || 0, folio: document.getElementById('mfd-tx-folio').value.trim() 
-            };
-            if (tid) { await db.collection('mfd_transactions').doc(tid).update(txData); cancelMfdTxEdit(); } 
-            else { await db.collection('mfd_transactions').add(txData); document.getElementById('mfd-tx-form').reset(); document.getElementById('mfd-tx-date').valueAsDate = new Date(); }
-            loadMfdData();
-        });
-    }
-
-    async function editMfdTx(id) {
-        const d = await db.collection('mfd_transactions').doc(id).get(); if (!d.exists) return; const tx = d.data();
-        document.getElementById('mfd-tx-id').value = id; document.getElementById('mfd-tx-group').value = tx.group || ''; document.getElementById('mfd-tx-date').value = tx.date;
-        document.getElementById('mfd-tx-client').value = tx.pan_ucc ? `${tx.pan_ucc} - ${tx.clientName}` : tx.clientName; document.getElementById('mfd-tx-scheme').value = tx.scheme;
-        document.getElementById('mfd-tx-isin').value = tx.isin || ''; document.getElementById('mfd-tx-type').value = tx.type; document.getElementById('mfd-tx-nav').value = tx.nav || 0;
-        document.getElementById('mfd-tx-unit').value = tx.unit || 0; document.getElementById('mfd-tx-amount').value = tx.amount; document.getElementById('mfd-tx-folio').value = tx.folio || '';
-        document.getElementById('mfd-tx-btn').innerText = 'Update Transaction'; document.getElementById('mfd-tx-cancel-btn').style.display = 'inline-block'; togglePanel('mfd-tx-content', 'mfd-tx-icon'); window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-    function cancelMfdTxEdit() { document.getElementById('mfd-tx-id').value = ''; document.getElementById('mfd-tx-btn').innerText = 'Add Transaction'; document.getElementById('mfd-tx-cancel-btn').style.display = 'none'; document.getElementById('mfd-tx-form').reset(); document.getElementById('mfd-tx-date').valueAsDate = new Date(); }
-    async function deleteMfdTx(id) { if(confirm("Delete transaction?")) { await db.collection('mfd_transactions').doc(id).delete(); loadMfdData(); } }
-
-    function uploadMfdNavCSV(e) {
-        const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
-        reader.onload = async function(ev) {
-            const lines = ev.target.result.split('\n'); let sCount = 0; const batch = db.batch();
-            for (let i = 1; i < lines.length; i++) {
-                const c = lines[i].split(',').map(x => x.replace(/^"|"$/g, '').trim());
-                if (c.length >= 2 && c[0] && parseFloat(c[1])>0) { batch.set(db.collection('mfd_navs').doc(c[0]), { nav: parseFloat(c[1]), updated: new Date().toISOString() }); sCount++; }
-            }
-            if (sCount > 0) { await batch.commit(); alert(`Updated ${sCount} NAV records globally!`); } else { alert("No valid NAV records found."); } e.target.value = ''; loadMfdData();
-        }; reader.readAsText(file);
-    }
-
-    function uploadMfdTxCSV(e) {
-        const file = e.target.files[0]; if (!file || !currentUser) return; const reader = new FileReader();
-        reader.onload = async function(ev) {
-            const lines = ev.target.result.split('\n'); let sCount = 0; let skip = 0;
-            for (let i = 1; i < lines.length; i++) {
-                const cols = lines[i].split(',').map(x => x.replace(/^"|"$/g, '').trim());
-                if (cols.length >= 11) {
-                    const iden = cols[2]; const matchC = mfdClients.find(c => (c.pan && c.pan === iden) || (c.ucc && c.ucc === iden));
-                    if (!matchC) { skip++; continue; }
-                    const txData = { userId: currentUser.uid, group: cols[0] || matchC.group || '', clientName: matchC.name, pan_ucc: iden, type: cols[3] || 'Lumpsum', date: cols[4] || new Date().toISOString().split('T')[0], folio: cols[5] || '', scheme: cols[6] || 'Mutual Fund Scheme', isin: cols[7] || '', nav: parseFloat(cols[8]) || 0, unit: parseFloat(cols[9]) || 0, amount: parseFloat(cols[10]) || 0 };
-                    await db.collection('mfd_transactions').add(txData); sCount++;
-                }
-            }
-            alert(`Import Complete!\n\nSuccess: ${sCount}\nSkipped (Missing PAN/UCC): ${skip}`); e.target.value = ''; loadMfdData();
-        }; reader.readAsText(file);
-    }
-
-    function toggleAllMfdTx(source) {
-        const checkboxes = document.querySelectorAll('.mfd-chk');
-        checkboxes.forEach(cb => cb.checked = source.checked);
-    }
-    
-    async function deleteSelectedMfdTx() {
-        const checkboxes = document.querySelectorAll('.mfd-chk:checked');
-        if(checkboxes.length === 0) return alert("Select at least one transaction to delete.");
-        if(!confirm(`Are you sure you want to permanently delete ${checkboxes.length} transactions?`)) return;
-        
-        let deleted = 0;
-        for (let cb of checkboxes) {
-            await db.collection('mfd_transactions').doc(cb.value).delete();
-            deleted++;
-        }
-        alert(`Successfully deleted ${deleted} transactions.`);
-        loadMfdData();
-    }
-    
-    function filterMfdTxs() {
-        const searchText = (document.getElementById('mfd-search') ? document.getElementById('mfd-search').value : '').toLowerCase().trim();
-        const fColDate = (document.getElementById('mfd-flt-date') ? document.getElementById('mfd-flt-date').value : '').toLowerCase().trim();
-        const fColGroup = (document.getElementById('mfd-flt-group') ? document.getElementById('mfd-flt-group').value : '').toLowerCase().trim();
-        const fColUcc = (document.getElementById('mfd-flt-ucc') ? document.getElementById('mfd-flt-ucc').value : '').toLowerCase().trim();
-        const fColName = (document.getElementById('mfd-flt-name') ? document.getElementById('mfd-flt-name').value : '').toLowerCase().trim();
-        const fColScheme = (document.getElementById('mfd-flt-scheme') ? document.getElementById('mfd-flt-scheme').value : '').toLowerCase().trim();
-        const fColIsin = (document.getElementById('mfd-flt-isin') ? document.getElementById('mfd-flt-isin').value : '').toLowerCase().trim();
-        const fColType = (document.getElementById('mfd-flt-type') ? document.getElementById('mfd-flt-type').value : '').toLowerCase().trim();
-
-        return [...mfdTxs].filter(tx => {
-            let m = true;
-            if(fColDate && !(tx.date || '').toLowerCase().includes(fColDate)) m = false;
-            if(fColGroup && !(tx.group || '').toLowerCase().includes(fColGroup)) m = false;
-            if(fColUcc && !(tx.pan_ucc || '').toLowerCase().includes(fColUcc)) m = false;
-            if(fColName && !(tx.clientName || '').toLowerCase().includes(fColName)) m = false;
-            if(fColScheme && !(tx.scheme || '').toLowerCase().includes(fColScheme)) m = false;
-            if(fColIsin && !(tx.isin || '').toLowerCase().includes(fColIsin)) m = false;
-            if(fColType && !(tx.type || '').toLowerCase().includes(fColType)) m = false;
-            
-            if(searchText) {
-                const sm = (tx.clientName||'').toLowerCase().includes(searchText) || (tx.pan_ucc||'').toLowerCase().includes(searchText) || (tx.scheme||'').toLowerCase().includes(searchText) || (tx.group||'').toLowerCase().includes(searchText) || (tx.isin||'').toLowerCase().includes(searchText);
-                if(!sm) m = false;
-            }
-            return m;
-        });
-    }
-
-    function exportMfdCSV() {
-        let dyn = filterMfdTxs(); if (dyn.length === 0) return alert("No data.");
-        let c = "data:text/csv;charset=utf-8,ID,Group,Date,PAN/UCC,Investor Name,Scheme,ISIN,Type,NAV,Unit,Amount,Folio\n";
-        dyn.forEach(tx => { c += [tx.id, `"${tx.group||''}"`, tx.date, `"${tx.pan_ucc||''}"`, `"${tx.clientName||''}"`, `"${tx.scheme||''}"`, `"${tx.isin||''}"`, tx.type, tx.nav, tx.unit, tx.amount, `"${tx.folio||''}"`].join(",") + "\n"; });
-        const link = document.createElement("a"); link.setAttribute("href", encodeURI(c)); link.setAttribute("download", `MFD_Transactions_Export_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    }
-
-    function setMfdSort(col) { if (mfdSortCol === col) { mfdSortDesc = !mfdSortDesc; } else { mfdSortCol = col; mfdSortDesc = col === 'date'; } mfdPage=1; renderMfdApp(); }
-
-    function renderMfdApp() {
-        // 1. Client Master & Datalist Setup
-        const clientTable = document.getElementById('mfd-clients-list-body'); const datalist = document.getElementById('mfd-client-datalist');
-        if(!clientTable) return; clientTable.innerHTML = ''; datalist.innerHTML = '';
-
-        const filterDropdown = document.getElementById('mfd-report-client-filter'); let currentFilterVal = filterDropdown ? filterDropdown.value : 'ALL';
-        const gDrop = document.getElementById('mfd-report-group-filter'); let currG = gDrop ? gDrop.value : 'ALL';
-        
-        let uGrps = [...new Set(mfdClients.map(c => c.group).filter(g => g && g.trim() !== ''))].sort();
-        let gHtml = `<option value="ALL">All Groups</option>`; uGrps.forEach(g => gHtml += `<option value="${g}">${g}</option>`);
-        if(gDrop) { gDrop.innerHTML = gHtml; gDrop.value = currG || 'ALL'; currG = gDrop.value; }
-
-        let filterHtml = `<option value="ALL">All Investors (Master Portfolio)</option>`;
-        
-        let cSet = new Set();
-        mfdClients.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
-            let identifier = c.pan || c.ucc || '-'; const displayStr = `${identifier} - ${c.name}`;
-            datalist.innerHTML += `<option value="${displayStr}">`;
-            clientTable.innerHTML += `<tr><td><strong>${c.group || '-'}</strong></td><td><strong>${identifier}</strong></td><td><strong>${c.name}</strong></td><td>${c.phone || '-'}</td><td><button class="btn-edit-tx" onclick="editMfdClient('${c.id}')">Edit</button><button class="btn-delete" onclick="deleteMfdClient('${c.id}')">Del</button></td></tr>`;
-            
-            if (currG === 'ALL' || c.group === currG) { 
-                filterHtml += `<option value="${identifier}">${displayStr}</option>`; 
-                cSet.add(c.id); 
-            }
-        });
-
-        if (filterDropdown) { filterDropdown.innerHTML = filterHtml; filterDropdown.value = currentFilterVal; }
-        if (mfdClients.length === 0) clientTable.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:15px; color:#666;">No clients saved yet.</td></tr>`;
-        
-        document.getElementById('mfd-total-clients').innerText = cSet.size;
-
-        // 2. Render Reports
-        renderMfdReportsOnly();
-
-        // 3. Render Advanced Filterable & Selectable Transaction Ledger
-        const ledgerBody = document.getElementById('mfd-ledger-body'); ledgerBody.innerHTML = '';
-        if(document.getElementById('mfd-select-all')) document.getElementById('mfd-select-all').checked = false;
-
-        ['date', 'group', 'pan_ucc', 'clientName', 'scheme', 'isin', 'type', 'amount'].forEach(col => { const el = document.getElementById(`mfd-sort-${col}`); if(el) el.innerText = (mfdSortCol === col) ? (mfdSortDesc ? ' ↓' : ' ↑') : ''; });
-
-        let dynamicTxs = filterMfdTxs();
-
-        const totalDisplayEl = document.getElementById('mfd-flt-total-display');
-        let isFiltered = document.getElementById('mfd-search').value || document.getElementById('mfd-flt-date').value || document.getElementById('mfd-flt-group').value || document.getElementById('mfd-flt-ucc').value || document.getElementById('mfd-flt-name').value || document.getElementById('mfd-flt-scheme').value || document.getElementById('mfd-flt-isin').value || document.getElementById('mfd-flt-type').value;
-
-        if (isFiltered) {
-            let sumTotal = 0;
-            dynamicTxs.forEach(tx => {
-                let isR = (tx.type||'').toLowerCase().includes('red');
-                sumTotal += isR ? -Math.abs(tx.amount) : Math.abs(tx.amount);
-            });
-            totalDisplayEl.innerText = sumTotal.toFixed(2);
-            totalDisplayEl.style.display = 'block';
-        } else {
-            totalDisplayEl.style.display = 'none';
-        }
-
-        dynamicTxs.sort((a, b) => {
-            let valA = a[mfdSortCol]; let valB = b[mfdSortCol];
-            if (mfdSortCol === 'date') { valA = new Date(valA).getTime(); valB = new Date(valB).getTime(); } 
-            else if (mfdSortCol === 'amount') { let irA = (a.type||'').toLowerCase().includes('red'); let irB = (b.type||'').toLowerCase().includes('red'); valA = irA ? -a.amount : a.amount; valB = irB ? -b.amount : b.amount; } 
-            else { valA = String(valA || '').toLowerCase(); valB = String(valB || '').toLowerCase(); }
-            if (valA < valB) return mfdSortDesc ? 1 : -1; if (valA > valB) return mfdSortDesc ? -1 : 1; return 0;
-        });
-
-        const totalPages = Math.ceil(dynamicTxs.length / pageSize) || 1; if (mfdPage > totalPages) mfdPage = totalPages;
-        const startIdx = (mfdPage - 1) * pageSize; const pageTxs = dynamicTxs.slice(startIdx, startIdx + pageSize);
-
-        pageTxs.forEach(tx => {
-            let txTypeStr = (tx.type || '').trim().toLowerCase();
-            let isRedeem = txTypeStr.includes('redemption') || txTypeStr.includes('redeem') || txTypeStr.includes('sale');
-            let badgeClass = isRedeem ? 'redemption' : 'sip'; if (txTypeStr.includes('lump')) badgeClass = 'lumpsum';
-            let amtClass = isRedeem ? 'pnl-negative' : 'pnl-positive';
-
-            ledgerBody.innerHTML += `<tr>
-                <td style="text-align: center;"><input type="checkbox" class="mfd-chk" value="${tx.id}" style="transform: scale(1.2); cursor: pointer;"></td>
-                <td>${tx.date}</td>
-                <td><strong>${tx.group || '-'}</strong></td>
-                <td><strong>${tx.pan_ucc || '-'}</strong></td>
-                <td><strong>${tx.clientName}</strong></td>
-                <td>${tx.scheme}</td>
-                <td><small style="color:#64748b;">${tx.isin || '-'}</small></td>
-                <td><span class="badge ${badgeClass}">${tx.type}</span></td>
-                <td>${tx.nav > 0 ? tx.nav.toFixed(4) : '-'}</td>
-                <td>${tx.unit > 0 ? tx.unit.toFixed(4) : '-'}</td>
-                <td class="${amtClass}">${isRedeem ? '-' : '+'}${(tx.amount||0).toFixed(2)}</td>
-                <td>
-                    <button class="btn-edit-tx" onclick="editMfdTx('${tx.id}')">Edit</button>
-                    <button class="btn-delete" onclick="deleteMfdTx('${tx.id}')">Del</button>
-                </td>
-            </tr>`;
-        });
-
-        if (pageTxs.length === 0) {
-            ledgerBody.innerHTML = `<tr><td colspan="12" style="text-align:center; padding:15px; color:#666;">No transactions found matching your criteria.</td></tr>`;
-        }
-
-        document.getElementById('mfd-page-indicator').innerText = `Page ${mfdPage} of ${totalPages}`;
-        document.getElementById('mfd-btn-prev').disabled = mfdPage === 1;
-        document.getElementById('mfd-btn-next').disabled = mfdPage === totalPages;
-    }
-
-    function renderMfdReportsOnly() {
-        const filterVal = document.getElementById('mfd-report-client-filter').value;
-        const gVal = document.getElementById('mfd-report-group-filter').value;
-        const schemeFilterLbl = document.getElementById('scheme-filter-lbl');
-        if (schemeFilterLbl) schemeFilterLbl.innerText = filterVal === 'ALL' ? (gVal === 'ALL' ? '(Master Portfolio)' : `(Group: ${gVal})`) : `(Investor Filtered)`;
-
-        let totalGrossInflow = 0; let totalRedemption = 0; let currentValAum = 0;
-        let clientAumMap = {}; let schemeAumMap = {}; let monthlyTree = {};
-
-        mfdClients.forEach(c => { let key = c.pan || c.ucc || c.name; clientAumMap[key] = { pan_ucc: key, name: c.name, grp: c.group||'', inflow: 0, redemption: 0, units: 0, curValue: 0, cashflows: [] }; });
-
-        mfdTxs.forEach(tx => {
-            let amt = Math.abs(parseFloat(tx.amount))||0; let u = Math.abs(parseFloat(tx.unit))||0; 
-            let cKey = tx.pan_ucc || tx.clientName; let sKey = tx.isin || tx.scheme || 'Uncategorized';
-            let txTypeStr = (tx.type || '').trim().toLowerCase();
-            let isRedeem = txTypeStr.includes('redemption') || txTypeStr.includes('redeem') || txTypeStr.includes('sale');
-            let isInflow = txTypeStr.includes('sip') || txTypeStr.includes('lumpsum') || txTypeStr.includes('purchase');
-            let d = new Date(tx.date);
-            
-            if (!clientAumMap[cKey]) clientAumMap[cKey] = { pan_ucc: cKey, name: tx.clientName, grp: tx.group||'', inflow: 0, redemption: 0, units: 0, curValue: 0, cashflows: [] };
-            if (!schemeAumMap[sKey]) schemeAumMap[sKey] = { isin: tx.isin, scheme: tx.scheme, inflow: 0, redemption: 0, units: 0, curValue: 0, cashflows: [] };
-
-            let cg = clientAumMap[cKey].grp; 
-            let inG = (gVal === 'ALL' || cg === gVal); 
-            let inC = (filterVal === 'ALL' || cKey === filterVal);
-            
-            if (!inG) return; 
-
-            if (isInflow) {
-                totalGrossInflow += amt; clientAumMap[cKey].inflow += amt; clientAumMap[cKey].units += u; clientAumMap[cKey].cashflows.push({amt: -amt, date: d});
-                if (inC) { schemeAumMap[sKey].inflow += amt; schemeAumMap[sKey].units += u; schemeAumMap[sKey].cashflows.push({amt: -amt, date: d}); }
-            } else if (isRedeem) {
-                totalRedemption += amt; clientAumMap[cKey].redemption += amt; clientAumMap[cKey].units -= u; clientAumMap[cKey].cashflows.push({amt: amt, date: d});
-                if (inC) { schemeAumMap[sKey].redemption += amt; schemeAumMap[sKey].units -= u; schemeAumMap[sKey].cashflows.push({amt: amt, date: d}); }
-            }
-
-            let yStr = d.getFullYear() || new Date().getFullYear(); let mStr = (d.getMonth() + 1).toString().padStart(2, '0');
-            if (!monthlyTree[yStr]) monthlyTree[yStr] = { net: 0, months: {} };
-            if (!monthlyTree[yStr].months[mStr]) monthlyTree[yStr].months[mStr] = { net: 0, clients: {} };
-            if (!monthlyTree[yStr].months[mStr].clients[tx.clientName]) monthlyTree[yStr].months[mStr].clients[tx.clientName] = 0;
-            
-            let pnlImpact = isInflow ? amt : (isRedeem ? -amt : 0);
-            monthlyTree[yStr].net += pnlImpact; monthlyTree[yStr].months[mStr].net += pnlImpact; monthlyTree[yStr].months[mStr].clients[tx.clientName] += pnlImpact;
-        });
-
-        // Resolve Valuations via Global NAV
-        Object.keys(clientAumMap).forEach(k => {
-            let item = clientAumMap[k]; let curVal = 0; let cTxs = mfdTxs.filter(t => (t.pan_ucc || t.clientName) === k); let sBal = {};
-            cTxs.forEach(t => { let sk = t.isin || t.scheme; if(!sBal[sk]) sBal[sk] = { u: 0, i: t.isin, fn: 0 }; let iR = (t.type||'').toLowerCase().includes('red'); sBal[sk].u += iR ? -t.unit : t.unit; if(t.nav > 0) sBal[sk].fn = t.nav; });
-            Object.keys(sBal).forEach(sk => { let hold = sBal[sk].u; if (hold > 0) { let rNav = mfdNavs[sBal[sk].i] || sBal[sk].fn || 0; curVal += (hold * rNav); } });
-            item.curValue = curVal; if (curVal > 0) { item.cashflows.push({ amt: curVal, date: new Date() }); }
-            if (gVal === 'ALL' || item.grp === gVal) currentValAum += curVal;
-        });
-
-        let sAumTotal = 0;
-        Object.keys(schemeAumMap).forEach(k => { let item = schemeAumMap[k]; if (item.units > 0) { let rNav = mfdNavs[item.isin] || 0; item.curValue = item.units * rNav; item.cashflows.push({ amt: item.curValue, date: new Date() }); sAumTotal += item.curValue; } });
-
-        document.getElementById('mfd-current-val').innerText = currentValAum.toFixed(2);
-        document.getElementById('mfd-net-inv').innerText = (totalGrossInflow - totalRedemption).toFixed(2);
-        document.getElementById('mfd-gross-inflow').innerText = totalGrossInflow.toFixed(2);
-        document.getElementById('mfd-total-redemption').innerText = totalRedemption.toFixed(2);
-
-        // Rep 1: Client Portfolio AUM
-        const cb = document.getElementById('mfd-client-aum'); cb.innerHTML = ''; 
-        let sk = Object.keys(cMap).sort((a,b) => cMap[b].cv - cMap[a].cv);
-        if (sk.length === 0) { cb.innerHTML = `<tr><td colspan="7" style="text-align:center;">No data.</td></tr>`; } 
-        else {
-            sk.forEach(k => {
-                let i = cMap[k]; if (gVal !== 'ALL' && i.grp !== gVal) return;
-                if (i.in > 0 || i.red > 0) {
-                    let x = computeXIRR(i.cf); let xc = x >= 0 ? 'pnl-positive' : 'pnl-negative'; 
-                    let pct = currentValAum > 0 ? ((i.cv / currentValAum) * 100).toFixed(2) + '%' : '0.00%';
-                    cb.innerHTML += `<tr><td>${i.grp || '-'}</td><td><strong>${i.id}</strong></td><td><strong>${i.name}</strong></td><td class="pnl-positive">+${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${xc}">${x.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${pct}</span></td></tr>`;
-                }
-            });
-        }
-
-        // Rep 2: Scheme-wise AUM Breakdown
-        const sb = document.getElementById('mfd-scheme-aum'); sb.innerHTML = '';
-        let sok = Object.keys(sMap).sort((a,b) => sMap[b].cv - sMap[a].cv);
-
-        if (sok.length === 0) { sb.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:15px; color:#666;">No scheme transactions logged.</td></tr>`; } 
-        else {
-            sok.forEach(s => {
-                let i = sMap[s];
-                if(i.units > 0.001 || i.red > 0) {
-                    let rNav = mfdNavs[i.isin] || 0; let x = computeXIRR(i.cf); let xc = x >= 0 ? 'pnl-positive' : 'pnl-negative'; 
-                    let pct = sAumTotal > 0 ? ((i.cv / sAumTotal) * 100).toFixed(2) + '%' : '0.00%';
-                    sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.units.toFixed(4)}</td><td>${rNav.toFixed(4)}</td><td>${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${xc}">${x.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${pct}</span></td></tr>`;
-                }
-            });
-        }
-
-        // Rep 3: Comprehensive Client Details
-        const clientDetailsBody = document.getElementById('mfd-client-details'); if(clientDetailsBody) {
-            clientDetailsBody.innerHTML = '';
-            mfdClients.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
-                if (gVal !== 'ALL' && c.group !== gVal) return;
-                let key = c.pan || c.ucc || c.name; clientDetailsBody.innerHTML += `<tr><td><strong>${key}</strong></td><td>${c.group || '-'}</td><td><strong>${c.name}</strong></td><td>${c.phone || '-'}</td><td>${c.city || '-'}${c.state ? ', ' + c.state : ''}</td><td>${c.nomineeName || '-'}</td></tr>`;
-            });
-        }
-
-        // Rep 4: Monthly Flow
-        const t = document.getElementById('mfd-drilldown-tree'); let tHtml = ''; const mn = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-        Object.keys(mTree).sort().reverse().forEach(y => {
-            let yd = mTree[y]; let yc = yd.n >= 0 ? 'pnl-positive' : 'pnl-negative';
-            tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> Year ${y}</span><span class="${yc}">${yd.n>0?'+':''}${yd.n.toFixed(2)}</span></div><div class="tree-children">`;
-            Object.keys(yd.m).sort().reverse().forEach(ms => {
-                let md = yd.m[ms]; let mc = md.n >= 0 ? 'pnl-positive' : 'pnl-negative';
-                tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${mn[parseInt(ms)]}</span><span class="${mc}">${md.n>0?'+':''}${md.n.toFixed(2)}</span></div><div class="tree-children">`;
-                Object.keys(md.c).sort().forEach(cn => {
-                    let cv = md.c[cn]; if (cv !== 0) { let cc = cv > 0 ? 'pnl-positive' : 'pnl-negative'; tHtml += `<div class="tree-leaf"><span>${cn}</span><span class="${cc}">${cv>0?'+':''}${cv.toFixed(2)}</span></div>`; }
-                });
-                tHtml += `</div></div>`;
-            }); tHtml += `</div></div>`;
-        });
-        t.innerHTML = tHtml || `<div style="padding:15px; text-align:center;">No data.</div>`;
     }
 </script>
 </body>
