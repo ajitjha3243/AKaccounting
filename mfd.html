@@ -8,6 +8,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <!-- Add Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         :root {
@@ -149,6 +151,7 @@
             <span class="display-user-email">Loading...</span>
         </div>
         <div class="header-actions">
+            <!-- Link to switch back to Personal Dashboard -->
             <a href="index.html" class="btn-nav-switch">⬅ Switch to Personal Finance</a>
             <button class="btn-backup" onclick="backupData()">💾 Backup Data</button>
             <button class="btn-logout" onclick="signOut()">Log Out</button>
@@ -188,7 +191,15 @@
                 <div class="table-container">
                     <h3>Client Portfolio AUM Summary</h3>
                     <table>
-                        <thead><tr><th>Group</th><th>PAN/UCC</th><th>Client Name</th><th>Invested</th><th>Current Val</th><th>XIRR</th><th style="background:#e2e8f0;">% Wgt</th></tr></thead>
+                        <thead><tr>
+                            <th class="sortable" onclick="setClientSort('grp')">Group <span class="sort-icon" id="client-sort-grp"></span></th>
+                            <th class="sortable" onclick="setClientSort('id')">PAN/UCC <span class="sort-icon" id="client-sort-id"></span></th>
+                            <th class="sortable" onclick="setClientSort('name')">Client Name <span class="sort-icon" id="client-sort-name"></span></th>
+                            <th class="sortable" onclick="setClientSort('in')">Invested <span class="sort-icon" id="client-sort-in"></span></th>
+                            <th class="sortable" onclick="setClientSort('cv')">Current Val <span class="sort-icon" id="client-sort-cv">▼</span></th>
+                            <th class="sortable" onclick="setClientSort('xirr')">XIRR <span class="sort-icon" id="client-sort-xirr"></span></th>
+                            <th style="background:#e2e8f0;">% Wgt</th>
+                        </tr></thead>
                         <tbody id="mfd-client-aum-body"></tbody>
                     </table>
                 </div>
@@ -196,7 +207,15 @@
                 <div class="table-container">
                     <h3>Scheme-wise Breakdown <span id="scheme-filter-lbl" style="color:var(--primary); font-size:0.8rem;">(All)</span></h3>
                     <table>
-                        <thead><tr><th>Scheme / ISIN</th><th>Units</th><th>NAV</th><th>Invested</th><th>Current Val</th><th>XIRR</th><th style="background:#e2e8f0;">% Wgt</th></tr></thead>
+                        <thead><tr>
+                            <th class="sortable" onclick="setSchemeSort('scheme')">Scheme / ISIN <span class="sort-icon" id="scheme-sort-scheme"></span></th>
+                            <th class="sortable" onclick="setSchemeSort('u')">Units <span class="sort-icon" id="scheme-sort-u"></span></th>
+                            <th class="sortable" onclick="setSchemeSort('rN')">NAV <span class="sort-icon" id="scheme-sort-rN"></span></th>
+                            <th class="sortable" onclick="setSchemeSort('in')">Invested <span class="sort-icon" id="scheme-sort-in"></span></th>
+                            <th class="sortable" onclick="setSchemeSort('cv')">Current Val <span class="sort-icon" id="scheme-sort-cv">▼</span></th>
+                            <th class="sortable" onclick="setSchemeSort('xirr')">XIRR <span class="sort-icon" id="scheme-sort-xirr"></span></th>
+                            <th style="background:#e2e8f0;">% Wgt</th>
+                        </tr></thead>
                         <tbody id="mfd-scheme-aum-body"></tbody>
                     </table>
                 </div>
@@ -214,6 +233,23 @@
                 <h3 style="border-bottom: 2px solid var(--border); padding-bottom: 5px;">Monthly Business Flow Drilldown</h3>
                 <div id="mfd-drilldown-tree" class="tree-container" style="max-width: 800px;"></div>
             </div>
+
+            <!-- NEW CHART PANEL -->
+            <div style="margin-top: 25px;">
+                <div class="panel-header" onclick="togglePanel('mfd-chart-content', 'mfd-chart-icon')" style="border-bottom: 2px solid var(--border); padding-bottom: 5px;">
+                    <h3 style="margin: 0; border: none; padding: 0;">AUM Growth Trend</h3><span id="mfd-chart-icon">▲</span>
+                </div>
+                <div id="mfd-chart-content" class="collapsible-table-content active" style="padding-top: 15px;">
+                    <div class="form-group" style="max-width: 200px;">
+                        <label>Select Year for Drilldown:</label>
+                        <select id="mfd-chart-year-filter" onchange="updateAumChart()"><option value="ALL">All Time</option></select>
+                    </div>
+                    <div style="position: relative; height: 350px; width: 100%;">
+                        <canvas id="aumGrowthChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -400,8 +436,17 @@
     let mfdClients = [];
     let mfdTxs = [];
     let mfdNavs = {}; 
+    
+    // Paging & Ledger Sorting
     let mfdPage = 1; const pageSize = 15; 
     let mfdSortCol = 'date'; let mfdSortDesc = true;
+
+    // Report Tables Sorting
+    let clientSortCol = 'cv'; let clientSortDesc = true;
+    let schemeSortCol = 'cv'; let schemeSortDesc = true;
+
+    // Charting
+    let aumChartInstance = null;
 
     // -------------------------------------------------------------
     // 3. UI HELPERS & MATH
@@ -482,9 +527,27 @@
 
     function updateSortIcons() {
         document.querySelectorAll('.sort-icon').forEach(el => el.innerText = '');
-        let map = { date: 'mfd-sort-date', group: 'mfd-sort-group', pan_ucc: 'mfd-sort-ucc', clientName: 'mfd-sort-name', scheme: 'mfd-sort-scheme', isin: 'mfd-sort-isin', type: 'mfd-sort-type', amount: 'mfd-sort-amount' };
-        let el = document.getElementById(map[mfdSortCol]);
-        if(el) el.innerText = mfdSortDesc ? '▼' : '▲';
+        
+        // Ledger table
+        let mapLedger = { date: 'mfd-sort-date', group: 'mfd-sort-group', pan_ucc: 'mfd-sort-ucc', clientName: 'mfd-sort-name', scheme: 'mfd-sort-scheme', isin: 'mfd-sort-isin', type: 'mfd-sort-type', amount: 'mfd-sort-amount' };
+        let elLedger = document.getElementById(mapLedger[mfdSortCol]);
+        if(elLedger) elLedger.innerText = mfdSortDesc ? '▼' : '▲';
+        
+        // Reports tables
+        let cI = document.getElementById('client-sort-' + clientSortCol); if(cI) cI.innerText = clientSortDesc ? '▼' : '▲';
+        let sI = document.getElementById('scheme-sort-' + schemeSortCol); if(sI) sI.innerText = schemeSortDesc ? '▼' : '▲';
+    }
+
+    function setClientSort(col) {
+        if (clientSortCol === col) { clientSortDesc = !clientSortDesc; }
+        else { clientSortCol = col; clientSortDesc = true; }
+        renderMfdReportsOnly();
+    }
+
+    function setSchemeSort(col) {
+        if (schemeSortCol === col) { schemeSortDesc = !schemeSortDesc; }
+        else { schemeSortCol = col; schemeSortDesc = true; }
+        renderMfdReportsOnly();
     }
 
     // -------------------------------------------------------------
@@ -577,8 +640,6 @@
 
         const navSnap = await db.collection('mfd_navs').get();
         mfdNavs = {}; 
-        
-        // FIX: Store the full NAV object so we can read the Date later
         navSnap.docs.forEach(doc => { 
             mfdNavs[doc.id] = doc.data(); 
         });
@@ -879,6 +940,8 @@
     }
 
     function renderMfdReportsOnly() {
+        updateSortIcons();
+
         const filterVal = document.getElementById('mfd-report-client-filter') ? document.getElementById('mfd-report-client-filter').value : 'ALL'; 
         const gVal = document.getElementById('mfd-report-group-filter') ? document.getElementById('mfd-report-group-filter').value : 'ALL';
         const slb = document.getElementById('scheme-filter-lbl'); if(slb) slb.innerText = filterVal === 'ALL' ? (gVal === 'ALL' ? '(Master)' : `(Group: ${gVal})`) : `(Filtered)`;
@@ -892,7 +955,7 @@
             let ck = tx.pan_ucc || tx.clientName; let sk = tx.isin || tx.scheme || 'Uncategorized';
             let tp = (tx.type||'').toLowerCase(); let isR = tp.includes('red') || tp.includes('sale'); let isI = tp.includes('sip') || tp.includes('lump') || tp.includes('pur');
             
-            // FIX: Safely parse DD-MM-YYYY formats specifically to avoid JS Month/Day swap
+            // Safely parse DD-MM-YYYY formats specifically to avoid JS Month/Day swap
             let d;
             if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) {
                 let parts = tx.date.split('-');
@@ -920,7 +983,7 @@
             let pnlImp = isI ? amt : (isR ? -amt : 0); mTree[y].n += pnlImp; mTree[y].m[m].n += pnlImp; mTree[y].m[m].c[tx.clientName] += pnlImp;
         });
 
-        // FIX: Compute Client AUM mapping and Total Filtered AUM Using NAV Date
+        // Compute Client AUM mapping and Total Filtered AUM Using NAV Date
         let latestGlobalNavDate = new Date(0);
         
         Object.keys(cMap).forEach(k => {
@@ -957,7 +1020,7 @@
             if (gVal === 'ALL' || i.grp === gVal) currentValAum += cv;
         });
 
-        // FIX: Compute Scheme AUM Map Using NAV Date
+        // Compute Scheme AUM Map Using NAV Date
         let sAumTotal = 0;
         Object.keys(sMap).forEach(k => { 
             let i = sMap[k]; 
@@ -979,40 +1042,70 @@
         if(document.getElementById('mfd-total-redemption')) document.getElementById('mfd-total-redemption').innerText = tRed.toFixed(2);
         if(document.getElementById('mfd-total-clients')) document.getElementById('mfd-total-clients').innerText = Object.keys(cMap).filter(k => cMap[k].in > 0 || cMap[k].red > 0).length;
 
-        // Render Client Portfolio AUM Table
+        // Render Client Portfolio AUM Table (SORTABLE)
         const cb = document.getElementById('mfd-client-aum-body'); 
         if(cb) {
             cb.innerHTML = ''; 
-            let sk = Object.keys(cMap).sort((a,b) => cMap[b].cv - cMap[a].cv);
-            if (sk.length === 0) { cb.innerHTML = `<tr><td colspan="7" style="text-align:center;">No data.</td></tr>`; } 
+            
+            // Map to Array to perform robust sorting
+            let clientArr = Object.keys(cMap).map(k => {
+                let i = cMap[k];
+                i.xirr = computeXIRR(i.cf);
+                i.pct = currentValAum > 0 ? ((i.cv / currentValAum) * 100) : 0;
+                return i;
+            }).filter(i => (i.in > 0 || i.red > 0) && (gVal === 'ALL' || i.grp === gVal));
+
+            // Sorting Engine for Client Array
+            clientArr.sort((a, b) => {
+                let v1 = a[clientSortCol] !== undefined ? a[clientSortCol] : '';
+                let v2 = b[clientSortCol] !== undefined ? b[clientSortCol] : '';
+                if(typeof v1 === 'string') v1 = v1.toLowerCase();
+                if(typeof v2 === 'string') v2 = v2.toLowerCase();
+                if (v1 < v2) return clientSortDesc ? 1 : -1;
+                if (v1 > v2) return clientSortDesc ? -1 : 1;
+                return 0;
+            });
+
+            if (clientArr.length === 0) { cb.innerHTML = `<tr><td colspan="7" style="text-align:center;">No data.</td></tr>`; } 
             else {
-                sk.forEach(k => {
-                    let i = cMap[k]; if (gVal !== 'ALL' && i.grp !== gVal) return;
-                    if (i.in > 0 || i.red > 0) {
-                        let x = computeXIRR(i.cf); let xc = x >= 0 ? 'pnl-positive' : 'pnl-negative'; 
-                        let pct = currentValAum > 0 ? ((i.cv / currentValAum) * 100).toFixed(2) + '%' : '0.00%';
-                        cb.innerHTML += `<tr><td>${i.grp || '-'}</td><td><strong>${i.id}</strong></td><td><strong>${i.name}</strong></td><td class="pnl-positive">+${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${xc}">${x.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${pct}</span></td></tr>`;
-                    }
+                clientArr.forEach(i => {
+                    let xc = i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'; 
+                    cb.innerHTML += `<tr><td>${i.grp || '-'}</td><td><strong>${i.id}</strong></td><td><strong>${i.name}</strong></td><td class="pnl-positive">+${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${xc}">${i.xirr.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${i.pct.toFixed(2)}%</span></td></tr>`;
                 });
             }
         }
 
-        // Render Scheme AUM Breakdown Table
+        // Render Scheme AUM Breakdown Table (SORTABLE)
         const sb = document.getElementById('mfd-scheme-aum-body'); 
         if(sb) {
             sb.innerHTML = ''; 
-            let sok = Object.keys(sMap).sort((a,b) => sMap[b].cv - sMap[a].cv);
-            if (sok.length === 0) { sb.innerHTML = `<tr><td colspan="7" style="text-align:center;">No data.</td></tr>`; } 
+            
+            // Map to Array to perform robust sorting
+            let schemeArr = Object.keys(sMap).map(s => {
+                let i = sMap[s];
+                let navObj = mfdNavs[i.isin];
+                i.rN = navObj ? navObj.nav : 0;
+                i.xirr = computeXIRR(i.cf);
+                i.pct = sAumTotal > 0 ? ((i.cv / sAumTotal) * 100) : 0;
+                return i;
+            }).filter(i => i.u > 0.001 || i.red > 0);
+
+            // Sorting Engine for Scheme Array
+            schemeArr.sort((a, b) => {
+                let v1 = a[schemeSortCol] !== undefined ? a[schemeSortCol] : '';
+                let v2 = b[schemeSortCol] !== undefined ? b[schemeSortCol] : '';
+                if(typeof v1 === 'string') v1 = v1.toLowerCase();
+                if(typeof v2 === 'string') v2 = v2.toLowerCase();
+                if (v1 < v2) return schemeSortDesc ? 1 : -1;
+                if (v1 > v2) return schemeSortDesc ? -1 : 1;
+                return 0;
+            });
+
+            if (schemeArr.length === 0) { sb.innerHTML = `<tr><td colspan="7" style="text-align:center;">No data.</td></tr>`; } 
             else {
-                sok.forEach(s => {
-                    let i = sMap[s];
-                    if(i.u > 0.001 || i.red > 0) {
-                        let navObj = mfdNavs[i.isin];
-                        let rN = navObj ? navObj.nav : 0;
-                        let x = computeXIRR(i.cf); let xc = x >= 0 ? 'pnl-positive' : 'pnl-negative'; 
-                        let pct = sAumTotal > 0 ? ((i.cv / sAumTotal) * 100).toFixed(2) + '%' : '0.00%';
-                        sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.u.toFixed(4)}</td><td>${rN.toFixed(4)}</td><td>${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${xc}">${x.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${pct}</span></td></tr>`;
-                    }
+                schemeArr.forEach(i => {
+                    let xc = i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'; 
+                    sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.u.toFixed(4)}</td><td>${i.rN.toFixed(4)}</td><td>${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${xc}">${i.xirr.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${i.pct.toFixed(2)}%</span></td></tr>`;
                 });
             }
         }
@@ -1046,6 +1139,196 @@
             });
             t.innerHTML = tHtml || `<div style="padding:15px; text-align:center;">No data.</div>`;
         }
+
+        // Finally, render the AUM Growth Chart
+        updateAumChart();
+    }
+
+    // -------------------------------------------------------------
+    // 7. CHART.JS AUM GROWTH LOGIC
+    // -------------------------------------------------------------
+    function updateAumChart() {
+        const chartContainer = document.getElementById('aumGrowthChart');
+        if (!chartContainer) return;
+        
+        const ctx = chartContainer.getContext('2d');
+        
+        const filterVal = document.getElementById('mfd-report-client-filter') ? document.getElementById('mfd-report-client-filter').value : 'ALL'; 
+        const gVal = document.getElementById('mfd-report-group-filter') ? document.getElementById('mfd-report-group-filter').value : 'ALL';
+        const yearFlt = document.getElementById('mfd-chart-year-filter') ? document.getElementById('mfd-chart-year-filter').value : 'ALL';
+
+        // Filter transactions logically matching the tables above
+        let validTxs = mfdTxs.filter(tx => {
+            let ck = tx.pan_ucc || tx.clientName;
+            let cg = tx.group || '';
+            let matchG = (gVal === 'ALL' || cg === gVal);
+            let matchC = (filterVal === 'ALL' || ck === filterVal);
+            return matchG && matchC;
+        });
+
+        // Sort chronologically
+        validTxs.sort((a,b) => {
+            let dA = a.date.includes('-') && a.date.split('-')[0].length === 2 ? new Date(`${a.date.split('-')[2]}-${a.date.split('-')[1]}-${a.date.split('-')[0]}T00:00:00`) : new Date(a.date);
+            let dB = b.date.includes('-') && b.date.split('-')[0].length === 2 ? new Date(`${b.date.split('-')[2]}-${b.date.split('-')[1]}-${b.date.split('-')[0]}T00:00:00`) : new Date(b.date);
+            return dA - dB;
+        });
+
+        let monthlyData = {};
+        let years = new Set();
+        let runningUnits = {}; 
+        let runningInvestment = 0;
+
+        validTxs.forEach(tx => {
+            let d;
+            if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) {
+                let parts = tx.date.split('-');
+                d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
+            } else { 
+                d = new Date(tx.date); 
+            }
+            
+            if (isNaN(d)) return;
+
+            let y = d.getFullYear().toString();
+            let m = (d.getMonth() + 1).toString().padStart(2, '0');
+            let ym = `${y}-${m}`;
+            years.add(y);
+
+            let amt = Math.abs(parseFloat(tx.amount)) || 0;
+            let u = Math.abs(parseFloat(tx.unit)) || 0;
+            let typ = (tx.type||'').toLowerCase();
+            let isI = typ.includes('pur') || typ.includes('sip') || typ.includes('lump');
+            let isR = typ.includes('red') || typ.includes('sale');
+
+            if (!runningUnits[tx.isin]) runningUnits[tx.isin] = 0;
+
+            if (isI) {
+                runningUnits[tx.isin] += u;
+                runningInvestment += amt;
+            } else if (isR) {
+                runningUnits[tx.isin] -= u;
+                runningInvestment -= amt;
+            }
+
+            // Estimate Historical AUM using cumulative units * LATEST known NAV
+            let currentAumProxy = 0;
+            Object.keys(runningUnits).forEach(isin => {
+                let navObj = mfdNavs[isin];
+                let rN = navObj ? navObj.nav : 0;
+                currentAumProxy += (runningUnits[isin] * rN);
+            });
+
+            monthlyData[ym] = {
+                aum: currentAumProxy,
+                inv: runningInvestment
+            };
+        });
+
+        // Populate the Year Dropdown dynamically
+        const yearSelect = document.getElementById('mfd-chart-year-filter');
+        if (yearSelect && yearSelect.options.length === 1 && years.size > 0) {
+            [...years].sort().reverse().forEach(y => {
+                yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+            });
+        }
+
+        // Construct Plot Data
+        let labels = [];
+        let aumPoints = [];
+        let invPoints = [];
+
+        if (yearFlt === 'ALL') {
+            labels = Object.keys(monthlyData).sort();
+            labels.forEach(ym => {
+                aumPoints.push(monthlyData[ym].aum);
+                invPoints.push(monthlyData[ym].inv);
+            });
+        } else {
+            // Drill down into specific year
+            const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            for(let i=1; i<=12; i++) {
+                let mStr = i.toString().padStart(2, '0');
+                let ym = `${yearFlt}-${mStr}`;
+                labels.push(monthNames[i-1]);
+                
+                if (monthlyData[ym]) {
+                    aumPoints.push(monthlyData[ym].aum);
+                    invPoints.push(monthlyData[ym].inv);
+                } else {
+                    // Carry forward logic if no activity happened in this specific month
+                    let prevKeys = Object.keys(monthlyData).filter(k => k < ym).sort();
+                    if (prevKeys.length > 0) {
+                        let lastKey = prevKeys[prevKeys.length - 1];
+                        aumPoints.push(monthlyData[lastKey].aum);
+                        invPoints.push(monthlyData[lastKey].inv);
+                    } else {
+                        aumPoints.push(0);
+                        invPoints.push(0);
+                    }
+                }
+            }
+        }
+
+        // Re-render Chart
+        if (aumChartInstance) { aumChartInstance.destroy(); }
+
+        aumChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Estimated AUM',
+                        data: aumPoints,
+                        borderColor: '#8b5cf6', // Purple
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Net Amount Invested',
+                        data: invPoints,
+                        borderColor: '#2563eb', // Blue
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    tooltip: { 
+                        mode: 'index', 
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) { label += ': '; }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    } 
+                },
+                interaction: { mode: 'nearest', axis: 'x', intersect: false },
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        ticks: { 
+                            callback: function(value) { 
+                                return '₹' + (value/100000).toFixed(1) + 'L'; 
+                            } 
+                        } 
+                    }
+                }
+            }
+        });
     }
 </script>
 </body>
