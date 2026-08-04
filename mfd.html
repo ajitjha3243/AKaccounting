@@ -718,7 +718,7 @@
         return new Date().toISOString().split('T')[0]; // fallback
     }
 
-    async function fetchAmfiNavs() {
+   async function fetchAmfiNavs() {
         if (!currentUser) return alert("Please log in first.");
         
         const btn = document.getElementById('btn-auto-nav');
@@ -734,10 +734,32 @@
                 btn.innerText = origText; btn.disabled = false; return;
             }
 
-            // Fetch AMFI NAV text using a stable CORS proxy
-            const response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://www.amfiindia.com/spages/NAVAll.txt'));
-            if (!response.ok) throw new Error("Network response was not ok");
-            const textData = await response.text();
+            // Attempt to fetch using multiple fallback proxies in case one is blocked by firewalls/ad-blockers
+            const amfiUrl = 'https://www.amfiindia.com/spages/NAVAll.txt';
+            const proxyUrls = [
+                'https://api.allorigins.win/raw?url=' + encodeURIComponent(amfiUrl),
+                'https://corsproxy.io/?' + encodeURIComponent(amfiUrl),
+                'https://thingproxy.freeboard.io/fetch/' + amfiUrl
+            ];
+
+            let textData = null;
+
+            // Loop through proxies until one succeeds
+            for (let url of proxyUrls) {
+                try {
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        textData = await response.text();
+                        if (textData.includes('ISIN')) break; // Confirms it actually loaded the AMFI file
+                    }
+                } catch (err) {
+                    console.warn("Proxy failed, trying next: ", url);
+                }
+            }
+
+            if (!textData) {
+                throw new Error("Your network or ad-blocker is blocking the connection to the AMFI database. Please use the Manual CSV Upload fallback below.");
+            }
 
             const lines = textData.split('\n');
             let updatedCount = 0;
@@ -771,7 +793,7 @@
                         updatedCount++;
                     }
                 }
-                if (myIsins.size === 0) break; // found all our ISINs
+                if (myIsins.size === 0) break; // found all our ISINs early, exit loop
             }
 
             if (updatedCount > 0) {
@@ -788,7 +810,6 @@
             btn.disabled = false;
         }
     }
-
     function uploadMfdNavCSV(e) {
         const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
         reader.onload = async function(ev) {
