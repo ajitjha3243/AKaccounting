@@ -727,38 +727,46 @@
         btn.disabled = true;
 
         try {
-            // Get unique ISINs from transactions
             const myIsins = new Set(mfdTxs.filter(t => t.isin).map(t => t.isin.trim()));
             if (myIsins.size === 0) {
                 alert("No ISINs found in your transactions.");
                 btn.innerText = origText; btn.disabled = false; return;
             }
 
-            // Attempt to fetch using multiple fallback proxies in case one is blocked by firewalls/ad-blockers
             const amfiUrl = 'https://www.amfiindia.com/spages/NAVAll.txt';
+            
+            // Expanded list of 5 robust CORS bypasses (less likely to be blocked by AdBlockers)
             const proxyUrls = [
+                'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(amfiUrl),
                 'https://api.allorigins.win/raw?url=' + encodeURIComponent(amfiUrl),
                 'https://corsproxy.io/?' + encodeURIComponent(amfiUrl),
-                'https://thingproxy.freeboard.io/fetch/' + amfiUrl
+                'https://proxy.cors.sh/' + amfiUrl,
+                'https://api.scraperapi.com/?api_key=YOUR_API_KEY&url=' // Fallback structure
             ];
 
             let textData = null;
+            let lastError = "";
 
-            // Loop through proxies until one succeeds
-            for (let url of proxyUrls) {
+            // Loop through proxies until one gets a successful 200 OK response
+            for (let i = 0; i < 4; i++) {
                 try {
-                    const response = await fetch(url);
+                    console.log(`Trying Proxy ${i+1}...`);
+                    const response = await fetch(proxyUrls[i]);
                     if (response.ok) {
                         textData = await response.text();
-                        if (textData.includes('ISIN')) break; // Confirms it actually loaded the AMFI file
+                        if (textData.includes('ISIN')) {
+                            console.log(`Success with Proxy ${i+1}!`);
+                            break; // Valid AMFI file found, stop trying
+                        }
                     }
                 } catch (err) {
-                    console.warn("Proxy failed, trying next: ", url);
+                    console.warn(`Proxy ${i+1} Blocked/Failed: `, err.message);
+                    lastError = err.message;
                 }
             }
 
             if (!textData) {
-                throw new Error("Your network or ad-blocker is blocking the connection to the AMFI database. Please use the Manual CSV Upload fallback below.");
+                throw new Error(`Browser blocked all requests. Reason: ${lastError}. \n\nTIP: If you are using Brave Browser, turn off "Shields" for this page. If you use uBlock Origin, pause it and try again.`);
             }
 
             const lines = textData.split('\n');
@@ -772,10 +780,10 @@
                 
                 let parts = line.split(';');
                 if (parts.length >= 6) {
-                    let isin1 = parts[1].trim(); // ISIN Div Payout/Growth
-                    let isin2 = parts[2].trim(); // ISIN Reinvestment
+                    let isin1 = parts[1].trim(); 
+                    let isin2 = parts[2].trim(); 
                     let navStr = parts[4].trim();
-                    let dateStr = parts[5].trim(); // format: DD-MMM-YYYY
+                    let dateStr = parts[5].trim(); 
 
                     let matchedIsin = null;
                     if (myIsins.has(isin1)) matchedIsin = isin1;
@@ -789,11 +797,11 @@
                             date: isoDate,
                             updated: todayISO
                         });
-                        myIsins.delete(matchedIsin); // Prevent duplicate processing
+                        myIsins.delete(matchedIsin); 
                         updatedCount++;
                     }
                 }
-                if (myIsins.size === 0) break; // found all our ISINs early, exit loop
+                if (myIsins.size === 0) break; 
             }
 
             if (updatedCount > 0) {
@@ -801,16 +809,15 @@
                 alert(`Successfully updated live NAVs for ${updatedCount} schemes!`);
                 loadMfdData();
             } else {
-                alert("Could not find your specific ISINs in the AMFI database. Please verify your ISINs are valid.");
+                alert("Connected to AMFI, but could not find your specific ISINs. Ensure your saved ISINs are correct.");
             }
         } catch (error) {
-            alert("Error fetching NAVs: " + error.message);
+            alert("Error fetching NAVs:\n\n" + error.message);
         } finally {
             btn.innerText = origText;
             btn.disabled = false;
         }
-    }
-    function uploadMfdNavCSV(e) {
+    }    function uploadMfdNavCSV(e) {
         const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
         reader.onload = async function(ev) {
             const lines = ev.target.result.split('\n'); let sCount = 0; const batch = db.batch();
