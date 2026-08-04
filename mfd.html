@@ -8,7 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
-    <!-- Add Chart.js -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -19,10 +19,8 @@
         }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
         
-        /* The main dashboard is hidden by default until the user logs in */
         .container { max-width: 1200px; margin: 0 auto; display: none; }
         
-        /* Login Overlay Styles */
         #auth-overlay {
             display: flex; justify-content: center; align-items: center; 
             height: 100vh; background-color: var(--bg-color); 
@@ -198,6 +196,7 @@
                             <th class="sortable" onclick="setClientSort('in')">Invested <span class="sort-icon" id="client-sort-in"></span></th>
                             <th class="sortable" onclick="setClientSort('cv')">Current Val <span class="sort-icon" id="client-sort-cv">▼</span></th>
                             <th class="sortable" onclick="setClientSort('xirr')">XIRR <span class="sort-icon" id="client-sort-xirr"></span></th>
+                            <th class="sortable" onclick="setClientSort('absRet')">Abs Return <span class="sort-icon" id="client-sort-absRet"></span></th>
                             <th style="background:#e2e8f0;">% Wgt</th>
                         </tr></thead>
                         <tbody id="mfd-client-aum-body"></tbody>
@@ -214,6 +213,7 @@
                             <th class="sortable" onclick="setSchemeSort('in')">Invested <span class="sort-icon" id="scheme-sort-in"></span></th>
                             <th class="sortable" onclick="setSchemeSort('cv')">Current Val <span class="sort-icon" id="scheme-sort-cv">▼</span></th>
                             <th class="sortable" onclick="setSchemeSort('xirr')">XIRR <span class="sort-icon" id="scheme-sort-xirr"></span></th>
+                            <th class="sortable" onclick="setSchemeSort('absRet')">Abs Return <span class="sort-icon" id="scheme-sort-absRet"></span></th>
                             <th style="background:#e2e8f0;">% Wgt</th>
                         </tr></thead>
                         <tbody id="mfd-scheme-aum-body"></tbody>
@@ -234,7 +234,7 @@
                 <div id="mfd-drilldown-tree" class="tree-container" style="max-width: 800px;"></div>
             </div>
 
-            <!-- NEW CHART PANEL -->
+            <!-- CHART PANEL -->
             <div style="margin-top: 25px;">
                 <div class="panel-header" onclick="togglePanel('mfd-chart-content', 'mfd-chart-icon')" style="border-bottom: 2px solid var(--border); padding-bottom: 5px;">
                     <h3 style="margin: 0; border: none; padding: 0;">AUM Growth Trend</h3><span id="mfd-chart-icon">▲</span>
@@ -307,12 +307,17 @@
             </div>
             <div id="mfd-tx" class="collapsible-table-content active">
                 
-                <!-- NEW SECTION: NAV MANAGEMENT -->
+                <!-- NAV MANAGEMENT -->
                 <div style="border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-bottom: 25px; background: #f8fafc;">
                     <h3 style="margin-top: 0; color: var(--success); border-bottom: 1px solid var(--border); padding-bottom: 10px;">1. Update Scheme NAVs</h3>
                     
+                    <div style="margin-bottom: 20px;">
+                        <button type="button" id="btn-auto-nav" class="btn-primary" onclick="fetchAmfiNavs()" style="background: var(--info);">🔄 Auto-Fetch Latest NAVs (AMFI)</button>
+                        <p style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">Automatically pulls the latest NAVs for all ISINs in your transaction history directly from the AMFI database.</p>
+                    </div>
+
                     <div class="upload-box success" style="background: #fff; margin-bottom: 15px;">
-                        <h3 style="margin-top: 0;">📈 Bulk NAV Update via CSV</h3>
+                        <h3 style="margin-top: 0;">📈 Bulk NAV Update via CSV (Fallback)</h3>
                         <p><strong>Format:</strong> <code>ISIN, NAV, Date (YYYY-MM-DD)</code></p>
                         <input type="file" id="mfd-nav-csv" accept=".csv" onchange="uploadMfdNavCSV(event)">
                     </div>
@@ -326,7 +331,7 @@
                     </form>
                 </div>
 
-                <!-- EXISTING SECTION: TRANSACTION MANAGEMENT -->
+                <!-- TRANSACTION MANAGEMENT -->
                 <div style="border: 1px solid var(--border); padding: 15px; border-radius: 6px; background: #f8fafc;">
                     <h3 style="margin-top: 0; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 10px;">2. Log Client Transactions</h3>
                     
@@ -468,18 +473,16 @@
 
         if (cfs.length < 2) return 0;
 
-        // Rule: Must have at least one cash-in (negative) and cash-out/valuation (positive)
         let hasPos = false, hasNeg = false;
         cfs.forEach(cf => { if(cf.amt > 0.01) hasPos = true; if(cf.amt < -0.01) hasNeg = true; });
         if(!hasPos || !hasNeg) return 0;
 
         let d0 = cfs[0].time;
 
-        // Edge Case: If all transactions and valuation happen on the exact same day
         if (cfs[cfs.length - 1].time === d0) {
             let total = cfs.reduce((sum, cf) => sum + cf.amt, 0);
             let inv = cfs.reduce((sum, cf) => cf.amt < 0 ? sum + Math.abs(cf.amt) : sum, 0);
-            return inv > 0 ? (total / inv) * 100 : 0; // Return absolute simple return
+            return inv > 0 ? (total / inv) * 100 : 0; 
         }
 
         const getYears = (time) => (time - d0) / 86400000 / 365.25;
@@ -491,29 +494,22 @@
 
         const tolerance = 0.00001;
         const maxIter = 100;
-        
-        // Step 1: Newton-Raphson with multiple starting guesses
         const guesses = [0.1, -0.1, 0.5, -0.5, 1.0];
         
         for (let g = 0; g < guesses.length; g++) {
             let guess = guesses[g];
-            
             for (let i = 0; i < maxIter; i++) {
                 let currentNpv = npv(guess);
                 if (Math.abs(currentNpv) < tolerance) return guess * 100;
-
                 let derivative = npvDerivative(guess);
-                if (Math.abs(derivative) < 1e-12) break; // Slope is flat, abort this guess
-
+                if (Math.abs(derivative) < 1e-12) break; 
                 let nextGuess = guess - (currentNpv / derivative);
-                if (nextGuess <= -1) nextGuess = -0.99999; // XIRR cannot be lower than -100%
-
+                if (nextGuess <= -1) nextGuess = -0.99999; 
                 if (Math.abs(nextGuess - guess) < tolerance) return nextGuess * 100;
                 guess = nextGuess;
             }
         }
 
-        // Step 2: If Newton-Raphson fails, fallback to Bisection
         let low = -0.99999, high = 10000, guess = 0;
         for (let i = 0; i < 100; i++) {
             guess = (low + high) / 2;
@@ -582,12 +578,8 @@
                 el.innerText = user.email || "Logged in"; 
             });
 
-            if(document.getElementById('mfd-tx-date')) {
-                document.getElementById('mfd-tx-date').valueAsDate = new Date();
-            }
-            if(document.getElementById('mfd-manual-nav-date')) {
-                document.getElementById('mfd-manual-nav-date').valueAsDate = new Date();
-            }
+            if(document.getElementById('mfd-tx-date')) document.getElementById('mfd-tx-date').valueAsDate = new Date();
+            if(document.getElementById('mfd-manual-nav-date')) document.getElementById('mfd-manual-nav-date').valueAsDate = new Date();
 
             loadMfdData();
         } else {
@@ -708,7 +700,95 @@
     function cancelMfdTxEdit() { document.getElementById('mfd-tx-id').value = ''; document.getElementById('mfd-tx-btn').innerText = 'Add Transaction'; document.getElementById('mfd-tx-cancel-btn').style.display = 'none'; document.getElementById('mfd-tx-form').reset(); document.getElementById('mfd-tx-date').valueAsDate = new Date(); }
     async function deleteMfdTx(id) { if(confirm("Delete transaction?")) { await db.collection('mfd_transactions').doc(id).delete(); loadMfdData(); } }
 
-    // Uploaders & Manual NAV
+
+    // -------------------------------------------------------------
+    // AUTOMATED NAV FETCHING (AMFI) & Uploaders
+    // -------------------------------------------------------------
+    
+    // Safely parse AMFI date format (DD-MMM-YYYY)
+    function parseAmfiDate(dateStr) {
+        const months = { 'Jan':'01','Feb':'02','Mar':'03','Apr':'04','May':'05','Jun':'06','Jul':'07','Aug':'08','Sep':'09','Oct':'10','Nov':'11','Dec':'12' };
+        let parts = dateStr.split('-');
+        if (parts.length === 3) {
+            let yyyy = parts[2];
+            let mm = months[parts[1]];
+            let dd = parts[0];
+            if(mm && dd && yyyy) return `${yyyy}-${mm}-${dd}`;
+        }
+        return new Date().toISOString().split('T')[0]; // fallback
+    }
+
+    async function fetchAmfiNavs() {
+        if (!currentUser) return alert("Please log in first.");
+        
+        const btn = document.getElementById('btn-auto-nav');
+        const origText = btn.innerText;
+        btn.innerText = "⏳ Fetching from AMFI... Please wait";
+        btn.disabled = true;
+
+        try {
+            // Get unique ISINs from transactions
+            const myIsins = new Set(mfdTxs.filter(t => t.isin).map(t => t.isin.trim()));
+            if (myIsins.size === 0) {
+                alert("No ISINs found in your transactions.");
+                btn.innerText = origText; btn.disabled = false; return;
+            }
+
+            // Fetch AMFI NAV text using a stable CORS proxy
+            const response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://www.amfiindia.com/spages/NAVAll.txt'));
+            if (!response.ok) throw new Error("Network response was not ok");
+            const textData = await response.text();
+
+            const lines = textData.split('\n');
+            let updatedCount = 0;
+            const batch = db.batch();
+            const todayISO = new Date().toISOString();
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (line === "" || !line.includes(';')) continue;
+                
+                let parts = line.split(';');
+                if (parts.length >= 6) {
+                    let isin1 = parts[1].trim(); // ISIN Div Payout/Growth
+                    let isin2 = parts[2].trim(); // ISIN Reinvestment
+                    let navStr = parts[4].trim();
+                    let dateStr = parts[5].trim(); // format: DD-MMM-YYYY
+
+                    let matchedIsin = null;
+                    if (myIsins.has(isin1)) matchedIsin = isin1;
+                    else if (myIsins.has(isin2)) matchedIsin = isin2;
+
+                    if (matchedIsin && navStr && !isNaN(parseFloat(navStr))) {
+                        let isoDate = parseAmfiDate(dateStr);
+
+                        batch.set(db.collection('mfd_navs').doc(matchedIsin), {
+                            nav: parseFloat(navStr),
+                            date: isoDate,
+                            updated: todayISO
+                        });
+                        myIsins.delete(matchedIsin); // Prevent duplicate processing
+                        updatedCount++;
+                    }
+                }
+                if (myIsins.size === 0) break; // found all our ISINs
+            }
+
+            if (updatedCount > 0) {
+                await batch.commit();
+                alert(`Successfully updated live NAVs for ${updatedCount} schemes!`);
+                loadMfdData();
+            } else {
+                alert("Could not find your specific ISINs in the AMFI database. Please verify your ISINs are valid.");
+            }
+        } catch (error) {
+            alert("Error fetching NAVs: " + error.message);
+        } finally {
+            btn.innerText = origText;
+            btn.disabled = false;
+        }
+    }
+
     function uploadMfdNavCSV(e) {
         const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
         reader.onload = async function(ev) {
@@ -983,7 +1063,7 @@
             let pnlImp = isI ? amt : (isR ? -amt : 0); mTree[y].n += pnlImp; mTree[y].m[m].n += pnlImp; mTree[y].m[m].c[tx.clientName] += pnlImp;
         });
 
-        // Compute Client AUM mapping and Total Filtered AUM Using NAV Date
+        // Compute Client AUM mapping and Total Filtered AUM
         let latestGlobalNavDate = new Date(0);
         
         Object.keys(cMap).forEach(k => {
@@ -1013,14 +1093,13 @@
             
             i.cv = cv; 
             if (cv > 0) {
-                // Attach the CV cashflow to the exact day the NAV was valued, not the system clock
                 let finalDate = latestClientNavDate.getTime() > 0 ? latestClientNavDate : new Date();
                 i.cf.push({ amt: cv, date: finalDate });
             }
             if (gVal === 'ALL' || i.grp === gVal) currentValAum += cv;
         });
 
-        // Compute Scheme AUM Map Using NAV Date
+        // Compute Scheme AUM Map
         let sAumTotal = 0;
         Object.keys(sMap).forEach(k => { 
             let i = sMap[k]; 
@@ -1042,20 +1121,19 @@
         if(document.getElementById('mfd-total-redemption')) document.getElementById('mfd-total-redemption').innerText = tRed.toFixed(2);
         if(document.getElementById('mfd-total-clients')) document.getElementById('mfd-total-clients').innerText = Object.keys(cMap).filter(k => cMap[k].in > 0 || cMap[k].red > 0).length;
 
-        // Render Client Portfolio AUM Table (SORTABLE)
+        // Render Client Portfolio AUM Table (SORTABLE with Abs Return)
         const cb = document.getElementById('mfd-client-aum-body'); 
         if(cb) {
             cb.innerHTML = ''; 
             
-            // Map to Array to perform robust sorting
             let clientArr = Object.keys(cMap).map(k => {
                 let i = cMap[k];
                 i.xirr = computeXIRR(i.cf);
                 i.pct = currentValAum > 0 ? ((i.cv / currentValAum) * 100) : 0;
+                i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0;
                 return i;
             }).filter(i => (i.in > 0 || i.red > 0) && (gVal === 'ALL' || i.grp === gVal));
 
-            // Sorting Engine for Client Array
             clientArr.sort((a, b) => {
                 let v1 = a[clientSortCol] !== undefined ? a[clientSortCol] : '';
                 let v2 = b[clientSortCol] !== undefined ? b[clientSortCol] : '';
@@ -1066,31 +1144,31 @@
                 return 0;
             });
 
-            if (clientArr.length === 0) { cb.innerHTML = `<tr><td colspan="7" style="text-align:center;">No data.</td></tr>`; } 
+            if (clientArr.length === 0) { cb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } 
             else {
                 clientArr.forEach(i => {
                     let xc = i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'; 
-                    cb.innerHTML += `<tr><td>${i.grp || '-'}</td><td><strong>${i.id}</strong></td><td><strong>${i.name}</strong></td><td class="pnl-positive">+${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${xc}">${i.xirr.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${i.pct.toFixed(2)}%</span></td></tr>`;
+                    let arC = i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'; 
+                    cb.innerHTML += `<tr><td>${i.grp || '-'}</td><td><strong>${i.id}</strong></td><td><strong>${i.name}</strong></td><td class="pnl-positive">+${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${xc}">${i.xirr.toFixed(2)}%</td><td class="${arC}">${i.absRet.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${i.pct.toFixed(2)}%</span></td></tr>`;
                 });
             }
         }
 
-        // Render Scheme AUM Breakdown Table (SORTABLE)
+        // Render Scheme AUM Breakdown Table (SORTABLE with Abs Return)
         const sb = document.getElementById('mfd-scheme-aum-body'); 
         if(sb) {
             sb.innerHTML = ''; 
             
-            // Map to Array to perform robust sorting
             let schemeArr = Object.keys(sMap).map(s => {
                 let i = sMap[s];
                 let navObj = mfdNavs[i.isin];
                 i.rN = navObj ? navObj.nav : 0;
                 i.xirr = computeXIRR(i.cf);
                 i.pct = sAumTotal > 0 ? ((i.cv / sAumTotal) * 100) : 0;
+                i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0;
                 return i;
             }).filter(i => i.u > 0.001 || i.red > 0);
 
-            // Sorting Engine for Scheme Array
             schemeArr.sort((a, b) => {
                 let v1 = a[schemeSortCol] !== undefined ? a[schemeSortCol] : '';
                 let v2 = b[schemeSortCol] !== undefined ? b[schemeSortCol] : '';
@@ -1101,11 +1179,12 @@
                 return 0;
             });
 
-            if (schemeArr.length === 0) { sb.innerHTML = `<tr><td colspan="7" style="text-align:center;">No data.</td></tr>`; } 
+            if (schemeArr.length === 0) { sb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } 
             else {
                 schemeArr.forEach(i => {
                     let xc = i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'; 
-                    sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.u.toFixed(4)}</td><td>${i.rN.toFixed(4)}</td><td>${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${xc}">${i.xirr.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${i.pct.toFixed(2)}%</span></td></tr>`;
+                    let arC = i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'; 
+                    sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.u.toFixed(4)}</td><td>${i.rN.toFixed(4)}</td><td>${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${xc}">${i.xirr.toFixed(2)}%</td><td class="${arC}">${i.absRet.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${i.pct.toFixed(2)}%</span></td></tr>`;
                 });
             }
         }
@@ -1140,7 +1219,7 @@
             t.innerHTML = tHtml || `<div style="padding:15px; text-align:center;">No data.</div>`;
         }
 
-        // Finally, render the AUM Growth Chart
+        // Render the AUM Growth Chart
         updateAumChart();
     }
 
