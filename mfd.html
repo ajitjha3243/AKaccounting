@@ -97,7 +97,7 @@
                         <th class="sortable" onclick="setClientSort('grp')">Group <span class="sort-icon" id="client-sort-grp"></span></th>
                         <th class="sortable" onclick="setClientSort('id')">PAN/UCC <span class="sort-icon" id="client-sort-id"></span></th>
                         <th class="sortable" onclick="setClientSort('name')">Client Name <span class="sort-icon" id="client-sort-name"></span></th>
-                        <th class="sortable" onclick="setClientSort('in')">Invested <span class="sort-icon" id="client-sort-in"></span></th>
+                        <th class="sortable" onclick="setClientSort('netIn')">Net Invested <span class="sort-icon" id="client-sort-netIn"></span></th>
                         <th class="sortable" onclick="setClientSort('cv')">Current Val <span class="sort-icon" id="client-sort-cv">▼</span></th>
                         <th class="sortable" onclick="setClientSort('xirr')">XIRR <span class="sort-icon" id="client-sort-xirr"></span></th>
                         <th class="sortable" onclick="setClientSort('absRet')">Abs Return <span class="sort-icon" id="client-sort-absRet"></span></th>
@@ -116,7 +116,7 @@
                         <th class="sortable" onclick="setSchemeSort('scheme')">Scheme / ISIN <span class="sort-icon" id="scheme-sort-scheme"></span></th>
                         <th class="sortable" onclick="setSchemeSort('u')">Units <span class="sort-icon" id="scheme-sort-u"></span></th>
                         <th class="sortable" onclick="setSchemeSort('rN')">NAV <span class="sort-icon" id="scheme-sort-rN"></span></th>
-                        <th class="sortable" onclick="setSchemeSort('in')">Invested <span class="sort-icon" id="scheme-sort-in"></span></th>
+                        <th class="sortable" onclick="setSchemeSort('netIn')">Net Invested <span class="sort-icon" id="scheme-sort-netIn"></span></th>
                         <th class="sortable" onclick="setSchemeSort('cv')">Current Val <span class="sort-icon" id="scheme-sort-cv">▼</span></th>
                         <th class="sortable" onclick="setSchemeSort('xirr')">XIRR <span class="sort-icon" id="scheme-sort-xirr"></span></th>
                         <th class="sortable" onclick="setSchemeSort('absRet')">Abs Return <span class="sort-icon" id="scheme-sort-absRet"></span></th>
@@ -326,7 +326,10 @@
         renderMfdReportsOnly(); updateSortIcons(); const dyn = filterMfdTxs();
         dyn.sort((a,b) => { let v1 = a[mfdSortCol] || ''; let v2 = b[mfdSortCol] || ''; if(mfdSortCol === 'amount' || mfdSortCol === 'nav' || mfdSortCol === 'unit') { v1 = parseFloat(v1) || 0; v2 = parseFloat(v2) || 0; } else { v1 = v1.toString().toLowerCase(); v2 = v2.toString().toLowerCase(); } if (v1 < v2) return mfdSortDesc ? 1 : -1; if (v1 > v2) return mfdSortDesc ? -1 : 1; return 0; });
         const lb = document.getElementById('mfd-ledger-body'); if(lb) lb.innerHTML = ''; const tp = Math.ceil(dyn.length / pageSize) || 1; if (mfdPage > tp) mfdPage = tp; const startIdx = (mfdPage - 1) * pageSize; const pageTxs = dyn.slice(startIdx, startIdx + pageSize);
-        pageTxs.forEach(tx => { let t = (tx.type || '').trim().toLowerCase(); let iR = t.includes('red') || t.includes('sale'); let bC = iR ? 'redemption' : 'sip'; if (t.includes('lump')) bC = 'lumpsum'; let aC = iR ? 'pnl-negative' : 'pnl-positive'; if(lb) { lb.innerHTML += `<tr><td style="text-align: center;"><input type="checkbox" class="mfd-chk" value="${tx.id}"></td><td>${tx.date}</td><td><strong>${tx.group || '-'}</strong></td><td><strong>${tx.pan_ucc || '-'}</strong></td><td><strong>${tx.clientName}</strong></td><td>${tx.scheme}</td><td><small>${tx.isin || '-'}</small></td><td><span class="badge ${bC}">${tx.type}</span></td><td>${tx.nav > 0 ? tx.nav.toFixed(4) : '-'}</td><td>${tx.unit > 0 ? tx.unit.toFixed(4) : '-'}</td><td class="${aC}">${iR ? '-' : '+'}${(tx.amount||0).toFixed(2)}</td><td><button class="btn-edit-tx" onclick="editMfdTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteMfdTx('${tx.id}')">Del</button></td></tr>`; } });
+        pageTxs.forEach(tx => {
+            let t = (tx.type || '').trim().toLowerCase(); let iR = t.includes('red') || t.includes('sale'); let bC = iR ? 'redemption' : 'sip'; if (t.includes('lump')) bC = 'lumpsum'; let aC = iR ? 'pnl-negative' : 'pnl-positive';
+            if(lb) { lb.innerHTML += `<tr><td style="text-align: center;"><input type="checkbox" class="mfd-chk" value="${tx.id}"></td><td>${tx.date}</td><td><strong>${tx.group || '-'}</strong></td><td><strong>${tx.pan_ucc || '-'}</strong></td><td><strong>${tx.clientName}</strong></td><td>${tx.scheme}</td><td><small>${tx.isin || '-'}</small></td><td><span class="badge ${bC}">${tx.type}</span></td><td>${tx.nav > 0 ? tx.nav.toFixed(4) : '-'}</td><td>${tx.unit > 0 ? tx.unit.toFixed(4) : '-'}</td><td class="${aC}">${iR ? '-' : '+'}${(tx.amount||0).toFixed(2)}</td><td><button class="btn-edit-tx" onclick="editMfdTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteMfdTx('${tx.id}')">Del</button></td></tr>`; }
+        });
         if (pageTxs.length === 0 && lb) { lb.innerHTML = `<tr><td colspan="12" style="text-align:center; padding:15px; color:#666;">No transactions found.</td></tr>`; }
         if(document.getElementById('mfd-page-indicator')) document.getElementById('mfd-page-indicator').innerText = `Page ${mfdPage} of ${tp}`; if(document.getElementById('mfd-btn-prev')) document.getElementById('mfd-btn-prev').disabled = mfdPage === 1; if(document.getElementById('mfd-btn-next')) document.getElementById('mfd-btn-next').disabled = mfdPage === tp;
     }
@@ -336,39 +339,54 @@
         let tIn = 0, tRed = 0, currentValAum = 0, cMap = {}, sMap = {}, mTree = {};
         mfdClients.forEach(c => { let k = c.pan || c.ucc || c.name; cMap[k] = { id: k, name: c.name, grp: c.group||'', in: 0, red: 0, u: 0, cv: 0, cf: [] }; });
         mfdTxs.forEach(tx => {
-            let amt = Math.abs(parseFloat(tx.amount))||0; let u = Math.abs(parseFloat(tx.unit))||0; let ck = tx.pan_ucc || tx.clientName; let sk = tx.isin || tx.scheme || 'Uncategorized'; let tp = (tx.type||'').toLowerCase(); let isR = tp.includes('red') || tp.includes('sale'); let isI = tp.includes('sip') || tp.includes('lump') || tp.includes('pur');
+            let amt = Math.abs(parseFloat(tx.amount))||0; let u = Math.abs(parseFloat(tx.unit))||0; let txNav = Math.abs(parseFloat(tx.nav))||0;
+            if (u === 0 && amt > 0 && txNav > 0) u = amt / txNav;
+            let ck = tx.pan_ucc || tx.clientName; let sk = tx.isin || tx.scheme || 'Uncategorized'; let tp = (tx.type||'').toLowerCase(); let isR = tp.includes('red') || tp.includes('sale'); let isI = tp.includes('sip') || tp.includes('lump') || tp.includes('pur');
             let d; if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) { let parts = tx.date.split('-'); d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`); } else { d = new Date(tx.date); }
             if (!cMap[ck]) cMap[ck] = { id: ck, name: tx.clientName, grp: tx.group||'', in: 0, red: 0, u: 0, cv: 0, cf: [] }; if (!sMap[sk]) sMap[sk] = { isin: tx.isin, scheme: tx.scheme, in: 0, red: 0, u: 0, cv: 0, cf: [] };
             if (!(gVal === 'ALL' || cMap[ck].grp === gVal)) return; let inC = (filterVal === 'ALL' || ck === filterVal);
-            if (isI) { tIn += amt; cMap[ck].in += amt; cMap[ck].u += u; cMap[ck].cf.push({amt: -amt, date: d}); if (inC) { sMap[sk].in += amt; sMap[sk].u += u; sMap[sk].cf.push({amt: -amt, date: d}); } } else if (isR) { tRed += amt; cMap[ck].red += amt; cMap[ck].u -= u; cMap[ck].cf.push({amt: amt, date: d}); if (inC) { sMap[sk].red += amt; sMap[sk].u -= u; sMap[sk].cf.push({amt: amt, date: d}); } }
+            if (isI) { tIn += amt; cMap[ck].in += amt; cMap[ck].cf.push({amt: -amt, date: d}); if (inC) { sMap[sk].in += amt; sMap[sk].cf.push({amt: -amt, date: d}); } } 
+            else if (isR) { tRed += amt; cMap[ck].red += amt; cMap[ck].cf.push({amt: amt, date: d}); if (inC) { sMap[sk].red += amt; sMap[sk].cf.push({amt: amt, date: d}); } }
             let y = d.getFullYear() || new Date().getFullYear(); let m = (d.getMonth() + 1).toString().padStart(2, '0'); if (!mTree[y]) mTree[y] = { n: 0, m: {} }; if (!mTree[y].m[m]) mTree[y].m[m] = { n: 0, c: {} }; if (!mTree[y].m[m].c[tx.clientName]) mTree[y].m[m].c[tx.clientName] = 0; let pnlImp = isI ? amt : (isR ? -amt : 0); mTree[y].n += pnlImp; mTree[y].m[m].n += pnlImp; mTree[y].m[m].c[tx.clientName] += pnlImp;
         });
 
         let lNavDate = new Date(0);
         Object.keys(cMap).forEach(k => {
             let i = cMap[k]; let cv = 0; let cx = mfdTxs.filter(t => (t.pan_ucc || t.clientName) === k); let sb = {}; let lCNavDate = new Date(0);
-            cx.forEach(t => { let sKey = t.isin || t.scheme; if(!sb[sKey]) sb[sKey] = { u: 0, i: t.isin, fn: 0 }; let iR = (t.type||'').toLowerCase().includes('red'); sb[sKey].u += iR ? -t.unit : t.unit; if(t.nav > 0) sb[sKey].fn = t.nav; });
+            cx.forEach(t => { 
+                let sKey = t.isin || t.scheme; if(!sb[sKey]) sb[sKey] = { u: 0, i: t.isin, fn: 0 }; 
+                let iR = (t.type||'').toLowerCase().includes('red') || (t.type||'').toLowerCase().includes('sale'); 
+                let u = Math.abs(parseFloat(t.unit))||0; let amt = Math.abs(parseFloat(t.amount))||0; let tNav = Math.abs(parseFloat(t.nav))||0;
+                if (u === 0 && amt > 0 && tNav > 0) u = amt / tNav;
+                sb[sKey].u += iR ? -u : u; if(tNav > 0) sb[sKey].fn = tNav; 
+            });
             Object.keys(sb).forEach(sKey => { if (sb[sKey].u > 0) { let navObj = mfdNavs[sb[sKey].i]; let rN = navObj ? navObj.nav : (sb[sKey].fn || 0); let nDate = navObj && navObj.date ? new Date(navObj.date) : new Date(); if (nDate > lCNavDate) lCNavDate = nDate; if (nDate > lNavDate) lNavDate = nDate; cv += (sb[sKey].u * rN); } });
-            i.cv = cv; if (cv > 0) { i.cf.push({ amt: cv, date: lCNavDate.getTime() > 0 ? lCNavDate : new Date() }); } if (gVal === 'ALL' || i.grp === gVal) currentValAum += cv;
+            i.cv = cv; if (cv > 0) { i.cf.push({ amt: cv, date: lCNavDate.getTime() > 0 ? lCNavDate : new Date() }); }
+            if (gVal === 'ALL' || i.grp === gVal) currentValAum += cv;
         });
 
         let sAumTotal = 0;
-        Object.keys(sMap).forEach(k => { let i = sMap[k]; if (i.u > 0) { let nObj = mfdNavs[i.isin]; let rN = nObj ? nObj.nav : 0; i.cv = i.u * rN; i.cf.push({ amt: i.cv, date: nObj && nObj.date ? new Date(nObj.date) : new Date() }); sAumTotal += i.cv; } });
+        Object.keys(sMap).forEach(k => { let i = sMap[k]; if (i.in > 0 || i.red > 0) { 
+            let cx = mfdTxs.filter(t => (t.isin || t.scheme || 'Uncategorized') === k); let sbU = 0; let sbfn = 0;
+            cx.forEach(t => { let iR = (t.type||'').toLowerCase().includes('red') || (t.type||'').toLowerCase().includes('sale'); let u = Math.abs(parseFloat(t.unit))||0; let amt = Math.abs(parseFloat(t.amount))||0; let tNav = Math.abs(parseFloat(t.nav))||0; if (u === 0 && amt > 0 && tNav > 0) u = amt / tNav; sbU += iR ? -u : u; if(tNav > 0) sbfn = tNav; });
+            i.u = sbU;
+            if (i.u > 0) { let nObj = mfdNavs[i.isin]; let rN = nObj ? nObj.nav : sbfn; i.cv = i.u * rN; i.cf.push({ amt: i.cv, date: nObj && nObj.date ? new Date(nObj.date) : new Date() }); sAumTotal += i.cv; } else { i.cv = 0; }
+        }});
 
         if(document.getElementById('mfd-current-val')) document.getElementById('mfd-current-val').innerText = currentValAum.toFixed(2); if(document.getElementById('mfd-net-inv')) document.getElementById('mfd-net-inv').innerText = (tIn - tRed).toFixed(2); if(document.getElementById('mfd-gross-inflow')) document.getElementById('mfd-gross-inflow').innerText = tIn.toFixed(2); if(document.getElementById('mfd-total-redemption')) document.getElementById('mfd-total-redemption').innerText = tRed.toFixed(2); if(document.getElementById('mfd-total-clients')) document.getElementById('mfd-total-clients').innerText = Object.keys(cMap).filter(k => cMap[k].in > 0 || cMap[k].red > 0).length;
 
         const cb = document.getElementById('mfd-client-aum-body'); 
         if(cb) {
-            cb.innerHTML = ''; let arr = Object.keys(cMap).map(k => { let i = cMap[k]; i.xirr = computeXIRR(i.cf); i.pct = currentValAum > 0 ? ((i.cv / currentValAum) * 100) : 0; i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0; return i; }).filter(i => (i.in > 0 || i.red > 0) && (gVal === 'ALL' || i.grp === gVal));
+            cb.innerHTML = ''; let arr = Object.keys(cMap).map(k => { let i = cMap[k]; i.xirr = computeXIRR(i.cf); i.pct = currentValAum > 0 ? ((i.cv / currentValAum) * 100) : 0; i.netIn = i.in - i.red; i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0; return i; }).filter(i => (i.in > 0 || i.red > 0) && (gVal === 'ALL' || i.grp === gVal));
             arr.sort((a, b) => { let v1 = a[clientSortCol] !== undefined ? a[clientSortCol] : ''; let v2 = b[clientSortCol] !== undefined ? b[clientSortCol] : ''; if(typeof v1 === 'string') v1 = v1.toLowerCase(); if(typeof v2 === 'string') v2 = v2.toLowerCase(); if (v1 < v2) return clientSortDesc ? 1 : -1; if (v1 > v2) return clientSortDesc ? -1 : 1; return 0; });
-            if (arr.length === 0) { cb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } else { arr.forEach(i => { cb.innerHTML += `<tr><td>${i.grp || '-'}</td><td><strong>${i.id}</strong></td><td><strong>${i.name}</strong></td><td class="pnl-positive">+${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.xirr.toFixed(2)}%</td><td class="${i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.absRet.toFixed(2)}%</td><td><span class="badge" style="background:#e2e8f0; color:#333;">${i.pct.toFixed(2)}%</span></td></tr>`; }); }
+            if (arr.length === 0) { cb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } else { arr.forEach(i => { cb.innerHTML += `<tr><td>${i.grp || '-'}</td><td><strong>${i.id}</strong></td><td><strong>${i.name}</strong></td><td class="${i.netIn >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.netIn >= 0 ? '+' : ''}${i.netIn.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.xirr.toFixed(2)}%</td><td class="${i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.absRet.toFixed(2)}%</td><td><span class="badge" style="background:#e2e8f0; color:#333;">${i.pct.toFixed(2)}%</span></td></tr>`; }); }
         }
 
         const sb = document.getElementById('mfd-scheme-aum-body'); 
         if(sb) {
-            sb.innerHTML = ''; let arr = Object.keys(sMap).map(s => { let i = sMap[s]; let nObj = mfdNavs[i.isin]; i.rN = nObj ? nObj.nav : 0; i.xirr = computeXIRR(i.cf); i.pct = sAumTotal > 0 ? ((i.cv / sAumTotal) * 100) : 0; i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0; return i; }).filter(i => i.u > 0.001 || i.red > 0);
+            sb.innerHTML = ''; let arr = Object.keys(sMap).map(s => { let i = sMap[s]; let nObj = mfdNavs[i.isin]; i.rN = nObj ? nObj.nav : 0; i.xirr = computeXIRR(i.cf); i.pct = sAumTotal > 0 ? ((i.cv / sAumTotal) * 100) : 0; i.netIn = i.in - i.red; i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0; return i; }).filter(i => i.u > 0.001 || i.red > 0);
             arr.sort((a, b) => { let v1 = a[schemeSortCol] !== undefined ? a[schemeSortCol] : ''; let v2 = b[schemeSortCol] !== undefined ? b[schemeSortCol] : ''; if(typeof v1 === 'string') v1 = v1.toLowerCase(); if(typeof v2 === 'string') v2 = v2.toLowerCase(); if (v1 < v2) return schemeSortDesc ? 1 : -1; if (v1 > v2) return schemeSortDesc ? -1 : 1; return 0; });
-            if (arr.length === 0) { sb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } else { arr.forEach(i => { sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.u.toFixed(4)}</td><td>${i.rN.toFixed(4)}</td><td>${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.xirr.toFixed(2)}%</td><td class="${i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.absRet.toFixed(2)}%</td><td><span class="badge" style="background:#e2e8f0; color:#333;">${i.pct.toFixed(2)}%</span></td></tr>`; }); }
+            if (arr.length === 0) { sb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } else { arr.forEach(i => { sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.u.toFixed(4)}</td><td>${i.rN.toFixed(4)}</td><td class="${i.netIn >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.netIn >= 0 ? '+' : ''}${i.netIn.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.xirr.toFixed(2)}%</td><td class="${i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.absRet.toFixed(2)}%</td><td><span class="badge" style="background:#e2e8f0; color:#333;">${i.pct.toFixed(2)}%</span></td></tr>`; }); }
         }
 
         const cd = document.getElementById('mfd-client-details-body'); 
@@ -398,7 +416,9 @@
         validTxs.forEach(tx => {
             let d; if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) { let parts = tx.date.split('-'); d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`); } else { d = new Date(tx.date); } if (isNaN(d)) return;
             let ym = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`; years.add(d.getFullYear().toString());
-            let amt = Math.abs(parseFloat(tx.amount)) || 0; let u = Math.abs(parseFloat(tx.unit)) || 0; let typ = (tx.type||'').toLowerCase();
+            let amt = Math.abs(parseFloat(tx.amount)) || 0; let u = Math.abs(parseFloat(tx.unit)) || 0; let txNav = Math.abs(parseFloat(tx.nav))||0;
+            if (u === 0 && amt > 0 && txNav > 0) u = amt / txNav;
+            let typ = (tx.type||'').toLowerCase();
             if (!rU[tx.isin]) rU[tx.isin] = 0;
             if (typ.includes('pur') || typ.includes('sip') || typ.includes('lump')) { rU[tx.isin] += u; rI += amt; } else if (typ.includes('red') || typ.includes('sale')) { rU[tx.isin] -= u; rI -= amt; }
             let curAum = 0; Object.keys(rU).forEach(isin => { let navObj = mfdNavs[isin]; curAum += (rU[isin] * (navObj ? navObj.nav : 0)); }); mD[ym] = { aum: curAum, inv: rI };
