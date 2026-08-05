@@ -4,1438 +4,419 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MFD Business Dashboard</title>
-    
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <style>
-        :root {
-            --bg-color: #f4f6f9; --card-bg: #ffffff; --text-color: #333333;
-            --primary: #2563eb; --success: #16a34a; --danger: #dc2626;
-            --warning: #f59e0b; --info: #0ea5e9; --purple: #8b5cf6; --border: #e5e7eb;
-        }
+        :root { --bg-color: #f4f6f9; --card-bg: #ffffff; --text-color: #333333; --primary: #2563eb; --success: #16a34a; --danger: #dc2626; --warning: #f59e0b; --info: #0ea5e9; --border: #e5e7eb; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
-        
         .container { max-width: 1200px; margin: 0 auto; display: none; }
-        
-        #auth-overlay {
-            display: flex; justify-content: center; align-items: center; 
-            height: 100vh; background-color: var(--bg-color); 
-            position: fixed; top: 0; left: 0; width: 100%; z-index: 9999;
-        }
-        .login-box {
-            background: var(--card-bg); padding: 30px; border-radius: 8px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center;
-        }
+        #auth-overlay { display: flex; justify-content: center; align-items: center; height: 100vh; background-color: var(--bg-color); position: fixed; top: 0; left: 0; width: 100%; z-index: 9999; }
+        .login-box { background: var(--card-bg); padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; }
         .login-box h2 { margin-top: 0; margin-bottom: 20px; color: var(--text-color); }
         .login-box label { display: block; margin-bottom: 5px; font-size: 0.9rem; font-weight: 500; text-align: left; }
         .login-box input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; margin-bottom: 15px; }
-
         .header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 15px;}
         .user-controls { display: flex; align-items: center; gap: 15px; background: #e2e8f0; padding: 8px 15px; border-radius: 8px; font-weight: 500; font-size: 0.95rem; }
         .btn-logout { background: #64748b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
         .btn-logout:hover { background: #475569; }
         h1 { margin: 0; font-weight: 700; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 1.5rem;}
         .header-actions { display: flex; gap: 10px; align-items: center; }
-        .btn-backup { background: var(--purple); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
+        .btn-backup { background: #8b5cf6; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
         .btn-nav-switch { background: var(--primary); color: white; text-decoration: none; padding: 8px 12px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; }
-        .btn-nav-switch:hover { background: #1d4ed8; }
-        
         .summary-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
         .card { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 5px solid var(--primary); }
-        .card.equity { border-left-color: var(--primary); }
-        .card.mf { border-left-color: var(--warning); }
-        .card.cash { border-left-color: var(--success); }
-        .card.pnl { border-left-color: var(--info); } 
-        .card.purple { border-left-color: var(--purple); } 
-        .card h3 { margin: 0 0 10px 0; font-size: 0.85rem; text-transform: uppercase; color: #666; }
-        .card p { margin: 0; font-size: 1.5rem; font-weight: bold; }
-        
-        .main-grid { display: grid; grid-template-columns: 1fr; gap: 25px; margin-bottom: 25px; align-items: start; }
-        @media(min-width: 900px) { .main-grid { grid-template-columns: 350px 1fr; } }
-        .reports-grid { display: grid; grid-template-columns: 1fr; gap: 25px; }
-        @media(min-width: 900px) { .reports-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
-        
-        .panel { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 25px; }
-        .panel h2 { margin-top: 0; font-size: 1.2rem; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; user-select: none; transition: color 0.2s; }
-        .panel-header:hover { color: var(--primary); }
-        .panel-header h2 { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
-        
-        .collapsible-table-content { display: none; }
-        .collapsible-table-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; }
-        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; }
-        
-        button.btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: 0.2s; }
-        button.btn-primary:hover { background: #1d4ed8; }
-        button.btn-secondary { width: 100%; background: #64748b; color: white; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; }
-        
-        .controls-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid var(--border); }
-        .controls-row .form-group { margin-bottom: 0; flex: 1; min-width: 150px; }
-        button.btn-export { background: var(--success); color: white; border: none; padding: 9px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; }
-        button.btn-danger-sm { background: var(--danger); color: white; border: none; padding: 9px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; }
-        
-        .upload-box { padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid; }
-        .upload-box.success { background: #f0fdf4; border-color: #bbf7d0; } .upload-box.success h3 { color: var(--success); margin-top: 0; font-size: 1rem; }
-        .upload-box.primary { background: #e0e7ff; border-color: #c7d2fe; } .upload-box.primary h3 { color: var(--primary); margin-top: 0; font-size: 1rem; }
-        .upload-box p { font-size: 0.85rem; color: #475569; margin-bottom: 5px; } .upload-box small { font-size: 0.75rem; color: var(--danger); }
-
-        .table-container { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
-        th, td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
-        th { background-color: #f8fafc; font-weight: 600; white-space: nowrap; }
-        th.sortable { cursor: pointer; transition: background 0.2s; user-select: none; }
-        th.sortable:hover { background-color: #e2e8f0; }
-        .sort-icon { font-size: 0.8rem; margin-left: 5px; color: var(--primary); }
-        .col-filter { width: 100%; padding: 4px; font-size: 0.8rem; font-weight: normal; margin-top: 6px; border: 1px solid #cbd5e1; border-radius: 3px; box-sizing: border-box; }
-
-        .checkbox-lg { transform: scale(1.2); cursor: pointer; }
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
-        .badge.sip { background: #dcfce7; color: #15803d; } .badge.lumpsum { background: #dbeafe; color: #1d4ed8; } .badge.redemption { background: #fee2e2; color: #991b1b; }
-        
-        .btn-edit-tx { background: none; border: none; color: var(--primary); cursor: pointer; font-weight: 500; margin-right: 8px; }
-        .btn-delete { background: none; border: none; color: var(--danger); cursor: pointer; font-weight: 500; }
-        .pnl-positive { color: var(--success); font-weight: bold; } .pnl-negative { color: var(--danger); font-weight: bold; }
-
-        .pagination-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border); }
-        .pagination-controls button { padding: 8px 16px; border: 1px solid var(--border); background: var(--card-bg); cursor: pointer; border-radius: 4px; font-weight: 600; transition: background 0.2s; }
-        .pagination-controls button:hover:not(:disabled) { background: #e2e8f0; }
-        .pagination-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
-        #mfd-page-indicator { font-weight: 500; color: #64748b; font-size: 0.95rem; }
-
-        .tree-container { font-size: 0.9rem; background: #fff; } .tree-node { margin-bottom: 4px; }
-        .tree-header { display: flex; justify-content: space-between; padding: 8px 12px; background: #f8fafc; cursor: pointer; border-radius: 4px; user-select: none; transition: all 0.2s; border: 1px solid #e2e8f0;}
-        .tree-header:hover { background: #e2e8f0; border-color: #cbd5e1; }
-        .tree-arrow { display: inline-block; width: 16px; font-size: 0.75rem; transition: transform 0.2s; color: #64748b; }
-        .tree-node.active > .tree-header .tree-arrow { transform: rotate(90deg); color: var(--primary); }
-        .tree-children { display: none; padding-left: 20px; border-left: 2px solid #e2e8f0; margin-left: 7px; margin-top: 4px; padding-bottom: 4px;}
-        .tree-node.active > .tree-children { display: block; animation: fadeIn 0.3s ease-in-out; }
-        .tree-leaf { display: flex; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid var(--border); margin-left: 10px; background: #fafafa;}
+        .card.equity { border-left-color: var(--primary); } .card.mf { border-left-color: var(--warning); } .card.cash { border-left-color: var(--success); } .card.pnl { border-left-color: var(--info); } .card.purple { border-left-color: #8b5cf6; } 
+        .card h3 { margin: 0 0 10px 0; font-size: 0.85rem; text-transform: uppercase; color: #666; } .card p { margin: 0; font-size: 1.5rem; font-weight: bold; }
+        .main-grid { display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 20px; align-items: start; } @media(min-width: 900px) { .main-grid { grid-template-columns: 1fr 1fr; } }
+        .panel { background: var(--card-bg); padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .stylish-header { display: flex; justify-content: space-between; align-items: center; color: white; padding: 14px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 1.1rem; transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); user-select: none; margin-bottom: 0; }
+        .stylish-header:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
+        .stylish-header.blue { background: linear-gradient(135deg, #1e40af, #3b82f6); } .stylish-header.purple { background: linear-gradient(135deg, #6b21a8, #8b5cf6); } .stylish-header.green { background: linear-gradient(135deg, #166534, #22c55e); } .stylish-header.orange { background: linear-gradient(135deg, #c2410c, #f97316); } .stylish-header.pink { background: linear-gradient(135deg, #be123c, #f43f5e); } .stylish-header.teal { background: linear-gradient(135deg, #0f766e, #06b6d4); } .stylish-header.slate { background: linear-gradient(135deg, #334155, #64748b); }
+        .chevron { transition: transform 0.3s ease; display: inline-block; font-size: 0.9rem; } .active-header .chevron { transform: rotate(180deg); }
+        .collapsible-table-content { display: none; } .collapsible-table-content.active { display: block; animation: fadeIn 0.4s ease-in-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .form-group { margin-bottom: 12px; } .form-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; } .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; }
+        button.btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: 0.2s; } button.btn-secondary { width: 100%; background: #64748b; color: white; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; }
+        .controls-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid var(--border); } .controls-row .form-group { margin-bottom: 0; flex: 1; min-width: 150px; }
+        button.btn-export { background: var(--success); color: white; border: none; padding: 9px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; } button.btn-danger-sm { background: var(--danger); color: white; border: none; padding: 9px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; }
+        .upload-box { padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid; } .upload-box.success { background: #f0fdf4; border-color: #bbf7d0; } .upload-box.success h3 { color: var(--success); margin-top: 0; font-size: 1rem; } .upload-box.primary { background: #e0e7ff; border-color: #c7d2fe; } .upload-box.primary h3 { color: var(--primary); margin-top: 0; font-size: 1rem; }
+        .table-container { overflow-x: auto; } table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; } th, td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: top; } th { background-color: #f8fafc; font-weight: 600; white-space: nowrap; } th.sortable { cursor: pointer; transition: background 0.2s; user-select: none; } th.sortable:hover { background-color: #e2e8f0; } .sort-icon { font-size: 0.8rem; margin-left: 5px; color: var(--primary); } .col-filter { width: 100%; padding: 4px; font-size: 0.8rem; font-weight: normal; margin-top: 6px; border: 1px solid #cbd5e1; border-radius: 3px; box-sizing: border-box; }
+        .checkbox-lg { transform: scale(1.2); cursor: pointer; } .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; } .badge.sip { background: #dcfce7; color: #15803d; } .badge.lumpsum { background: #dbeafe; color: #1d4ed8; } .badge.redemption { background: #fee2e2; color: #991b1b; }
+        .btn-edit-tx { background: none; border: none; color: var(--primary); cursor: pointer; font-weight: 500; margin-right: 8px; } .btn-delete { background: none; border: none; color: var(--danger); cursor: pointer; font-weight: 500; } .pnl-positive { color: var(--success); font-weight: bold; } .pnl-negative { color: var(--danger); font-weight: bold; }
+        .pagination-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border); } .pagination-controls button { padding: 8px 16px; border: 1px solid var(--border); background: var(--card-bg); cursor: pointer; border-radius: 4px; font-weight: 600; transition: background 0.2s; } .pagination-controls button:hover:not(:disabled) { background: #e2e8f0; } .pagination-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .tree-container { font-size: 0.9rem; background: #fff; } .tree-node { margin-bottom: 4px; } .tree-header { display: flex; justify-content: space-between; padding: 8px 12px; background: #f8fafc; cursor: pointer; border-radius: 4px; user-select: none; transition: all 0.2s; border: 1px solid #e2e8f0;} .tree-header:hover { background: #e2e8f0; border-color: #cbd5e1; } .tree-arrow { display: inline-block; width: 16px; font-size: 0.75rem; transition: transform 0.2s; color: #64748b; } .tree-node.active > .tree-header .tree-arrow { transform: rotate(90deg); color: var(--primary); } .tree-children { display: none; padding-left: 20px; border-left: 2px solid #e2e8f0; margin-left: 7px; margin-top: 4px; padding-bottom: 4px;} .tree-node.active > .tree-children { display: block; animation: fadeIn 0.3s ease-in-out; } .tree-leaf { display: flex; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid var(--border); margin-left: 10px; background: #fafafa;}
     </style>
 </head>
 <body>
 
-<!-- LOGIN OVERLAY -->
 <div id="auth-overlay">
     <div class="login-box">
         <h2>Dashboard Login</h2>
         <form id="login-form" onsubmit="handleLogin(event)">
-            <div>
-                <label>Email</label>
-                <input type="email" id="login-email" required>
-            </div>
-            <div>
-                <label>Password</label>
-                <input type="password" id="login-password" required>
-            </div>
+            <div><label>Email</label><input type="email" id="login-email" required></div>
+            <div><label>Password</label><input type="password" id="login-password" required></div>
             <button type="submit" class="btn-primary">Log In</button>
             <p id="login-error" style="color: #dc2626; font-size: 0.85rem; display: none; margin-top: 15px;"></p>
         </form>
     </div>
 </div>
 
-<!-- MAIN DASHBOARD -->
 <div class="container" id="workspace-mfd">
     <div class="header-top">
         <h1>MFD Business Dashboard</h1>
-        <div class="user-controls">
-            <span class="display-user-email">Loading...</span>
-        </div>
+        <div class="user-controls"><span class="display-user-email">Loading...</span></div>
         <div class="header-actions">
-            <!-- Link to switch back to Personal Dashboard -->
             <a href="index.html" class="btn-nav-switch">⬅ Switch to Personal Finance</a>
             <button class="btn-backup" onclick="backupData()">💾 Backup Data</button>
             <button class="btn-logout" onclick="signOut()">Log Out</button>
         </div>
     </div>
 
-    <!-- MFD TOP SUMMARY CARDS -->
     <div class="summary-container">
-        <div class="card equity"><h3>Total Clients (Filtered)</h3><p id="mfd-total-clients">0</p></div>
+        <div class="card equity"><h3>Total Clients</h3><p id="mfd-total-clients">0</p></div>
         <div class="card pnl"><h3>Net Investment</h3><p id="mfd-net-inv">0.00</p></div>
         <div class="card purple"><h3>Current Value (AUM)</h3><p id="mfd-current-val">0.00</p></div>
         <div class="card cash"><h3>Gross Inflows</h3><p id="mfd-gross-inflow" class="pnl-positive">0.00</p></div>
         <div class="card mf"><h3>Total Redemptions</h3><p id="mfd-total-redemption" class="pnl-negative">0.00</p></div>
     </div>
 
-    <!-- MFD BUSINESS & CLIENT ANALYTICS PANEL -->
-    <div class="panel" style="padding-top: 10px; margin-bottom: 25px;">
-        <div class="panel-header" onclick="togglePanel('mfd-analytics-content', 'mfd-analytics-icon')">
-            <h2>Business & Client Analytics Reports</h2><span id="mfd-analytics-icon">▲</span>
+    <div class="panel" style="padding: 15px;">
+        <div class="controls-row" style="background: #fffbeb; border: 1px solid #fde68a; margin-bottom: 0;">
+            <div class="form-group" style="flex: 1;"><label>Filter Dashboard by Group:</label><select id="mfd-report-group-filter" onchange="renderMfdApp()"><option value="ALL">All Groups</option></select></div>
+            <div class="form-group" style="flex: 2;"><label>Filter Analytics by Specific Investor:</label><select id="mfd-report-client-filter" onchange="renderMfdReportsOnly()"><option value="ALL">All Investors</option></select></div>
         </div>
-        <div id="mfd-analytics-content" class="collapsible-table-content active">
-            
-            <div class="controls-row" style="background: #fffbeb; border: 1px solid #fde68a;">
-                <div class="form-group" style="flex: 1;">
-                    <label>Filter by Group:</label>
-                    <select id="mfd-report-group-filter" onchange="renderMfdApp()"><option value="ALL">All Groups</option></select>
-                </div>
-                <div class="form-group" style="flex: 2;">
-                    <label>Filter Scheme & XIRR Report by Investor:</label>
-                    <select id="mfd-report-client-filter" onchange="renderMfdReportsOnly()">
-                        <option value="ALL">All Investors</option>
-                    </select>
-                </div>
-            </div>
+    </div>
 
-            <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
-                <div class="table-container">
-                    <h3>Client Portfolio AUM Summary</h3>
-                    <table>
-                        <thead><tr>
-                            <th class="sortable" onclick="setClientSort('grp')">Group <span class="sort-icon" id="client-sort-grp"></span></th>
-                            <th class="sortable" onclick="setClientSort('id')">PAN/UCC <span class="sort-icon" id="client-sort-id"></span></th>
-                            <th class="sortable" onclick="setClientSort('name')">Client Name <span class="sort-icon" id="client-sort-name"></span></th>
-                            <th class="sortable" onclick="setClientSort('in')">Invested <span class="sort-icon" id="client-sort-in"></span></th>
-                            <th class="sortable" onclick="setClientSort('cv')">Current Val <span class="sort-icon" id="client-sort-cv">▼</span></th>
-                            <th class="sortable" onclick="setClientSort('xirr')">XIRR <span class="sort-icon" id="client-sort-xirr"></span></th>
-                            <th class="sortable" onclick="setClientSort('absRet')">Abs Return <span class="sort-icon" id="client-sort-absRet"></span></th>
-                            <th style="background:#e2e8f0;">% Wgt</th>
-                        </tr></thead>
-                        <tbody id="mfd-client-aum-body"></tbody>
-                    </table>
-                </div>
-
-                <div class="table-container">
-                    <h3>Scheme-wise Breakdown <span id="scheme-filter-lbl" style="color:var(--primary); font-size:0.8rem;">(All)</span></h3>
-                    <table>
-                        <thead><tr>
-                            <th class="sortable" onclick="setSchemeSort('scheme')">Scheme / ISIN <span class="sort-icon" id="scheme-sort-scheme"></span></th>
-                            <th class="sortable" onclick="setSchemeSort('u')">Units <span class="sort-icon" id="scheme-sort-u"></span></th>
-                            <th class="sortable" onclick="setSchemeSort('rN')">NAV <span class="sort-icon" id="scheme-sort-rN"></span></th>
-                            <th class="sortable" onclick="setSchemeSort('in')">Invested <span class="sort-icon" id="scheme-sort-in"></span></th>
-                            <th class="sortable" onclick="setSchemeSort('cv')">Current Val <span class="sort-icon" id="scheme-sort-cv">▼</span></th>
-                            <th class="sortable" onclick="setSchemeSort('xirr')">XIRR <span class="sort-icon" id="scheme-sort-xirr"></span></th>
-                            <th class="sortable" onclick="setSchemeSort('absRet')">Abs Return <span class="sort-icon" id="scheme-sort-absRet"></span></th>
-                            <th style="background:#e2e8f0;">% Wgt</th>
-                        </tr></thead>
-                        <tbody id="mfd-scheme-aum-body"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="table-container" style="margin-top: 25px;">
-                <h3 style="border-bottom: 2px solid var(--border); padding-bottom: 5px;">Comprehensive Client Details Report</h3>
+    <div style="display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 20px;">
+        <div class="panel">
+            <div class="stylish-header purple active-header" onclick="togglePanel('client-aum-content', this)"><span>📊 Client Portfolio AUM Summary</span><span class="chevron">▼</span></div>
+            <div id="client-aum-content" class="collapsible-table-content active" style="padding-top: 15px; overflow-x: auto;">
                 <table>
-                    <thead><tr><th>PAN/UCC</th><th>Group</th><th>Client Name</th><th>Mobile</th><th>City / State</th><th>Nominee</th></tr></thead>
-                    <tbody id="mfd-client-details-body"></tbody>
+                    <thead><tr>
+                        <th class="sortable" onclick="setClientSort('grp')">Group <span class="sort-icon" id="client-sort-grp"></span></th>
+                        <th class="sortable" onclick="setClientSort('id')">PAN/UCC <span class="sort-icon" id="client-sort-id"></span></th>
+                        <th class="sortable" onclick="setClientSort('name')">Client Name <span class="sort-icon" id="client-sort-name"></span></th>
+                        <th class="sortable" onclick="setClientSort('in')">Invested <span class="sort-icon" id="client-sort-in"></span></th>
+                        <th class="sortable" onclick="setClientSort('cv')">Current Val <span class="sort-icon" id="client-sort-cv">▼</span></th>
+                        <th class="sortable" onclick="setClientSort('xirr')">XIRR <span class="sort-icon" id="client-sort-xirr"></span></th>
+                        <th class="sortable" onclick="setClientSort('absRet')">Abs Return <span class="sort-icon" id="client-sort-absRet"></span></th>
+                        <th style="background:#e2e8f0;">% Wgt</th>
+                    </tr></thead>
+                    <tbody id="mfd-client-aum-body"></tbody>
                 </table>
             </div>
+        </div>
 
-            <div style="margin-top: 25px;">
-                <h3 style="border-bottom: 2px solid var(--border); padding-bottom: 5px;">Monthly Business Flow Drilldown</h3>
-                <div id="mfd-drilldown-tree" class="tree-container" style="max-width: 800px;"></div>
+        <div class="panel">
+            <div class="stylish-header pink active-header" onclick="togglePanel('scheme-aum-content', this)"><span>📈 Scheme-wise Breakdown <span id="scheme-filter-lbl" style="font-size:0.85rem; opacity: 0.8;">(All)</span></span><span class="chevron">▼</span></div>
+            <div id="scheme-aum-content" class="collapsible-table-content active" style="padding-top: 15px; overflow-x: auto;">
+                <table>
+                    <thead><tr>
+                        <th class="sortable" onclick="setSchemeSort('scheme')">Scheme / ISIN <span class="sort-icon" id="scheme-sort-scheme"></span></th>
+                        <th class="sortable" onclick="setSchemeSort('u')">Units <span class="sort-icon" id="scheme-sort-u"></span></th>
+                        <th class="sortable" onclick="setSchemeSort('rN')">NAV <span class="sort-icon" id="scheme-sort-rN"></span></th>
+                        <th class="sortable" onclick="setSchemeSort('in')">Invested <span class="sort-icon" id="scheme-sort-in"></span></th>
+                        <th class="sortable" onclick="setSchemeSort('cv')">Current Val <span class="sort-icon" id="scheme-sort-cv">▼</span></th>
+                        <th class="sortable" onclick="setSchemeSort('xirr')">XIRR <span class="sort-icon" id="scheme-sort-xirr"></span></th>
+                        <th class="sortable" onclick="setSchemeSort('absRet')">Abs Return <span class="sort-icon" id="scheme-sort-absRet"></span></th>
+                        <th style="background:#e2e8f0;">% Wgt</th>
+                    </tr></thead>
+                    <tbody id="mfd-scheme-aum-body"></tbody>
+                </table>
             </div>
+        </div>
 
-            <!-- CHART PANEL -->
-            <div style="margin-top: 25px;">
-                <div class="panel-header" onclick="togglePanel('mfd-chart-content', 'mfd-chart-icon')" style="border-bottom: 2px solid var(--border); padding-bottom: 5px;">
-                    <h3 style="margin: 0; border: none; padding: 0;">AUM Growth Trend</h3><span id="mfd-chart-icon">▲</span>
-                </div>
-                <div id="mfd-chart-content" class="collapsible-table-content active" style="padding-top: 15px;">
-                    <div class="form-group" style="max-width: 200px;">
-                        <label>Select Year for Drilldown:</label>
-                        <select id="mfd-chart-year-filter" onchange="updateAumChart()"><option value="ALL">All Time</option></select>
-                    </div>
-                    <div style="position: relative; height: 350px; width: 100%;">
-                        <canvas id="aumGrowthChart"></canvas>
-                    </div>
-                </div>
+        <div class="panel">
+            <div class="stylish-header slate active-header" onclick="togglePanel('chart-content', this)"><span>📉 AUM Growth Trend</span><span class="chevron">▼</span></div>
+            <div id="chart-content" class="collapsible-table-content active" style="padding-top: 15px;">
+                <div class="form-group" style="max-width: 200px;"><label>Select Year for Drilldown:</label><select id="mfd-chart-year-filter" onchange="updateAumChart()"><option value="ALL">All Time</option></select></div>
+                <div style="position: relative; height: 350px; width: 100%;"><canvas id="aumGrowthChart"></canvas></div>
             </div>
+        </div>
 
+        <div class="panel">
+            <div class="stylish-header blue" onclick="togglePanel('drilldown-content', this)"><span>📅 Monthly Business Flow Drilldown</span><span class="chevron">▼</span></div>
+            <div id="drilldown-content" class="collapsible-table-content" style="padding-top: 15px;"><div id="mfd-drilldown-tree" class="tree-container" style="max-width: 800px;"></div></div>
+        </div>
+
+        <div class="panel">
+            <div class="stylish-header teal" onclick="togglePanel('client-details-content', this)"><span>📝 Comprehensive Client Details Report</span><span class="chevron">▼</span></div>
+            <div id="client-details-content" class="collapsible-table-content" style="padding-top: 15px; overflow-x: auto;">
+                <table><thead><tr><th>PAN/UCC</th><th>Group</th><th>Client Name</th><th>Mobile</th><th>City / State</th><th>Nominee</th></tr></thead><tbody id="mfd-client-details-body"></tbody></table>
+            </div>
         </div>
     </div>
 
     <div class="main-grid">
         <div class="panel">
-            <div class="panel-header" onclick="togglePanel('mfd-crm', 'mfd-crm-icon')">
-                <h2>Client Master (CRM)</h2><span id="mfd-crm-icon">▲</span>
-            </div>
-            <div id="mfd-crm" class="collapsible-table-content active">
+            <div class="stylish-header green" onclick="togglePanel('mfd-crm', this)"><span>👥 Client Master (CRM)</span><span class="chevron">▼</span></div>
+            <div id="mfd-crm" class="collapsible-table-content" style="padding-top: 15px;">
                 <form id="mfd-client-form">
                     <input type="hidden" id="mfd-client-id">
-                    <div class="controls-row">
-                        <div class="form-group"><label>Client Name*</label><input type="text" id="mfd-client-name" required></div>
-                        <div class="form-group"><label>Group / Family</label><input type="text" id="mfd-client-group"></div>
-                    </div>
-                    <div class="controls-row">
-                        <div class="form-group"><label>PAN</label><input type="text" id="mfd-client-pan" style="text-transform: uppercase;"></div>
-                        <div class="form-group"><label>UCC</label><input type="text" id="mfd-client-ucc"></div>
-                    </div>
-                    <div class="controls-row">
-                        <div class="form-group"><label>Mobile</label><input type="tel" id="mfd-client-phone"></div>
-                        <div class="form-group"><label>Folio Number(s)</label><input type="text" id="mfd-client-folio"></div>
-                    </div>
-                    <div class="controls-row">
-                        <div class="form-group"><label>Address</label><input type="text" id="mfd-client-address"></div>
-                        <div class="form-group"><label>Area</label><input type="text" id="mfd-client-area"></div>
-                    </div>
-                    <div class="controls-row">
-                        <div class="form-group"><label>City</label><input type="text" id="mfd-client-city"></div>
-                        <div class="form-group"><label>State</label><input type="text" id="mfd-client-state"></div>
-                        <div class="form-group"><label>PIN Code</label><input type="text" id="mfd-client-pincode"></div>
-                    </div>
-                    <div class="controls-row">
-                        <div class="form-group"><label>Nominee Name</label><input type="text" id="mfd-client-nominee-name"></div>
-                        <div class="form-group"><label>Nominee Mobile</label><input type="tel" id="mfd-client-nominee-phone"></div>
-                    </div>
+                    <div class="controls-row"><div class="form-group"><label>Client Name*</label><input type="text" id="mfd-client-name" required></div><div class="form-group"><label>Group / Family</label><input type="text" id="mfd-client-group"></div></div>
+                    <div class="controls-row"><div class="form-group"><label>PAN</label><input type="text" id="mfd-client-pan" style="text-transform: uppercase;"></div><div class="form-group"><label>UCC</label><input type="text" id="mfd-client-ucc"></div></div>
+                    <div class="controls-row"><div class="form-group"><label>Mobile</label><input type="tel" id="mfd-client-phone"></div><div class="form-group"><label>Folio Number(s)</label><input type="text" id="mfd-client-folio"></div></div>
+                    <div class="controls-row"><div class="form-group"><label>Address</label><input type="text" id="mfd-client-address"></div><div class="form-group"><label>Area</label><input type="text" id="mfd-client-area"></div></div>
+                    <div class="controls-row"><div class="form-group"><label>City</label><input type="text" id="mfd-client-city"></div><div class="form-group"><label>State</label><input type="text" id="mfd-client-state"></div><div class="form-group"><label>PIN Code</label><input type="text" id="mfd-client-pincode"></div></div>
+                    <div class="controls-row"><div class="form-group"><label>Nominee Name</label><input type="text" id="mfd-client-nominee-name"></div><div class="form-group"><label>Nominee Mobile</label><input type="tel" id="mfd-client-nominee-phone"></div></div>
                     <button type="submit" id="mfd-client-btn" class="btn-primary">Save Client</button>
                     <button type="button" id="mfd-client-cancel-btn" style="display:none; margin-top:10px;" class="btn-secondary" onclick="cancelMfdClientEdit()">Cancel Edit</button>
                 </form>
-
                 <hr style="margin: 20px 0;">
                 <h3>Saved Clients Directory</h3>
-                <div class="table-container">
-                    <table>
-                        <thead><tr><th>Group</th><th>PAN/UCC</th><th>Client Name</th><th>Mobile</th><th>Action</th></tr></thead>
-                        <tbody id="mfd-clients-list-body"></tbody>
-                    </table>
-                </div>
+                <div class="table-container"><table><thead><tr><th>Group</th><th>PAN/UCC</th><th>Client Name</th><th>Action</th></tr></thead><tbody id="mfd-clients-list-body"></tbody></table></div>
             </div>
         </div>
 
         <div class="panel">
-            <div class="panel-header" onclick="togglePanel('mfd-tx', 'mfd-tx-icon')">
-                <h2>NAV & Transaction Management</h2><span id="mfd-tx-icon">▲</span>
-            </div>
-            <div id="mfd-tx" class="collapsible-table-content active">
-                
-                <!-- NAV MANAGEMENT -->
+            <div class="stylish-header orange" onclick="togglePanel('mfd-tx', this)"><span>⚙️ NAV & Transaction Entry</span><span class="chevron">▼</span></div>
+            <div id="mfd-tx" class="collapsible-table-content" style="padding-top: 15px;">
                 <div style="border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-bottom: 25px; background: #f8fafc;">
                     <h3 style="margin-top: 0; color: var(--success); border-bottom: 1px solid var(--border); padding-bottom: 10px;">1. Update Scheme NAVs</h3>
-                    
-                    <div style="margin-bottom: 20px;">
-                        <button type="button" id="btn-auto-nav" class="btn-primary" onclick="fetchAmfiNavs()" style="background: var(--info);">🔄 Auto-Fetch Latest NAVs (AMFI)</button>
-                        <p style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">Automatically pulls the latest NAVs for all ISINs in your transaction history directly from the AMFI database.</p>
-                    </div>
-
-                    <div class="upload-box success" style="background: #fff; margin-bottom: 15px;">
-                        <h3 style="margin-top: 0;">📈 Bulk NAV Update via CSV (Fallback)</h3>
-                        <p><strong>Format:</strong> <code>ISIN, NAV, Date (YYYY-MM-DD)</code></p>
-                        <input type="file" id="mfd-nav-csv" accept=".csv" onchange="uploadMfdNavCSV(event)">
-                    </div>
-
+                    <div style="margin-bottom: 20px;"><button type="button" id="btn-auto-nav" class="btn-primary" onclick="fetchAmfiNavs()" style="background: var(--info);">🔄 Auto-Fetch Latest NAVs (AMFI)</button></div>
+                    <div class="upload-box success" style="background: #fff; margin-bottom: 15px;"><h3 style="margin-top: 0;">📁 Upload Raw AMFI or CSV File</h3><p style="font-size: 0.85rem;">If Auto-Fetch is blocked, <a href="https://www.amfiindia.com/spages/NAVAll.txt" target="_blank" style="color: var(--primary); font-weight: bold;">Right-Click Here & Save Link As "NAVAll.txt"</a>, then upload below.</p><input type="file" id="mfd-nav-csv" accept=".txt,.csv" onchange="uploadMfdNavCSV(event)"></div>
                     <h4 style="margin: 0 0 10px 0;">Or Enter NAV Manually</h4>
-                    <form id="mfd-nav-form" class="controls-row" style="background: #fff; border-color: #bbf7d0;" onsubmit="handleManualNav(event)">
-                        <div class="form-group" style="flex: 2;"><label>ISIN / Scheme Code</label><input type="text" id="mfd-manual-nav-isin" required placeholder="INF209K01157"></div>
-                        <div class="form-group"><label>Latest NAV</label><input type="number" id="mfd-manual-nav-val" step="any" min="0" required></div>
-                        <div class="form-group"><label>NAV Date</label><input type="date" id="mfd-manual-nav-date" required></div>
-                        <button type="submit" class="btn-primary" style="width: auto; padding: 10px 20px; background: var(--success);">Save NAV</button>
+                    <form id="mfd-nav-form" class="controls-row" style="background: #fff; border-color: #bbf7d0; padding: 10px;" onsubmit="handleManualNav(event)">
+                        <div class="form-group" style="flex: 2;"><label>ISIN</label><input type="text" id="mfd-manual-nav-isin" required></div><div class="form-group"><label>NAV</label><input type="number" id="mfd-manual-nav-val" step="any" min="0" required></div><div class="form-group"><label>Date</label><input type="date" id="mfd-manual-nav-date" required></div><button type="submit" class="btn-primary" style="width: auto; padding: 10px 15px; background: var(--success);">Save</button>
                     </form>
                 </div>
-
-                <!-- TRANSACTION MANAGEMENT -->
                 <div style="border: 1px solid var(--border); padding: 15px; border-radius: 6px; background: #f8fafc;">
                     <h3 style="margin-top: 0; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 10px;">2. Log Client Transactions</h3>
-                    
-                    <div class="upload-box primary" style="background: #fff;">
-                        <h3 style="margin-top: 0;">📂 Bulk Transaction Upload via CSV</h3>
-                        <p><strong>Format:</strong> <code>Group, Investor Name, UCC, Type, Purchase date, Folio No., Scheme, ISIN, NAV, Unit, Inv Amount</code></p>
-                        <input type="file" id="mfd-tx-csv" accept=".csv" onchange="uploadMfdTxCSV(event)">
-                    </div>
-
-                    <h4 style="margin: 15px 0 10px 0;">Manual Transaction Entry</h4>
+                    <div class="upload-box primary" style="background: #fff;"><h3 style="margin-top: 0;">📂 Bulk Upload via CSV</h3><input type="file" id="mfd-tx-csv" accept=".csv" onchange="uploadMfdTxCSV(event)"></div>
                     <form id="mfd-tx-form" style="background: #fff; padding: 15px; border-radius: 6px; border: 1px solid #c7d2fe;">
                         <input type="hidden" id="mfd-tx-id">
-                        <div class="controls-row" style="background: none; border: none; padding: 0; margin-bottom: 10px;">
-                            <div class="form-group"><label>Group</label><input type="text" id="mfd-tx-group"></div>
-                            <div class="form-group"><label>Investor Name (Select via PAN/UCC)</label><input type="text" id="mfd-tx-client" list="mfd-client-datalist" required><datalist id="mfd-client-datalist"></datalist></div>
-                        </div>
-                        <div class="controls-row" style="background: none; border: none; padding: 0; margin-bottom: 10px;">
-                            <div class="form-group">
-                                <label>Transaction Type</label>
-                                <select id="mfd-tx-type" required><option value="SIP">SIP</option><option value="Lumpsum">Lumpsum Purchase</option><option value="Redemption">Redemption</option></select>
-                            </div>
-                            <div class="form-group"><label>Purchase Date</label><input type="date" id="mfd-tx-date" required></div>
-                            <div class="form-group"><label>Folio No.</label><input type="text" id="mfd-tx-folio"></div>
-                        </div>
-                        <div class="controls-row" style="background: none; border: none; padding: 0; margin-bottom: 10px;">
-                            <div class="form-group" style="flex:2;"><label>Scheme</label><input type="text" id="mfd-tx-scheme" required></div>
-                            <div class="form-group"><label>ISIN</label><input type="text" id="mfd-tx-isin" required></div>
-                        </div>
-                        <div class="controls-row" style="background: #e0e7ff; border: 1px solid #c7d2fe;">
-                            <div class="form-group"><label>NAV</label><input type="number" id="mfd-tx-nav" step="any" min="0" oninput="calcMfdManualTx()"></div>
-                            <div class="form-group"><label>Unit</label><input type="number" id="mfd-tx-unit" step="any" min="0" oninput="calcMfdManualTx()"></div>
-                            <div class="form-group"><label>Inv Amount</label><input type="number" id="mfd-tx-amount" step="any" min="0" oninput="calcMfdManualUnit()" required></div>
-                        </div>
+                        <div class="controls-row" style="background: none; border: none; padding: 0; margin-bottom: 10px;"><div class="form-group"><label>Group</label><input type="text" id="mfd-tx-group"></div><div class="form-group"><label>Investor Name</label><input type="text" id="mfd-tx-client" list="mfd-client-datalist" required><datalist id="mfd-client-datalist"></datalist></div></div>
+                        <div class="controls-row" style="background: none; border: none; padding: 0; margin-bottom: 10px;"><div class="form-group"><label>Type</label><select id="mfd-tx-type" required><option value="SIP">SIP</option><option value="Lumpsum">Lumpsum Purchase</option><option value="Redemption">Redemption</option></select></div><div class="form-group"><label>Date</label><input type="date" id="mfd-tx-date" required></div><div class="form-group"><label>Folio</label><input type="text" id="mfd-tx-folio"></div></div>
+                        <div class="controls-row" style="background: none; border: none; padding: 0; margin-bottom: 10px;"><div class="form-group" style="flex:2;"><label>Scheme</label><input type="text" id="mfd-tx-scheme" required></div><div class="form-group"><label>ISIN</label><input type="text" id="mfd-tx-isin" required></div></div>
+                        <div class="controls-row" style="background: #e0e7ff; border: 1px solid #c7d2fe; padding: 10px;"><div class="form-group"><label>NAV</label><input type="number" id="mfd-tx-nav" step="any" min="0" oninput="calcMfdManualTx()"></div><div class="form-group"><label>Unit</label><input type="number" id="mfd-tx-unit" step="any" min="0" oninput="calcMfdManualTx()"></div><div class="form-group"><label>Inv Amount</label><input type="number" id="mfd-tx-amount" step="any" min="0" oninput="calcMfdManualUnit()" required></div></div>
                         <button type="submit" id="mfd-tx-btn" class="btn-primary" style="margin-top:15px;">Add Transaction</button>
                         <button type="button" id="mfd-tx-cancel-btn" style="display:none; margin-top:10px;" class="btn-secondary" onclick="cancelMfdTxEdit()">Cancel Edit</button>
                     </form>
                 </div>
-
             </div>
         </div>
     </div>
 
     <div class="panel">
-        <div class="panel-header" onclick="togglePanel('mfd-ledger-panel', 'mfd-ledger-icon')">
-            <h2>MFD Transaction Ledger</h2><span id="mfd-ledger-icon">▲</span>
-        </div>
-        <div id="mfd-ledger-panel" class="collapsible-table-content active">
+        <div class="stylish-header blue active-header" onclick="togglePanel('mfd-ledger-panel', this)"><span>📖 MFD Transaction Ledger</span><span class="chevron">▼</span></div>
+        <div id="mfd-ledger-panel" class="collapsible-table-content active" style="padding-top: 15px;">
             <div class="controls-row" style="background: #e0e7ff; border-color: #c7d2fe; display: flex; align-items: flex-end; gap: 10px;">
-                <div class="form-group" style="flex: 2; min-width: 250px;">
-                    <label>Global Live Search</label>
-                    <input type="text" id="mfd-search" oninput="mfdPage=1; renderMfdApp();" style="border-color: #a5b4fc;">
-                </div>
-                <button class="btn-danger-sm" onclick="deleteSelectedMfdTx()">Delete Selected</button>
-                <button class="btn-export" onclick="exportMfdCSV()">Download CSV</button>
+                <div class="form-group" style="flex: 2; min-width: 250px;"><label>Global Live Search</label><input type="text" id="mfd-search" oninput="mfdPage=1; renderMfdApp();"></div>
+                <button class="btn-danger-sm" onclick="deleteSelectedMfdTx()">Delete Selected</button><button class="btn-export" onclick="exportMfdCSV()">Download CSV</button>
             </div>
             <div class="table-container">
                 <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 30px; text-align: center;"><input type="checkbox" class="checkbox-lg" onclick="toggleAllMfdTx(this)"></th>
-                            <th class="sortable" onclick="setMfdSort('date')">Date <span class="sort-icon" id="mfd-sort-date"></span><br><input type="text" id="mfd-flt-date" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('group')">Group <span class="sort-icon" id="mfd-sort-group"></span><br><input type="text" id="mfd-flt-group" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('pan_ucc')">PAN/UCC <span class="sort-icon" id="mfd-sort-ucc"></span><br><input type="text" id="mfd-flt-ucc" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('clientName')">Investor <span class="sort-icon" id="mfd-sort-name"></span><br><input type="text" id="mfd-flt-name" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('scheme')">Scheme <span class="sort-icon" id="mfd-sort-scheme"></span><br><input type="text" id="mfd-flt-scheme" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('isin')">ISIN <span class="sort-icon" id="mfd-sort-isin"></span><br><input type="text" id="mfd-flt-isin" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th class="sortable" onclick="setMfdSort('type')">Type <span class="sort-icon" id="mfd-sort-type"></span><br><input type="text" id="mfd-flt-type" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
-                            <th>NAV</th>
-                            <th>Unit</th>
-                            <th class="sortable" onclick="setMfdSort('amount')" style="min-width: 100px;">Amount <span class="sort-icon" id="mfd-sort-amount"></span><br><div id="mfd-flt-total-display" style="margin-top:6px; padding:4px; font-size:0.85rem; font-weight:bold; color:var(--primary); background:#e0e7ff; display:none; text-align:center;">0.00</div></th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
+                    <thead><tr>
+                        <th style="width: 30px;"><input type="checkbox" class="checkbox-lg" onclick="toggleAllMfdTx(this)"></th>
+                        <th class="sortable" onclick="setMfdSort('date')">Date <span class="sort-icon" id="mfd-sort-date"></span><br><input type="text" id="mfd-flt-date" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
+                        <th class="sortable" onclick="setMfdSort('group')">Group <span class="sort-icon" id="mfd-sort-group"></span><br><input type="text" id="mfd-flt-group" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
+                        <th class="sortable" onclick="setMfdSort('pan_ucc')">PAN/UCC <span class="sort-icon" id="mfd-sort-ucc"></span><br><input type="text" id="mfd-flt-ucc" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
+                        <th class="sortable" onclick="setMfdSort('clientName')">Investor <span class="sort-icon" id="mfd-sort-name"></span><br><input type="text" id="mfd-flt-name" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
+                        <th class="sortable" onclick="setMfdSort('scheme')">Scheme <span class="sort-icon" id="mfd-sort-scheme"></span><br><input type="text" id="mfd-flt-scheme" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
+                        <th class="sortable" onclick="setMfdSort('isin')">ISIN <span class="sort-icon" id="mfd-sort-isin"></span><br><input type="text" id="mfd-flt-isin" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
+                        <th class="sortable" onclick="setMfdSort('type')">Type <span class="sort-icon" id="mfd-sort-type"></span><br><input type="text" id="mfd-flt-type" class="col-filter" oninput="mfdPage=1; renderMfdApp();"></th>
+                        <th>NAV</th><th>Unit</th><th class="sortable" onclick="setMfdSort('amount')">Amount <span class="sort-icon" id="mfd-sort-amount"></span></th><th>Action</th>
+                    </tr></thead>
                     <tbody id="mfd-ledger-body"></tbody>
                 </table>
-                <div class="pagination-controls">
-                    <button id="mfd-btn-prev" onclick="mfdPage--; renderMfdApp();">Previous</button>
-                    <span id="mfd-page-indicator">Page 1 of 1</span>
-                    <button id="mfd-btn-next" onclick="mfdPage++; renderMfdApp();">Next</button>
-                </div>
+                <div class="pagination-controls"><button id="mfd-btn-prev" onclick="mfdPage--; renderMfdApp();">Previous</button><span id="mfd-page-indicator">Page 1 of 1</span><button id="mfd-btn-next" onclick="mfdPage++; renderMfdApp();">Next</button></div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // -------------------------------------------------------------
-    // 1. FIREBASE CONFIGURATION
-    // -------------------------------------------------------------
-    const firebaseConfig = {
-      apiKey: "AIzaSyBgQ08BOvTb60ZpPM72733sQUcpgy9ujQY",
-      authDomain: "equitydashboard-47f8c.firebaseapp.com",
-      projectId: "equitydashboard-47f8c",
-      storageBucket: "equitydashboard-47f8c.firebasestorage.app",
-      messagingSenderId: "313210184210",
-      appId: "1:313210184210:web:0d2492eab6d8e3a5f0aecb"
-    };
+    const firebaseConfig = { apiKey: "AIzaSyBgQ08BOvTb60ZpPM72733sQUcpgy9ujQY", authDomain: "equitydashboard-47f8c.firebaseapp.com", projectId: "equitydashboard-47f8c", storageBucket: "equitydashboard-47f8c.firebasestorage.app", messagingSenderId: "313210184210", appId: "1:313210184210:web:0d2492eab6d8e3a5f0aecb" };
+    firebase.initializeApp(firebaseConfig); const db = firebase.firestore(); const auth = firebase.auth();
+    let currentUser = null; let mfdClients = []; let mfdTxs = []; let mfdNavs = {}; 
+    let mfdPage = 1; const pageSize = 15; let mfdSortCol = 'date'; let mfdSortDesc = true; let clientSortCol = 'cv'; let clientSortDesc = true; let schemeSortCol = 'cv'; let schemeSortDesc = true; let aumChartInstance = null;
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const auth = firebase.auth();
-
-    // -------------------------------------------------------------
-    // 2. GLOBAL STATE
-    // -------------------------------------------------------------
-    let currentUser = null; 
-    let mfdClients = [];
-    let mfdTxs = [];
-    let mfdNavs = {}; 
+    function togglePanel(cId, headerEl) { const c = document.getElementById(cId); if(c){ c.classList.toggle('active'); if(headerEl) headerEl.classList.toggle('active-header'); } }
     
-    // Paging & Ledger Sorting
-    let mfdPage = 1; const pageSize = 15; 
-    let mfdSortCol = 'date'; let mfdSortDesc = true;
-
-    // Report Tables Sorting
-    let clientSortCol = 'cv'; let clientSortDesc = true;
-    let schemeSortCol = 'cv'; let schemeSortDesc = true;
-
-    // Charting
-    let aumChartInstance = null;
-
-    // -------------------------------------------------------------
-    // 3. UI HELPERS & MATH
-    // -------------------------------------------------------------
-    function togglePanel(cId, iId) { 
-        const c = document.getElementById(cId); const i = document.getElementById(iId); 
-        if(c && i){ c.classList.toggle('active'); i.innerText = c.classList.contains('active') ? '▲' : '▼'; } 
-    }
-    
-    // Bulletproof XIRR: Handles same-day math, fallback loops, and extreme returns
     function computeXIRR(cashflows) {
         if (!cashflows || cashflows.length < 2) return 0;
-
-        // Clean, validate, and sort dates chronologically
-        let cfs = cashflows
-            .filter(cf => cf.date instanceof Date && !isNaN(cf.date))
-            .map(cf => ({ amt: parseFloat(cf.amt), time: cf.date.getTime() }))
-            .sort((a, b) => a.time - b.time);
-
+        let cfs = cashflows.filter(cf => cf.date instanceof Date && !isNaN(cf.date)).map(cf => ({ amt: parseFloat(cf.amt), time: cf.date.getTime() })).sort((a, b) => a.time - b.time);
         if (cfs.length < 2) return 0;
-
-        let hasPos = false, hasNeg = false;
-        cfs.forEach(cf => { if(cf.amt > 0.01) hasPos = true; if(cf.amt < -0.01) hasNeg = true; });
-        if(!hasPos || !hasNeg) return 0;
-
-        let d0 = cfs[0].time;
-
-        if (cfs[cfs.length - 1].time === d0) {
-            let total = cfs.reduce((sum, cf) => sum + cf.amt, 0);
-            let inv = cfs.reduce((sum, cf) => cf.amt < 0 ? sum + Math.abs(cf.amt) : sum, 0);
-            return inv > 0 ? (total / inv) * 100 : 0; 
-        }
-
-        const getYears = (time) => (time - d0) / 86400000 / 365.25;
-        const npv = (rate) => cfs.reduce((sum, cf) => sum + (cf.amt / Math.pow(1 + rate, getYears(cf.time))), 0);
-        const npvDerivative = (rate) => cfs.reduce((sum, cf) => {
-            let t = getYears(cf.time);
-            return t === 0 ? sum : sum - (cf.amt * t) / Math.pow(1 + rate, t + 1);
-        }, 0);
-
-        const tolerance = 0.00001;
-        const maxIter = 100;
-        const guesses = [0.1, -0.1, 0.5, -0.5, 1.0];
-        
-        for (let g = 0; g < guesses.length; g++) {
-            let guess = guesses[g];
-            for (let i = 0; i < maxIter; i++) {
-                let currentNpv = npv(guess);
-                if (Math.abs(currentNpv) < tolerance) return guess * 100;
-                let derivative = npvDerivative(guess);
-                if (Math.abs(derivative) < 1e-12) break; 
-                let nextGuess = guess - (currentNpv / derivative);
-                if (nextGuess <= -1) nextGuess = -0.99999; 
-                if (Math.abs(nextGuess - guess) < tolerance) return nextGuess * 100;
-                guess = nextGuess;
-            }
-        }
-
-        let low = -0.99999, high = 10000, guess = 0;
-        for (let i = 0; i < 100; i++) {
-            guess = (low + high) / 2;
-            let currentNpv = npv(guess);
-            if (Math.abs(currentNpv) < tolerance) return guess * 100;
-            if (npv(low) * currentNpv < 0) high = guess; else low = guess;
-        }
-
-        return guess * 100;
+        let hasPos = false, hasNeg = false; cfs.forEach(cf => { if(cf.amt > 0.01) hasPos = true; if(cf.amt < -0.01) hasNeg = true; }); if(!hasPos || !hasNeg) return 0;
+        let d0 = cfs[0].time; if (cfs[cfs.length - 1].time === d0) { let total = cfs.reduce((sum, cf) => sum + cf.amt, 0); let inv = cfs.reduce((sum, cf) => cf.amt < 0 ? sum + Math.abs(cf.amt) : sum, 0); return inv > 0 ? (total / inv) * 100 : 0; }
+        const getYears = (t) => (t - d0) / 86400000 / 365.25; const npv = (r) => cfs.reduce((s, cf) => s + (cf.amt / Math.pow(1 + r, getYears(cf.time))), 0);
+        const npvDerivative = (r) => cfs.reduce((s, cf) => { let t = getYears(cf.time); return t === 0 ? s : s - (cf.amt * t) / Math.pow(1 + r, t + 1); }, 0);
+        for (let g of [0.1, -0.1, 0.5, -0.5, 1.0]) { let guess = g; for (let i = 0; i < 100; i++) { let currentNpv = npv(guess); if (Math.abs(currentNpv) < 0.00001) return guess * 100; let derivative = npvDerivative(guess); if (Math.abs(derivative) < 1e-12) break; let nextGuess = guess - (currentNpv / derivative); if (nextGuess <= -1) nextGuess = -0.99999; if (Math.abs(nextGuess - guess) < 0.00001) return nextGuess * 100; guess = nextGuess; } }
+        let low = -0.99999, high = 10000, guess = 0; for (let i = 0; i < 100; i++) { guess = (low + high) / 2; let currentNpv = npv(guess); if (Math.abs(currentNpv) < 0.00001) return guess * 100; if (npv(low) * currentNpv < 0) high = guess; else low = guess; } return guess * 100;
     }
 
     function updateSortIcons() {
         document.querySelectorAll('.sort-icon').forEach(el => el.innerText = '');
-        
-        // Ledger table
-        let mapLedger = { date: 'mfd-sort-date', group: 'mfd-sort-group', pan_ucc: 'mfd-sort-ucc', clientName: 'mfd-sort-name', scheme: 'mfd-sort-scheme', isin: 'mfd-sort-isin', type: 'mfd-sort-type', amount: 'mfd-sort-amount' };
-        let elLedger = document.getElementById(mapLedger[mfdSortCol]);
-        if(elLedger) elLedger.innerText = mfdSortDesc ? '▼' : '▲';
-        
-        // Reports tables
-        let cI = document.getElementById('client-sort-' + clientSortCol); if(cI) cI.innerText = clientSortDesc ? '▼' : '▲';
-        let sI = document.getElementById('scheme-sort-' + schemeSortCol); if(sI) sI.innerText = schemeSortDesc ? '▼' : '▲';
+        let elLedger = document.getElementById({ date: 'mfd-sort-date', group: 'mfd-sort-group', pan_ucc: 'mfd-sort-ucc', clientName: 'mfd-sort-name', scheme: 'mfd-sort-scheme', isin: 'mfd-sort-isin', type: 'mfd-sort-type', amount: 'mfd-sort-amount' }[mfdSortCol]); if(elLedger) elLedger.innerText = mfdSortDesc ? '▼' : '▲';
+        let cI = document.getElementById('client-sort-' + clientSortCol); if(cI) cI.innerText = clientSortDesc ? '▼' : '▲'; let sI = document.getElementById('scheme-sort-' + schemeSortCol); if(sI) sI.innerText = schemeSortDesc ? '▼' : '▲';
     }
+    function setClientSort(col) { if (clientSortCol === col) clientSortDesc = !clientSortDesc; else { clientSortCol = col; clientSortDesc = true; } renderMfdReportsOnly(); }
+    function setSchemeSort(col) { if (schemeSortCol === col) schemeSortDesc = !schemeSortDesc; else { schemeSortCol = col; schemeSortDesc = true; } renderMfdReportsOnly(); }
 
-    function setClientSort(col) {
-        if (clientSortCol === col) { clientSortDesc = !clientSortDesc; }
-        else { clientSortCol = col; clientSortDesc = true; }
-        renderMfdReportsOnly();
-    }
-
-    function setSchemeSort(col) {
-        if (schemeSortCol === col) { schemeSortDesc = !schemeSortDesc; }
-        else { schemeSortCol = col; schemeSortDesc = true; }
-        renderMfdReportsOnly();
-    }
-
-    // -------------------------------------------------------------
-    // 4. AUTHENTICATION & LOGIN LOGIC
-    // -------------------------------------------------------------
-    function handleLogin(e) {
-        e.preventDefault();
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-password').value;
-        const errorEl = document.getElementById('login-error');
-        
-        auth.signInWithEmailAndPassword(email, password)
-            .then(() => {
-                errorEl.style.display = 'none';
-            })
-            .catch(error => {
-                errorEl.style.display = 'block';
-                errorEl.innerText = "Login failed: " + error.message;
-            });
-    }
-
-    auth.onAuthStateChanged(user => {
-        const authOverlay = document.getElementById('auth-overlay');
-        const workspace = document.getElementById('workspace-mfd');
-
-        if (user) {
-            currentUser = user;
-            if (authOverlay) authOverlay.style.display = 'none';
-            if (workspace) workspace.style.display = 'block';
-            
-            document.querySelectorAll('.display-user-email').forEach(el => { 
-                el.innerText = user.email || "Logged in"; 
-            });
-
-            if(document.getElementById('mfd-tx-date')) document.getElementById('mfd-tx-date').valueAsDate = new Date();
-            if(document.getElementById('mfd-manual-nav-date')) document.getElementById('mfd-manual-nav-date').valueAsDate = new Date();
-
-            loadMfdData();
-        } else {
-            currentUser = null;
-            if (workspace) workspace.style.display = 'none';
-            if (authOverlay) authOverlay.style.display = 'flex';
-        }
-    });
-
+    function handleLogin(e) { e.preventDefault(); auth.signInWithEmailAndPassword(document.getElementById('login-email').value, document.getElementById('login-password').value).then(() => { document.getElementById('login-error').style.display = 'none'; }).catch(error => { document.getElementById('login-error').style.display = 'block'; document.getElementById('login-error').innerText = "Login failed: " + error.message; }); }
+    auth.onAuthStateChanged(user => { if (user) { currentUser = user; document.getElementById('auth-overlay').style.display = 'none'; document.getElementById('workspace-mfd').style.display = 'block'; document.querySelectorAll('.display-user-email').forEach(el => el.innerText = user.email); if(document.getElementById('mfd-tx-date')) document.getElementById('mfd-tx-date').valueAsDate = new Date(); if(document.getElementById('mfd-manual-nav-date')) document.getElementById('mfd-manual-nav-date').valueAsDate = new Date(); loadMfdData(); } else { currentUser = null; document.getElementById('workspace-mfd').style.display = 'none'; document.getElementById('auth-overlay').style.display = 'flex'; } });
     function signOut() { auth.signOut(); }
 
-    // -------------------------------------------------------------
-    // 5. GLOBAL BACKUP
-    // -------------------------------------------------------------
-    async function backupData() {
-        if(!currentUser) return;
-        try {
-            const uid = currentUser.uid;
-            const eqSnap = await db.collection('transactions').where("userId", "==", uid).get();
-            const othSnap = await db.collection('other_transactions').where("userId", "==", uid).get();
-            const mfdCSnap = await db.collection('mfd_clients').where("userId", "==", uid).get();
-            const mfdTSnap = await db.collection('mfd_transactions').where("userId", "==", uid).get();
-            const mfdNSnap = await db.collection('mfd_navs').get();
+    async function backupData() { if(!currentUser) return; try { const backup = { format: "pro-equity-full-backup", date: new Date().toISOString(), transactions: (await db.collection('transactions').where("userId", "==", currentUser.uid).get()).docs.map(d => {let data=d.data(); delete data.userId; return data;}), other_transactions: (await db.collection('other_transactions').where("userId", "==", currentUser.uid).get()).docs.map(d => {let data=d.data(); delete data.userId; return data;}), mfd_clients: (await db.collection('mfd_clients').where("userId", "==", currentUser.uid).get()).docs.map(d => {let data=d.data(); delete data.userId; return data;}), mfd_transactions: (await db.collection('mfd_transactions').where("userId", "==", currentUser.uid).get()).docs.map(d => {let data=d.data(); delete data.userId; return data;}), mfd_navs: (await db.collection('mfd_navs').get()).docs.map(d => {return {id: d.id, ...d.data()};}) }; const link = document.createElement("a"); link.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup))); link.setAttribute("download", `Full_Backup_${new Date().toISOString().split('T')[0]}.json`); document.body.appendChild(link); link.click(); document.body.removeChild(link); } catch(e) { alert('Backup failed: ' + e); } }
 
-            const backup = {
-                format: "pro-equity-full-backup", date: new Date().toISOString(),
-                transactions: eqSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
-                other_transactions: othSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
-                mfd_clients: mfdCSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
-                mfd_transactions: mfdTSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
-                mfd_navs: mfdNSnap.docs.map(d => {return {id: d.id, ...d.data()};})
-            };
+    async function loadMfdData() { if (!currentUser) return; mfdClients = (await db.collection('mfd_clients').where("userId", "==", currentUser.uid).get()).docs.map(doc => ({ id: doc.id, ...doc.data() })); mfdTxs = (await db.collection('mfd_transactions').where("userId", "==", currentUser.uid).get()).docs.map(doc => ({ id: doc.id, ...doc.data() })); mfdNavs = {}; (await db.collection('mfd_navs').get()).docs.forEach(doc => { mfdNavs[doc.id] = doc.data(); }); renderMfdApp(); }
 
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup));
-            const link = document.createElement("a"); link.setAttribute("href", dataStr); link.setAttribute("download", `Full_Backup_${new Date().toISOString().split('T')[0]}.json`);
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        } catch(e) { alert('Backup failed: ' + e); }
-    }
-
-    // -------------------------------------------------------------
-    // 6. MFD BUSINESS LOGIC
-    // -------------------------------------------------------------
-    async function loadMfdData() {
-        if (!currentUser) return;
-        const clientSnap = await db.collection('mfd_clients').where("userId", "==", currentUser.uid).get();
-        mfdClients = clientSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        const txSnap = await db.collection('mfd_transactions').where("userId", "==", currentUser.uid).get();
-        mfdTxs = txSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        const navSnap = await db.collection('mfd_navs').get();
-        mfdNavs = {}; 
-        navSnap.docs.forEach(doc => { 
-            mfdNavs[doc.id] = doc.data(); 
-        });
-
-        renderMfdApp();
-    }
-
-    // CRM Actions
-    if(document.getElementById('mfd-client-form')) {
-        document.getElementById('mfd-client-form').addEventListener('submit', async function(e) {
-            e.preventDefault(); const cid = document.getElementById('mfd-client-id').value;
-            const cData = {
-                userId: currentUser.uid, name: document.getElementById('mfd-client-name').value.trim(), group: document.getElementById('mfd-client-group').value.trim(),
-                pan: document.getElementById('mfd-client-pan').value.trim().toUpperCase(), ucc: document.getElementById('mfd-client-ucc').value.trim(), 
-                phone: document.getElementById('mfd-client-phone').value.trim(), folio: document.getElementById('mfd-client-folio').value.trim(),
-                address: document.getElementById('mfd-client-address').value.trim(), area: document.getElementById('mfd-client-area').value.trim(),
-                city: document.getElementById('mfd-client-city').value.trim(), state: document.getElementById('mfd-client-state').value.trim(),
-                pincode: document.getElementById('mfd-client-pincode').value.trim(), nomineeName: document.getElementById('mfd-client-nominee-name').value.trim(), nomineePhone: document.getElementById('mfd-client-nominee-phone').value.trim()
-            };
-            if (cid) { await db.collection('mfd_clients').doc(cid).update(cData); cancelMfdClientEdit(); } 
-            else { await db.collection('mfd_clients').add(cData); document.getElementById('mfd-client-form').reset(); }
-            loadMfdData();
-        });
-    }
-
-    async function editMfdClient(id) {
-        const d = await db.collection('mfd_clients').doc(id).get(); if (!d.exists) return; const c = d.data();
-        document.getElementById('mfd-client-id').value = id; document.getElementById('mfd-client-name').value = c.name || ''; document.getElementById('mfd-client-group').value = c.group || '';
-        document.getElementById('mfd-client-pan').value = c.pan || ''; document.getElementById('mfd-client-ucc').value = c.ucc || ''; document.getElementById('mfd-client-phone').value = c.phone || '';
-        document.getElementById('mfd-client-folio').value = c.folio || ''; document.getElementById('mfd-client-address').value = c.address || ''; document.getElementById('mfd-client-area').value = c.area || '';
-        document.getElementById('mfd-client-city').value = c.city || ''; document.getElementById('mfd-client-state').value = c.state || ''; document.getElementById('mfd-client-pincode').value = c.pincode || '';
-        document.getElementById('mfd-client-nominee-name').value = c.nomineeName || ''; document.getElementById('mfd-client-nominee-phone').value = c.nomineePhone || '';
-        document.getElementById('mfd-client-btn').innerText = `Update Client`; document.getElementById('mfd-client-cancel-btn').style.display = 'inline-block'; togglePanel('mfd-crm', 'mfd-crm-icon'); window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    if(document.getElementById('mfd-client-form')) { document.getElementById('mfd-client-form').addEventListener('submit', async function(e) { e.preventDefault(); const cid = document.getElementById('mfd-client-id').value; const cData = { userId: currentUser.uid, name: document.getElementById('mfd-client-name').value.trim(), group: document.getElementById('mfd-client-group').value.trim(), pan: document.getElementById('mfd-client-pan').value.trim().toUpperCase(), ucc: document.getElementById('mfd-client-ucc').value.trim(), phone: document.getElementById('mfd-client-phone').value.trim(), folio: document.getElementById('mfd-client-folio').value.trim(), address: document.getElementById('mfd-client-address').value.trim(), area: document.getElementById('mfd-client-area').value.trim(), city: document.getElementById('mfd-client-city').value.trim(), state: document.getElementById('mfd-client-state').value.trim(), pincode: document.getElementById('mfd-client-pincode').value.trim(), nomineeName: document.getElementById('mfd-client-nominee-name').value.trim(), nomineePhone: document.getElementById('mfd-client-nominee-phone').value.trim() }; if (cid) { await db.collection('mfd_clients').doc(cid).update(cData); cancelMfdClientEdit(); } else { await db.collection('mfd_clients').add(cData); document.getElementById('mfd-client-form').reset(); } loadMfdData(); }); }
+    async function editMfdClient(id) { const d = await db.collection('mfd_clients').doc(id).get(); if (!d.exists) return; const c = d.data(); document.getElementById('mfd-client-id').value = id; document.getElementById('mfd-client-name').value = c.name || ''; document.getElementById('mfd-client-group').value = c.group || ''; document.getElementById('mfd-client-pan').value = c.pan || ''; document.getElementById('mfd-client-ucc').value = c.ucc || ''; document.getElementById('mfd-client-phone').value = c.phone || ''; document.getElementById('mfd-client-folio').value = c.folio || ''; document.getElementById('mfd-client-address').value = c.address || ''; document.getElementById('mfd-client-area').value = c.area || ''; document.getElementById('mfd-client-city').value = c.city || ''; document.getElementById('mfd-client-state').value = c.state || ''; document.getElementById('mfd-client-pincode').value = c.pincode || ''; document.getElementById('mfd-client-nominee-name').value = c.nomineeName || ''; document.getElementById('mfd-client-nominee-phone').value = c.nomineePhone || ''; document.getElementById('mfd-client-btn').innerText = `Update Client`; document.getElementById('mfd-client-cancel-btn').style.display = 'inline-block'; let crmContent = document.getElementById('mfd-crm'); if(crmContent && !crmContent.classList.contains('active')) togglePanel('mfd-crm', crmContent.previousElementSibling); window.scrollTo({ top: 0, behavior: 'smooth' }); }
     function cancelMfdClientEdit() { document.getElementById('mfd-client-id').value = ''; document.getElementById('mfd-client-btn').innerText = 'Save Client'; document.getElementById('mfd-client-cancel-btn').style.display = 'none'; document.getElementById('mfd-client-form').reset(); }
     async function deleteMfdClient(id) { if(confirm("Delete this client? This will NOT delete their transactions.")) { await db.collection('mfd_clients').doc(id).delete(); loadMfdData(); } }
 
-    // Transaction Actions
     function calcMfdManualTx() { let n = parseFloat(document.getElementById('mfd-tx-nav').value) || 0; let u = parseFloat(document.getElementById('mfd-tx-unit').value) || 0; if (n > 0 && u > 0) document.getElementById('mfd-tx-amount').value = (n * u).toFixed(2); }
     function calcMfdManualUnit() { let n = parseFloat(document.getElementById('mfd-tx-nav').value) || 0; let a = parseFloat(document.getElementById('mfd-tx-amount').value) || 0; if (n > 0 && a > 0) document.getElementById('mfd-tx-unit').value = (a / n).toFixed(4); }
 
-    if(document.getElementById('mfd-tx-form')) {
-        document.getElementById('mfd-tx-form').addEventListener('submit', async function(e) {
-            e.preventDefault(); const tid = document.getElementById('mfd-tx-id').value; const rawInput = document.getElementById('mfd-tx-client').value.trim();
-            let tPanUcc = ''; let tName = rawInput; const sp = rawInput.indexOf(' - '); if (sp !== -1) { tPanUcc = rawInput.substring(0, sp).trim(); tName = rawInput.substring(sp + 3).trim(); }
-            const txData = {
-                userId: currentUser.uid, group: document.getElementById('mfd-tx-group').value.trim(), date: document.getElementById('mfd-tx-date').value,
-                pan_ucc: tPanUcc, clientName: tName, scheme: document.getElementById('mfd-tx-scheme').value.trim(), isin: document.getElementById('mfd-tx-isin').value.trim(),
-                type: document.getElementById('mfd-tx-type').value, nav: parseFloat(document.getElementById('mfd-tx-nav').value) || 0, unit: parseFloat(document.getElementById('mfd-tx-unit').value) || 0,
-                amount: parseFloat(document.getElementById('mfd-tx-amount').value) || 0, folio: document.getElementById('mfd-tx-folio').value.trim() 
-            };
-            if (tid) { await db.collection('mfd_transactions').doc(tid).update(txData); cancelMfdTxEdit(); } 
-            else { await db.collection('mfd_transactions').add(txData); document.getElementById('mfd-tx-form').reset(); document.getElementById('mfd-tx-date').valueAsDate = new Date(); }
-            loadMfdData();
-        });
-    }
-
-    async function editMfdTx(id) {
-        const d = await db.collection('mfd_transactions').doc(id).get(); if (!d.exists) return; const tx = d.data();
-        document.getElementById('mfd-tx-id').value = id; document.getElementById('mfd-tx-group').value = tx.group || ''; document.getElementById('mfd-tx-date').value = tx.date;
-        document.getElementById('mfd-tx-client').value = tx.pan_ucc ? `${tx.pan_ucc} - ${tx.clientName}` : tx.clientName; document.getElementById('mfd-tx-scheme').value = tx.scheme;
-        document.getElementById('mfd-tx-isin').value = tx.isin || ''; document.getElementById('mfd-tx-type').value = tx.type; document.getElementById('mfd-tx-nav').value = tx.nav || 0;
-        document.getElementById('mfd-tx-unit').value = tx.unit || 0; document.getElementById('mfd-tx-amount').value = tx.amount; document.getElementById('mfd-tx-folio').value = tx.folio || '';
-        document.getElementById('mfd-tx-btn').innerText = 'Update Transaction'; document.getElementById('mfd-tx-cancel-btn').style.display = 'inline-block'; togglePanel('mfd-tx', 'mfd-tx-icon'); window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    if(document.getElementById('mfd-tx-form')) { document.getElementById('mfd-tx-form').addEventListener('submit', async function(e) { e.preventDefault(); const tid = document.getElementById('mfd-tx-id').value; const rawInput = document.getElementById('mfd-tx-client').value.trim(); let tPanUcc = ''; let tName = rawInput; const sp = rawInput.indexOf(' - '); if (sp !== -1) { tPanUcc = rawInput.substring(0, sp).trim(); tName = rawInput.substring(sp + 3).trim(); } const txData = { userId: currentUser.uid, group: document.getElementById('mfd-tx-group').value.trim(), date: document.getElementById('mfd-tx-date').value, pan_ucc: tPanUcc, clientName: tName, scheme: document.getElementById('mfd-tx-scheme').value.trim(), isin: document.getElementById('mfd-tx-isin').value.trim(), type: document.getElementById('mfd-tx-type').value, nav: parseFloat(document.getElementById('mfd-tx-nav').value) || 0, unit: parseFloat(document.getElementById('mfd-tx-unit').value) || 0, amount: parseFloat(document.getElementById('mfd-tx-amount').value) || 0, folio: document.getElementById('mfd-tx-folio').value.trim() }; if (tid) { await db.collection('mfd_transactions').doc(tid).update(txData); cancelMfdTxEdit(); } else { await db.collection('mfd_transactions').add(txData); document.getElementById('mfd-tx-form').reset(); document.getElementById('mfd-tx-date').valueAsDate = new Date(); } loadMfdData(); }); }
+    async function editMfdTx(id) { const d = await db.collection('mfd_transactions').doc(id).get(); if (!d.exists) return; const tx = d.data(); document.getElementById('mfd-tx-id').value = id; document.getElementById('mfd-tx-group').value = tx.group || ''; document.getElementById('mfd-tx-date').value = tx.date; document.getElementById('mfd-tx-client').value = tx.pan_ucc ? `${tx.pan_ucc} - ${tx.clientName}` : tx.clientName; document.getElementById('mfd-tx-scheme').value = tx.scheme; document.getElementById('mfd-tx-isin').value = tx.isin || ''; document.getElementById('mfd-tx-type').value = tx.type; document.getElementById('mfd-tx-nav').value = tx.nav || 0; document.getElementById('mfd-tx-unit').value = tx.unit || 0; document.getElementById('mfd-tx-amount').value = tx.amount; document.getElementById('mfd-tx-folio').value = tx.folio || ''; document.getElementById('mfd-tx-btn').innerText = 'Update Transaction'; document.getElementById('mfd-tx-cancel-btn').style.display = 'inline-block'; let txContent = document.getElementById('mfd-tx'); if(txContent && !txContent.classList.contains('active')) togglePanel('mfd-tx', txContent.previousElementSibling); window.scrollTo({ top: 0, behavior: 'smooth' }); }
     function cancelMfdTxEdit() { document.getElementById('mfd-tx-id').value = ''; document.getElementById('mfd-tx-btn').innerText = 'Add Transaction'; document.getElementById('mfd-tx-cancel-btn').style.display = 'none'; document.getElementById('mfd-tx-form').reset(); document.getElementById('mfd-tx-date').valueAsDate = new Date(); }
     async function deleteMfdTx(id) { if(confirm("Delete transaction?")) { await db.collection('mfd_transactions').doc(id).delete(); loadMfdData(); } }
 
-
-    // -------------------------------------------------------------
-    // AUTOMATED NAV FETCHING (AMFI) & Uploaders
-    // -------------------------------------------------------------
-    
-    // Safely parse AMFI date format (DD-MMM-YYYY)
-    function parseAmfiDate(dateStr) {
-        const months = { 'Jan':'01','Feb':'02','Mar':'03','Apr':'04','May':'05','Jun':'06','Jul':'07','Aug':'08','Sep':'09','Oct':'10','Nov':'11','Dec':'12' };
-        let parts = dateStr.split('-');
-        if (parts.length === 3) {
-            let yyyy = parts[2];
-            let mm = months[parts[1]];
-            let dd = parts[0];
-            if(mm && dd && yyyy) return `${yyyy}-${mm}-${dd}`;
-        }
-        return new Date().toISOString().split('T')[0]; // fallback
+    function parseAmfiDate(dateStr) { const months = { 'Jan':'01','Feb':'02','Mar':'03','Apr':'04','May':'05','Jun':'06','Jul':'07','Aug':'08','Sep':'09','Oct':'10','Nov':'11','Dec':'12' }; let parts = dateStr.split('-'); if (parts.length === 3) { let yyyy = parts[2]; let mm = months[parts[1]]; let dd = parts[0]; if(mm && dd && yyyy) return `${yyyy}-${mm}-${dd}`; } return new Date().toISOString().split('T')[0]; }
+    async function fetchAmfiNavs() {
+        if (!currentUser) return alert("Please log in."); const btn = document.getElementById('btn-auto-nav'); const origText = btn.innerText; btn.innerText = "⏳ Fetching..."; btn.disabled = true;
+        try {
+            const myIsins = new Set(mfdTxs.filter(t => t.isin).map(t => t.isin.trim())); if (myIsins.size === 0) { alert("No ISINs found."); btn.innerText = origText; btn.disabled = false; return; }
+            const amfiUrl = 'https://www.amfiindia.com/spages/NAVAll.txt'; let textData = null; let lastErr = "";
+            const proxies = ['https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(amfiUrl), 'https://api.allorigins.win/raw?url=' + encodeURIComponent(amfiUrl), 'https://corsproxy.io/?' + encodeURIComponent(amfiUrl), 'https://proxy.cors.sh/' + amfiUrl];
+            for (let url of proxies) { try { const res = await fetch(url); if (res.ok) { textData = await res.text(); if (textData.includes('ISIN')) break; } } catch (err) { lastErr = err.message; } }
+            if (!textData) throw new Error(`Browser blocked request. Reason: ${lastErr}. Try "Upload Raw AMFI File" below.`);
+            const lines = textData.split('\n'); let updatedCount = 0; const batch = db.batch(); const todayISO = new Date().toISOString();
+            for (let i = 0; i < lines.length; i++) { let line = lines[i].trim(); if (!line.includes(';')) continue; let parts = line.split(';'); if (parts.length >= 6) { let matchedIsin = myIsins.has(parts[1].trim()) ? parts[1].trim() : (myIsins.has(parts[2].trim()) ? parts[2].trim() : null); if (matchedIsin && parts[4].trim() && !isNaN(parseFloat(parts[4].trim()))) { batch.set(db.collection('mfd_navs').doc(matchedIsin), { nav: parseFloat(parts[4].trim()), date: parseAmfiDate(parts[5].trim()), updated: todayISO }); myIsins.delete(matchedIsin); updatedCount++; } } if (myIsins.size === 0) break; }
+            if (updatedCount > 0) { await batch.commit(); alert(`Updated ${updatedCount} schemes!`); loadMfdData(); } else { alert("Could not find ISINs in AMFI."); }
+        } catch (error) { alert(error.message); } finally { btn.innerText = origText; btn.disabled = false; }
     }
 
-   async function fetchAmfiNavs() {
-        if (!currentUser) return alert("Please log in first.");
-        
-        const btn = document.getElementById('btn-auto-nav');
-        const origText = btn.innerText;
-        btn.innerText = "⏳ Fetching from AMFI... Please wait";
-        btn.disabled = true;
-
-        try {
-            const myIsins = new Set(mfdTxs.filter(t => t.isin).map(t => t.isin.trim()));
-            if (myIsins.size === 0) {
-                alert("No ISINs found in your transactions.");
-                btn.innerText = origText; btn.disabled = false; return;
-            }
-
-            const amfiUrl = 'https://www.amfiindia.com/spages/NAVAll.txt';
-            
-            // Expanded list of 5 robust CORS bypasses (less likely to be blocked by AdBlockers)
-            const proxyUrls = [
-                'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(amfiUrl),
-                'https://api.allorigins.win/raw?url=' + encodeURIComponent(amfiUrl),
-                'https://corsproxy.io/?' + encodeURIComponent(amfiUrl),
-                'https://proxy.cors.sh/' + amfiUrl,
-                'https://api.scraperapi.com/?api_key=YOUR_API_KEY&url=' // Fallback structure
-            ];
-
-            let textData = null;
-            let lastError = "";
-
-            // Loop through proxies until one gets a successful 200 OK response
-            for (let i = 0; i < 4; i++) {
-                try {
-                    console.log(`Trying Proxy ${i+1}...`);
-                    const response = await fetch(proxyUrls[i]);
-                    if (response.ok) {
-                        textData = await response.text();
-                        if (textData.includes('ISIN')) {
-                            console.log(`Success with Proxy ${i+1}!`);
-                            break; // Valid AMFI file found, stop trying
-                        }
-                    }
-                } catch (err) {
-                    console.warn(`Proxy ${i+1} Blocked/Failed: `, err.message);
-                    lastError = err.message;
-                }
-            }
-
-            if (!textData) {
-                throw new Error(`Browser blocked all requests. Reason: ${lastError}. \n\nTIP: If you are using Brave Browser, turn off "Shields" for this page. If you use uBlock Origin, pause it and try again.`);
-            }
-
-            const lines = textData.split('\n');
-            let updatedCount = 0;
-            const batch = db.batch();
-            const todayISO = new Date().toISOString();
-
-            for (let i = 0; i < lines.length; i++) {
-                let line = lines[i].trim();
-                if (line === "" || !line.includes(';')) continue;
-                
-                let parts = line.split(';');
-                if (parts.length >= 6) {
-                    let isin1 = parts[1].trim(); 
-                    let isin2 = parts[2].trim(); 
-                    let navStr = parts[4].trim();
-                    let dateStr = parts[5].trim(); 
-
-                    let matchedIsin = null;
-                    if (myIsins.has(isin1)) matchedIsin = isin1;
-                    else if (myIsins.has(isin2)) matchedIsin = isin2;
-
-                    if (matchedIsin && navStr && !isNaN(parseFloat(navStr))) {
-                        let isoDate = parseAmfiDate(dateStr);
-
-                        batch.set(db.collection('mfd_navs').doc(matchedIsin), {
-                            nav: parseFloat(navStr),
-                            date: isoDate,
-                            updated: todayISO
-                        });
-                        myIsins.delete(matchedIsin); 
-                        updatedCount++;
-                    }
-                }
-                if (myIsins.size === 0) break; 
-            }
-
-            if (updatedCount > 0) {
-                await batch.commit();
-                alert(`Successfully updated live NAVs for ${updatedCount} schemes!`);
-                loadMfdData();
-            } else {
-                alert("Connected to AMFI, but could not find your specific ISINs. Ensure your saved ISINs are correct.");
-            }
-        } catch (error) {
-            alert("Error fetching NAVs:\n\n" + error.message);
-        } finally {
-            btn.innerText = origText;
-            btn.disabled = false;
-        }
-    }    function uploadMfdNavCSV(e) {
+    function uploadMfdNavCSV(e) {
         const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
         reader.onload = async function(ev) {
-            const lines = ev.target.result.split('\n'); let sCount = 0; const batch = db.batch();
-            for (let i = 1; i < lines.length; i++) {
-                const c = lines[i].split(',').map(x => x.replace(/^"|"$/g, '').trim());
-                if (c.length >= 2 && c[0] && parseFloat(c[1]) > 0) { 
-                    let dDate = c[2] ? c[2] : new Date().toISOString().split('T')[0];
-                    batch.set(db.collection('mfd_navs').doc(c[0]), { 
-                        nav: parseFloat(c[1]), 
-                        date: dDate, 
-                        updated: new Date().toISOString() 
-                    }); 
-                    sCount++; 
+            const lines = ev.target.result.split('\n'); let sCount = 0; const batch = db.batch(); const todayISO = new Date().toISOString();
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim(); if (!line) continue;
+                if (line.includes(';')) {
+                    let parts = line.split(';'); if (parts.length >= 6 && !line.includes('Scheme Name')) {
+                        let navStr = parts[4].trim(); if (navStr && !isNaN(parseFloat(navStr))) { let isoDate = parseAmfiDate(parts[5].trim()); if (parts[1].trim() !== '-') { batch.set(db.collection('mfd_navs').doc(parts[1].trim()), { nav: parseFloat(navStr), date: isoDate, updated: todayISO }); sCount++; } if (parts[2].trim() !== '-') { batch.set(db.collection('mfd_navs').doc(parts[2].trim()), { nav: parseFloat(navStr), date: isoDate, updated: todayISO }); sCount++; } }
+                    }
+                } else if (line.includes(',')) {
+                    const c = line.split(',').map(x => x.replace(/^"|"$/g, '').trim()); if (c.length >= 2 && c[0] && parseFloat(c[1]) > 0 && c[0].toUpperCase() !== 'ISIN') { batch.set(db.collection('mfd_navs').doc(c[0]), { nav: parseFloat(c[1]), date: c[2] ? c[2] : todayISO.split('T')[0], updated: todayISO }); sCount++; }
                 }
             }
-            if (sCount > 0) { await batch.commit(); alert(`Updated ${sCount} NAV records globally!`); } else { alert("No valid NAV records found."); } 
-            e.target.value = ''; loadMfdData();
+            if (sCount > 0) { await batch.commit(); alert(`Processed ${sCount} NAVs!`); } else { alert("No valid NAV records found."); } e.target.value = ''; loadMfdData();
         }; reader.readAsText(file);
     }
-
-    async function handleManualNav(e) {
-        e.preventDefault();
-        const isin = document.getElementById('mfd-manual-nav-isin').value.trim();
-        const navVal = parseFloat(document.getElementById('mfd-manual-nav-val').value);
-        const dateVal = document.getElementById('mfd-manual-nav-date').value;
-        
-        if(!isin || !navVal || !dateVal) return alert("Please fill all NAV fields.");
-        if(!currentUser) return alert("You must be logged in.");
-        
-        try {
-            await db.collection('mfd_navs').doc(isin).set({
-                nav: navVal,
-                date: dateVal,
-                updated: new Date().toISOString()
-            });
-            alert(`Successfully updated NAV for ${isin}`);
-            document.getElementById('mfd-nav-form').reset();
-            document.getElementById('mfd-manual-nav-date').valueAsDate = new Date();
-            loadMfdData();
-        } catch(error) {
-            alert("Error saving NAV: " + error.message);
-        }
-    }
-
-    function uploadMfdTxCSV(e) {
-        const file = e.target.files[0]; if (!file || !currentUser) return; const reader = new FileReader();
-        reader.onload = async function(ev) {
-            const lines = ev.target.result.split('\n'); let sCount = 0; let skip = 0;
-            for (let i = 1; i < lines.length; i++) {
-                const cols = lines[i].split(',').map(x => x.replace(/^"|"$/g, '').trim());
-                if (cols.length >= 11) {
-                    const iden = cols[2]; const matchC = mfdClients.find(c => (c.pan && c.pan === iden) || (c.ucc && c.ucc === iden));
-                    if (!matchC) { skip++; continue; }
-                    const txData = { userId: currentUser.uid, group: cols[0] || matchC.group || '', clientName: matchC.name, pan_ucc: iden, type: cols[3] || 'Lumpsum', date: cols[4] || new Date().toISOString().split('T')[0], folio: cols[5] || '', scheme: cols[6] || 'Mutual Fund Scheme', isin: cols[7] || '', nav: parseFloat(cols[8]) || 0, unit: parseFloat(cols[9]) || 0, amount: parseFloat(cols[10]) || 0 };
-                    await db.collection('mfd_transactions').add(txData); sCount++;
-                }
-            }
-            alert(`Import Complete!\n\nSuccess: ${sCount}\nSkipped (Missing PAN/UCC): ${skip}`); e.target.value = ''; loadMfdData();
-        }; reader.readAsText(file);
-    }
-
-    // Ledger Actions
+    async function handleManualNav(e) { e.preventDefault(); const isin = document.getElementById('mfd-manual-nav-isin').value.trim(); const navVal = parseFloat(document.getElementById('mfd-manual-nav-val').value); const dateVal = document.getElementById('mfd-manual-nav-date').value; if(!isin || !navVal || !dateVal) return alert("Fill all fields."); try { await db.collection('mfd_navs').doc(isin).set({ nav: navVal, date: dateVal, updated: new Date().toISOString() }); alert(`Updated NAV`); document.getElementById('mfd-nav-form').reset(); document.getElementById('mfd-manual-nav-date').valueAsDate = new Date(); loadMfdData(); } catch(error) { alert("Error: " + error.message); } }
+    function uploadMfdTxCSV(e) { const file = e.target.files[0]; if (!file || !currentUser) return; const reader = new FileReader(); reader.onload = async function(ev) { const lines = ev.target.result.split('\n'); let sCount = 0; let skip = 0; for (let i = 1; i < lines.length; i++) { const cols = lines[i].split(',').map(x => x.replace(/^"|"$/g, '').trim()); if (cols.length >= 11) { const iden = cols[2]; const matchC = mfdClients.find(c => (c.pan && c.pan === iden) || (c.ucc && c.ucc === iden)); if (!matchC) { skip++; continue; } const txData = { userId: currentUser.uid, group: cols[0] || matchC.group || '', clientName: matchC.name, pan_ucc: iden, type: cols[3] || 'Lumpsum', date: cols[4] || new Date().toISOString().split('T')[0], folio: cols[5] || '', scheme: cols[6] || 'Mutual Fund Scheme', isin: cols[7] || '', nav: parseFloat(cols[8]) || 0, unit: parseFloat(cols[9]) || 0, amount: parseFloat(cols[10]) || 0 }; await db.collection('mfd_transactions').add(txData); sCount++; } } alert(`Import Complete! Success: ${sCount} Skipped: ${skip}`); e.target.value = ''; loadMfdData(); }; reader.readAsText(file); }
     function toggleAllMfdTx(source) { document.querySelectorAll('.mfd-chk').forEach(cb => cb.checked = source.checked); }
-    async function deleteSelectedMfdTx() {
-        const checkboxes = document.querySelectorAll('.mfd-chk:checked');
-        if(checkboxes.length === 0) return alert("Select at least one transaction to delete.");
-        if(!confirm(`Are you sure you want to permanently delete ${checkboxes.length} transactions?`)) return;
-        
-        let deleted = 0;
-        for (let cb of checkboxes) { await db.collection('mfd_transactions').doc(cb.value).delete(); deleted++; }
-        alert(`Successfully deleted ${deleted} transactions.`); loadMfdData();
-    }
-    
-    function filterMfdTxs() {
-        const searchText = (document.getElementById('mfd-search') ? document.getElementById('mfd-search').value : '').toLowerCase().trim();
-        const fColDate = (document.getElementById('mfd-flt-date') ? document.getElementById('mfd-flt-date').value : '').toLowerCase().trim();
-        const fColGroup = (document.getElementById('mfd-flt-group') ? document.getElementById('mfd-flt-group').value : '').toLowerCase().trim();
-        const fColUcc = (document.getElementById('mfd-flt-ucc') ? document.getElementById('mfd-flt-ucc').value : '').toLowerCase().trim();
-        const fColName = (document.getElementById('mfd-flt-name') ? document.getElementById('mfd-flt-name').value : '').toLowerCase().trim();
-        const fColScheme = (document.getElementById('mfd-flt-scheme') ? document.getElementById('mfd-flt-scheme').value : '').toLowerCase().trim();
-        const fColIsin = (document.getElementById('mfd-flt-isin') ? document.getElementById('mfd-flt-isin').value : '').toLowerCase().trim();
-        const fColType = (document.getElementById('mfd-flt-type') ? document.getElementById('mfd-flt-type').value : '').toLowerCase().trim();
-
-        return [...mfdTxs].filter(tx => {
-            let m = true;
-            if(fColDate && !(tx.date || '').toLowerCase().includes(fColDate)) m = false;
-            if(fColGroup && !(tx.group || '').toLowerCase().includes(fColGroup)) m = false;
-            if(fColUcc && !(tx.pan_ucc || '').toLowerCase().includes(fColUcc)) m = false;
-            if(fColName && !(tx.clientName || '').toLowerCase().includes(fColName)) m = false;
-            if(fColScheme && !(tx.scheme || '').toLowerCase().includes(fColScheme)) m = false;
-            if(fColIsin && !(tx.isin || '').toLowerCase().includes(fColIsin)) m = false;
-            if(fColType && !(tx.type || '').toLowerCase().includes(fColType)) m = false;
-            
-            if(searchText) {
-                const sm = (tx.clientName||'').toLowerCase().includes(searchText) || (tx.pan_ucc||'').toLowerCase().includes(searchText) || (tx.scheme||'').toLowerCase().includes(searchText) || (tx.group||'').toLowerCase().includes(searchText) || (tx.isin||'').toLowerCase().includes(searchText);
-                if(!sm) m = false;
-            }
-            return m;
-        });
-    }
-
-    function exportMfdCSV() {
-        let dyn = filterMfdTxs(); if (dyn.length === 0) return alert("No data.");
-        let c = "data:text/csv;charset=utf-8,ID,Group,Date,PAN/UCC,Investor Name,Scheme,ISIN,Type,NAV,Unit,Amount,Folio\n";
-        dyn.forEach(tx => { c += [tx.id, `"${tx.group||''}"`, tx.date, `"${tx.pan_ucc||''}"`, `"${tx.clientName||''}"`, `"${tx.scheme||''}"`, `"${tx.isin||''}"`, tx.type, tx.nav, tx.unit, tx.amount, `"${tx.folio||''}"`].join(",") + "\n"; });
-        const link = document.createElement("a"); link.setAttribute("href", encodeURI(c)); link.setAttribute("download", `MFD_Transactions_Export_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    }
-
+    async function deleteSelectedMfdTx() { const checkboxes = document.querySelectorAll('.mfd-chk:checked'); if(checkboxes.length === 0) return alert("Select a transaction."); if(!confirm(`Delete ${checkboxes.length} transactions?`)) return; for (let cb of checkboxes) { await db.collection('mfd_transactions').doc(cb.value).delete(); } alert("Deleted."); loadMfdData(); }
+    function filterMfdTxs() { const s = (document.getElementById('mfd-search') ? document.getElementById('mfd-search').value : '').toLowerCase().trim(); const fD = (document.getElementById('mfd-flt-date') ? document.getElementById('mfd-flt-date').value : '').toLowerCase().trim(); const fG = (document.getElementById('mfd-flt-group') ? document.getElementById('mfd-flt-group').value : '').toLowerCase().trim(); const fU = (document.getElementById('mfd-flt-ucc') ? document.getElementById('mfd-flt-ucc').value : '').toLowerCase().trim(); const fN = (document.getElementById('mfd-flt-name') ? document.getElementById('mfd-flt-name').value : '').toLowerCase().trim(); const fS = (document.getElementById('mfd-flt-scheme') ? document.getElementById('mfd-flt-scheme').value : '').toLowerCase().trim(); const fI = (document.getElementById('mfd-flt-isin') ? document.getElementById('mfd-flt-isin').value : '').toLowerCase().trim(); const fT = (document.getElementById('mfd-flt-type') ? document.getElementById('mfd-flt-type').value : '').toLowerCase().trim(); return [...mfdTxs].filter(tx => { if(fD && !(tx.date || '').toLowerCase().includes(fD)) return false; if(fG && !(tx.group || '').toLowerCase().includes(fG)) return false; if(fU && !(tx.pan_ucc || '').toLowerCase().includes(fU)) return false; if(fN && !(tx.clientName || '').toLowerCase().includes(fN)) return false; if(fS && !(tx.scheme || '').toLowerCase().includes(fS)) return false; if(fI && !(tx.isin || '').toLowerCase().includes(fI)) return false; if(fT && !(tx.type || '').toLowerCase().includes(fT)) return false; if(s && !((tx.clientName||'').toLowerCase().includes(s) || (tx.pan_ucc||'').toLowerCase().includes(s) || (tx.scheme||'').toLowerCase().includes(s) || (tx.group||'').toLowerCase().includes(s) || (tx.isin||'').toLowerCase().includes(s))) return false; return true; }); }
+    function exportMfdCSV() { let dyn = filterMfdTxs(); if (dyn.length === 0) return alert("No data."); let c = "data:text/csv;charset=utf-8,ID,Group,Date,PAN/UCC,Investor Name,Scheme,ISIN,Type,NAV,Unit,Amount,Folio\n"; dyn.forEach(tx => { c += [tx.id, `"${tx.group||''}"`, tx.date, `"${tx.pan_ucc||''}"`, `"${tx.clientName||''}"`, `"${tx.scheme||''}"`, `"${tx.isin||''}"`, tx.type, tx.nav, tx.unit, tx.amount, `"${tx.folio||''}"`].join(",") + "\n"; }); const link = document.createElement("a"); link.setAttribute("href", encodeURI(c)); link.setAttribute("download", `MFD_Export_${new Date().toISOString().split('T')[0]}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link); }
     function setMfdSort(col) { if (mfdSortCol === col) { mfdSortDesc = !mfdSortDesc; } else { mfdSortCol = col; mfdSortDesc = col === 'date'; } mfdPage=1; renderMfdApp(); }
 
     function renderMfdApp() {
-        // 1. Populate CRM Forms and Filters
-        const dList = document.getElementById('mfd-client-datalist');
-        const cListBody = document.getElementById('mfd-clients-list-body');
-        const clientFilter = document.getElementById('mfd-report-client-filter');
-        const groupFilter = document.getElementById('mfd-report-group-filter');
+        const dList = document.getElementById('mfd-client-datalist'); const cListBody = document.getElementById('mfd-clients-list-body'); const clientFilter = document.getElementById('mfd-report-client-filter'); const groupFilter = document.getElementById('mfd-report-group-filter');
+        const currClientFlt = clientFilter ? clientFilter.value : 'ALL'; const currGroupFlt = groupFilter ? groupFilter.value : 'ALL';
+        if(dList) dList.innerHTML = ''; if(cListBody) cListBody.innerHTML = ''; let groups = new Set(); let clients = new Set();
+        mfdClients.forEach(c => { let key = c.pan || c.ucc || c.name; let val = c.pan || c.ucc ? `${key} - ${c.name}` : c.name; if(dList) dList.innerHTML += `<option value="${val}">`; if(c.group) groups.add(c.group); clients.add(key); if(cListBody) { cListBody.innerHTML += `<tr><td>${c.group || '-'}</td><td><strong>${key}</strong></td><td><strong>${c.name}</strong></td><td><button class="btn-edit-tx" onclick="editMfdClient('${c.id}')">Edit</button><button class="btn-delete" onclick="deleteMfdClient('${c.id}')">Del</button></td></tr>`; } });
+        if(groupFilter) { groupFilter.innerHTML = '<option value="ALL">All Groups</option>'; [...groups].sort().forEach(g => { groupFilter.innerHTML += `<option value="${g}" ${g===currGroupFlt?'selected':''}>${g}</option>`; }); }
+        if(clientFilter) { clientFilter.innerHTML = '<option value="ALL">All Investors</option>'; [...clients].sort().forEach(c => { let cObj = mfdClients.find(x => x.pan===c || x.ucc===c || x.name===c); let n = cObj ? cObj.name : c; clientFilter.innerHTML += `<option value="${c}" ${c===currClientFlt?'selected':''}>${c} - ${n}</option>`; }); }
 
-        const currClientFlt = clientFilter ? clientFilter.value : 'ALL';
-        const currGroupFlt = groupFilter ? groupFilter.value : 'ALL';
-
-        if(dList) dList.innerHTML = '';
-        if(cListBody) cListBody.innerHTML = '';
-
-        let groups = new Set();
-        let clients = new Set();
-
-        mfdClients.forEach(c => {
-            let key = c.pan || c.ucc || c.name;
-            let val = c.pan || c.ucc ? `${key} - ${c.name}` : c.name;
-            
-            if(dList) dList.innerHTML += `<option value="${val}">`;
-            if(c.group) groups.add(c.group);
-            clients.add(key);
-            
-            if(cListBody) {
-                cListBody.innerHTML += `<tr>
-                    <td>${c.group || '-'}</td>
-                    <td><strong>${key}</strong></td>
-                    <td><strong>${c.name}</strong></td>
-                    <td>${c.phone || '-'}</td>
-                    <td>
-                        <button class="btn-edit-tx" onclick="editMfdClient('${c.id}')">Edit</button>
-                        <button class="btn-delete" onclick="deleteMfdClient('${c.id}')">Del</button>
-                    </td>
-                </tr>`;
-            }
-        });
-
-        if(groupFilter) {
-            groupFilter.innerHTML = '<option value="ALL">All Groups</option>';
-            [...groups].sort().forEach(g => {
-                groupFilter.innerHTML += `<option value="${g}" ${g===currGroupFlt?'selected':''}>${g}</option>`;
-            });
-        }
-        
-        if(clientFilter) {
-            clientFilter.innerHTML = '<option value="ALL">All Investors</option>';
-            [...clients].sort().forEach(c => {
-                let cObj = mfdClients.find(x => x.pan===c || x.ucc===c || x.name===c);
-                let n = cObj ? cObj.name : c;
-                clientFilter.innerHTML += `<option value="${c}" ${c===currClientFlt?'selected':''}>${c} - ${n}</option>`;
-            });
-        }
-
-        // 2. Compute Data and Render Analytics Panels Cleanly
-        renderMfdReportsOnly();
-
-        // 3. Render Transaction Ledger
-        updateSortIcons();
-        const dyn = filterMfdTxs();
-
-        // Sort Ledger dynamically
-        dyn.sort((a,b) => {
-            let v1 = a[mfdSortCol] || ''; let v2 = b[mfdSortCol] || '';
-            if(mfdSortCol === 'amount' || mfdSortCol === 'nav' || mfdSortCol === 'unit') {
-                v1 = parseFloat(v1) || 0; v2 = parseFloat(v2) || 0;
-            } else {
-                v1 = v1.toString().toLowerCase(); v2 = v2.toString().toLowerCase();
-            }
-            if (v1 < v2) return mfdSortDesc ? 1 : -1;
-            if (v1 > v2) return mfdSortDesc ? -1 : 1;
-            return 0;
-        });
-
-        const lb = document.getElementById('mfd-ledger-body');
-        if(lb) lb.innerHTML = '';
-        
-        const tp = Math.ceil(dyn.length / pageSize) || 1; 
-        if (mfdPage > tp) mfdPage = tp;
-        const startIdx = (mfdPage - 1) * pageSize; 
-        const pageTxs = dyn.slice(startIdx, startIdx + pageSize);
-
-        pageTxs.forEach(tx => {
-            let txTypeStr = (tx.type || '').trim().toLowerCase();
-            let isRedeem = txTypeStr.includes('redemption') || txTypeStr.includes('redeem') || txTypeStr.includes('sale');
-            let badgeClass = isRedeem ? 'redemption' : 'sip'; if (txTypeStr.includes('lump')) badgeClass = 'lumpsum';
-            let amtClass = isRedeem ? 'pnl-negative' : 'pnl-positive';
-
-            if(lb) {
-                lb.innerHTML += `<tr>
-                    <td style="text-align: center;"><input type="checkbox" class="mfd-chk" value="${tx.id}" style="transform: scale(1.2); cursor: pointer;"></td>
-                    <td>${tx.date}</td>
-                    <td><strong>${tx.group || '-'}</strong></td>
-                    <td><strong>${tx.pan_ucc || '-'}</strong></td>
-                    <td><strong>${tx.clientName}</strong></td>
-                    <td>${tx.scheme}</td>
-                    <td><small style="color:#64748b;">${tx.isin || '-'}</small></td>
-                    <td><span class="badge ${badgeClass}">${tx.type}</span></td>
-                    <td>${tx.nav > 0 ? tx.nav.toFixed(4) : '-'}</td>
-                    <td>${tx.unit > 0 ? tx.unit.toFixed(4) : '-'}</td>
-                    <td class="${amtClass}">${isRedeem ? '-' : '+'}${(tx.amount||0).toFixed(2)}</td>
-                    <td>
-                        <button class="btn-edit-tx" onclick="editMfdTx('${tx.id}')">Edit</button>
-                        <button class="btn-delete" onclick="deleteMfdTx('${tx.id}')">Del</button>
-                    </td>
-                </tr>`;
-            }
-        });
-
-        if (pageTxs.length === 0 && lb) {
-            lb.innerHTML = `<tr><td colspan="12" style="text-align:center; padding:15px; color:#666;">No transactions found matching your criteria.</td></tr>`;
-        }
-
-        if(document.getElementById('mfd-page-indicator')) document.getElementById('mfd-page-indicator').innerText = `Page ${mfdPage} of ${tp}`; 
-        if(document.getElementById('mfd-btn-prev')) document.getElementById('mfd-btn-prev').disabled = mfdPage === 1; 
-        if(document.getElementById('mfd-btn-next')) document.getElementById('mfd-btn-next').disabled = mfdPage === tp;
+        renderMfdReportsOnly(); updateSortIcons(); const dyn = filterMfdTxs();
+        dyn.sort((a,b) => { let v1 = a[mfdSortCol] || ''; let v2 = b[mfdSortCol] || ''; if(mfdSortCol === 'amount' || mfdSortCol === 'nav' || mfdSortCol === 'unit') { v1 = parseFloat(v1) || 0; v2 = parseFloat(v2) || 0; } else { v1 = v1.toString().toLowerCase(); v2 = v2.toString().toLowerCase(); } if (v1 < v2) return mfdSortDesc ? 1 : -1; if (v1 > v2) return mfdSortDesc ? -1 : 1; return 0; });
+        const lb = document.getElementById('mfd-ledger-body'); if(lb) lb.innerHTML = ''; const tp = Math.ceil(dyn.length / pageSize) || 1; if (mfdPage > tp) mfdPage = tp; const startIdx = (mfdPage - 1) * pageSize; const pageTxs = dyn.slice(startIdx, startIdx + pageSize);
+        pageTxs.forEach(tx => { let t = (tx.type || '').trim().toLowerCase(); let iR = t.includes('red') || t.includes('sale'); let bC = iR ? 'redemption' : 'sip'; if (t.includes('lump')) bC = 'lumpsum'; let aC = iR ? 'pnl-negative' : 'pnl-positive'; if(lb) { lb.innerHTML += `<tr><td style="text-align: center;"><input type="checkbox" class="mfd-chk" value="${tx.id}"></td><td>${tx.date}</td><td><strong>${tx.group || '-'}</strong></td><td><strong>${tx.pan_ucc || '-'}</strong></td><td><strong>${tx.clientName}</strong></td><td>${tx.scheme}</td><td><small>${tx.isin || '-'}</small></td><td><span class="badge ${bC}">${tx.type}</span></td><td>${tx.nav > 0 ? tx.nav.toFixed(4) : '-'}</td><td>${tx.unit > 0 ? tx.unit.toFixed(4) : '-'}</td><td class="${aC}">${iR ? '-' : '+'}${(tx.amount||0).toFixed(2)}</td><td><button class="btn-edit-tx" onclick="editMfdTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteMfdTx('${tx.id}')">Del</button></td></tr>`; } });
+        if (pageTxs.length === 0 && lb) { lb.innerHTML = `<tr><td colspan="12" style="text-align:center; padding:15px; color:#666;">No transactions found.</td></tr>`; }
+        if(document.getElementById('mfd-page-indicator')) document.getElementById('mfd-page-indicator').innerText = `Page ${mfdPage} of ${tp}`; if(document.getElementById('mfd-btn-prev')) document.getElementById('mfd-btn-prev').disabled = mfdPage === 1; if(document.getElementById('mfd-btn-next')) document.getElementById('mfd-btn-next').disabled = mfdPage === tp;
     }
 
     function renderMfdReportsOnly() {
-        updateSortIcons();
-
-        const filterVal = document.getElementById('mfd-report-client-filter') ? document.getElementById('mfd-report-client-filter').value : 'ALL'; 
-        const gVal = document.getElementById('mfd-report-group-filter') ? document.getElementById('mfd-report-group-filter').value : 'ALL';
-        const slb = document.getElementById('scheme-filter-lbl'); if(slb) slb.innerText = filterVal === 'ALL' ? (gVal === 'ALL' ? '(Master)' : `(Group: ${gVal})`) : `(Filtered)`;
-
+        updateSortIcons(); const filterVal = document.getElementById('mfd-report-client-filter') ? document.getElementById('mfd-report-client-filter').value : 'ALL'; const gVal = document.getElementById('mfd-report-group-filter') ? document.getElementById('mfd-report-group-filter').value : 'ALL';
         let tIn = 0, tRed = 0, currentValAum = 0, cMap = {}, sMap = {}, mTree = {};
-        
         mfdClients.forEach(c => { let k = c.pan || c.ucc || c.name; cMap[k] = { id: k, name: c.name, grp: c.group||'', in: 0, red: 0, u: 0, cv: 0, cf: [] }; });
-
         mfdTxs.forEach(tx => {
-            let amt = Math.abs(parseFloat(tx.amount))||0; let u = Math.abs(parseFloat(tx.unit))||0; 
-            let ck = tx.pan_ucc || tx.clientName; let sk = tx.isin || tx.scheme || 'Uncategorized';
-            let tp = (tx.type||'').toLowerCase(); let isR = tp.includes('red') || tp.includes('sale'); let isI = tp.includes('sip') || tp.includes('lump') || tp.includes('pur');
-            
-            // Safely parse DD-MM-YYYY formats specifically to avoid JS Month/Day swap
-            let d;
-            if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) {
-                let parts = tx.date.split('-');
-                d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
-            } else {
-                d = new Date(tx.date);
-            }
-            
-            if (!cMap[ck]) cMap[ck] = { id: ck, name: tx.clientName, grp: tx.group||'', in: 0, red: 0, u: 0, cv: 0, cf: [] };
-            if (!sMap[sk]) sMap[sk] = { isin: tx.isin, scheme: tx.scheme, in: 0, red: 0, u: 0, cv: 0, cf: [] };
-
-            let cg = cMap[ck].grp; let inG = (gVal === 'ALL' || cg === gVal); let inC = (filterVal === 'ALL' || ck === filterVal);
-            if (!inG) return; 
-
-            if (isI) {
-                tIn += amt; cMap[ck].in += amt; cMap[ck].u += u; cMap[ck].cf.push({amt: -amt, date: d});
-                if (inC) { sMap[sk].in += amt; sMap[sk].u += u; sMap[sk].cf.push({amt: -amt, date: d}); }
-            } else if (isR) {
-                tRed += amt; cMap[ck].red += amt; cMap[ck].u -= u; cMap[ck].cf.push({amt: amt, date: d});
-                if (inC) { sMap[sk].red += amt; sMap[sk].u -= u; sMap[sk].cf.push({amt: amt, date: d}); }
-            }
-
-            let y = d.getFullYear() || new Date().getFullYear(); let m = (d.getMonth() + 1).toString().padStart(2, '0');
-            if (!mTree[y]) mTree[y] = { n: 0, m: {} }; if (!mTree[y].m[m]) mTree[y].m[m] = { n: 0, c: {} }; if (!mTree[y].m[m].c[tx.clientName]) mTree[y].m[m].c[tx.clientName] = 0;
-            let pnlImp = isI ? amt : (isR ? -amt : 0); mTree[y].n += pnlImp; mTree[y].m[m].n += pnlImp; mTree[y].m[m].c[tx.clientName] += pnlImp;
+            let amt = Math.abs(parseFloat(tx.amount))||0; let u = Math.abs(parseFloat(tx.unit))||0; let ck = tx.pan_ucc || tx.clientName; let sk = tx.isin || tx.scheme || 'Uncategorized'; let tp = (tx.type||'').toLowerCase(); let isR = tp.includes('red') || tp.includes('sale'); let isI = tp.includes('sip') || tp.includes('lump') || tp.includes('pur');
+            let d; if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) { let parts = tx.date.split('-'); d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`); } else { d = new Date(tx.date); }
+            if (!cMap[ck]) cMap[ck] = { id: ck, name: tx.clientName, grp: tx.group||'', in: 0, red: 0, u: 0, cv: 0, cf: [] }; if (!sMap[sk]) sMap[sk] = { isin: tx.isin, scheme: tx.scheme, in: 0, red: 0, u: 0, cv: 0, cf: [] };
+            if (!(gVal === 'ALL' || cMap[ck].grp === gVal)) return; let inC = (filterVal === 'ALL' || ck === filterVal);
+            if (isI) { tIn += amt; cMap[ck].in += amt; cMap[ck].u += u; cMap[ck].cf.push({amt: -amt, date: d}); if (inC) { sMap[sk].in += amt; sMap[sk].u += u; sMap[sk].cf.push({amt: -amt, date: d}); } } else if (isR) { tRed += amt; cMap[ck].red += amt; cMap[ck].u -= u; cMap[ck].cf.push({amt: amt, date: d}); if (inC) { sMap[sk].red += amt; sMap[sk].u -= u; sMap[sk].cf.push({amt: amt, date: d}); } }
+            let y = d.getFullYear() || new Date().getFullYear(); let m = (d.getMonth() + 1).toString().padStart(2, '0'); if (!mTree[y]) mTree[y] = { n: 0, m: {} }; if (!mTree[y].m[m]) mTree[y].m[m] = { n: 0, c: {} }; if (!mTree[y].m[m].c[tx.clientName]) mTree[y].m[m].c[tx.clientName] = 0; let pnlImp = isI ? amt : (isR ? -amt : 0); mTree[y].n += pnlImp; mTree[y].m[m].n += pnlImp; mTree[y].m[m].c[tx.clientName] += pnlImp;
         });
 
-        // Compute Client AUM mapping and Total Filtered AUM
-        let latestGlobalNavDate = new Date(0);
-        
+        let lNavDate = new Date(0);
         Object.keys(cMap).forEach(k => {
-            let i = cMap[k]; let cv = 0; let cx = mfdTxs.filter(t => (t.pan_ucc || t.clientName) === k); let sb = {};
-            let latestClientNavDate = new Date(0);
-
-            cx.forEach(t => { 
-                let sKey = t.isin || t.scheme; 
-                if(!sb[sKey]) sb[sKey] = { u: 0, i: t.isin, fn: 0 }; 
-                let iR = (t.type||'').toLowerCase().includes('red'); 
-                sb[sKey].u += iR ? -t.unit : t.unit; 
-                if(t.nav > 0) sb[sKey].fn = t.nav; 
-            });
-
-            Object.keys(sb).forEach(sKey => { 
-                if (sb[sKey].u > 0) {
-                    let navObj = mfdNavs[sb[sKey].i];
-                    let rN = navObj ? navObj.nav : (sb[sKey].fn || 0);
-                    let nDate = navObj && navObj.date ? new Date(navObj.date) : new Date();
-                    
-                    if (nDate > latestClientNavDate) latestClientNavDate = nDate;
-                    if (nDate > latestGlobalNavDate) latestGlobalNavDate = nDate;
-                    
-                    cv += (sb[sKey].u * rN);
-                }
-            });
-            
-            i.cv = cv; 
-            if (cv > 0) {
-                let finalDate = latestClientNavDate.getTime() > 0 ? latestClientNavDate : new Date();
-                i.cf.push({ amt: cv, date: finalDate });
-            }
-            if (gVal === 'ALL' || i.grp === gVal) currentValAum += cv;
+            let i = cMap[k]; let cv = 0; let cx = mfdTxs.filter(t => (t.pan_ucc || t.clientName) === k); let sb = {}; let lCNavDate = new Date(0);
+            cx.forEach(t => { let sKey = t.isin || t.scheme; if(!sb[sKey]) sb[sKey] = { u: 0, i: t.isin, fn: 0 }; let iR = (t.type||'').toLowerCase().includes('red'); sb[sKey].u += iR ? -t.unit : t.unit; if(t.nav > 0) sb[sKey].fn = t.nav; });
+            Object.keys(sb).forEach(sKey => { if (sb[sKey].u > 0) { let navObj = mfdNavs[sb[sKey].i]; let rN = navObj ? navObj.nav : (sb[sKey].fn || 0); let nDate = navObj && navObj.date ? new Date(navObj.date) : new Date(); if (nDate > lCNavDate) lCNavDate = nDate; if (nDate > lNavDate) lNavDate = nDate; cv += (sb[sKey].u * rN); } });
+            i.cv = cv; if (cv > 0) { i.cf.push({ amt: cv, date: lCNavDate.getTime() > 0 ? lCNavDate : new Date() }); } if (gVal === 'ALL' || i.grp === gVal) currentValAum += cv;
         });
 
-        // Compute Scheme AUM Map
         let sAumTotal = 0;
-        Object.keys(sMap).forEach(k => { 
-            let i = sMap[k]; 
-            if (i.u > 0) { 
-                let navObj = mfdNavs[i.isin];
-                let rN = navObj ? navObj.nav : 0;
-                let finalDate = navObj && navObj.date ? new Date(navObj.date) : new Date();
+        Object.keys(sMap).forEach(k => { let i = sMap[k]; if (i.u > 0) { let nObj = mfdNavs[i.isin]; let rN = nObj ? nObj.nav : 0; i.cv = i.u * rN; i.cf.push({ amt: i.cv, date: nObj && nObj.date ? new Date(nObj.date) : new Date() }); sAumTotal += i.cv; } });
 
-                i.cv = i.u * rN; 
-                i.cf.push({ amt: i.cv, date: finalDate }); 
-                sAumTotal += i.cv; 
-            } 
-        });
+        if(document.getElementById('mfd-current-val')) document.getElementById('mfd-current-val').innerText = currentValAum.toFixed(2); if(document.getElementById('mfd-net-inv')) document.getElementById('mfd-net-inv').innerText = (tIn - tRed).toFixed(2); if(document.getElementById('mfd-gross-inflow')) document.getElementById('mfd-gross-inflow').innerText = tIn.toFixed(2); if(document.getElementById('mfd-total-redemption')) document.getElementById('mfd-total-redemption').innerText = tRed.toFixed(2); if(document.getElementById('mfd-total-clients')) document.getElementById('mfd-total-clients').innerText = Object.keys(cMap).filter(k => cMap[k].in > 0 || cMap[k].red > 0).length;
 
-        // Update Top Summary Cards
-        if(document.getElementById('mfd-current-val')) document.getElementById('mfd-current-val').innerText = currentValAum.toFixed(2);
-        if(document.getElementById('mfd-net-inv')) document.getElementById('mfd-net-inv').innerText = (tIn - tRed).toFixed(2);
-        if(document.getElementById('mfd-gross-inflow')) document.getElementById('mfd-gross-inflow').innerText = tIn.toFixed(2);
-        if(document.getElementById('mfd-total-redemption')) document.getElementById('mfd-total-redemption').innerText = tRed.toFixed(2);
-        if(document.getElementById('mfd-total-clients')) document.getElementById('mfd-total-clients').innerText = Object.keys(cMap).filter(k => cMap[k].in > 0 || cMap[k].red > 0).length;
-
-        // Render Client Portfolio AUM Table (SORTABLE with Abs Return)
         const cb = document.getElementById('mfd-client-aum-body'); 
         if(cb) {
-            cb.innerHTML = ''; 
-            
-            let clientArr = Object.keys(cMap).map(k => {
-                let i = cMap[k];
-                i.xirr = computeXIRR(i.cf);
-                i.pct = currentValAum > 0 ? ((i.cv / currentValAum) * 100) : 0;
-                i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0;
-                return i;
-            }).filter(i => (i.in > 0 || i.red > 0) && (gVal === 'ALL' || i.grp === gVal));
-
-            clientArr.sort((a, b) => {
-                let v1 = a[clientSortCol] !== undefined ? a[clientSortCol] : '';
-                let v2 = b[clientSortCol] !== undefined ? b[clientSortCol] : '';
-                if(typeof v1 === 'string') v1 = v1.toLowerCase();
-                if(typeof v2 === 'string') v2 = v2.toLowerCase();
-                if (v1 < v2) return clientSortDesc ? 1 : -1;
-                if (v1 > v2) return clientSortDesc ? -1 : 1;
-                return 0;
-            });
-
-            if (clientArr.length === 0) { cb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } 
-            else {
-                clientArr.forEach(i => {
-                    let xc = i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'; 
-                    let arC = i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'; 
-                    cb.innerHTML += `<tr><td>${i.grp || '-'}</td><td><strong>${i.id}</strong></td><td><strong>${i.name}</strong></td><td class="pnl-positive">+${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${xc}">${i.xirr.toFixed(2)}%</td><td class="${arC}">${i.absRet.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${i.pct.toFixed(2)}%</span></td></tr>`;
-                });
-            }
+            cb.innerHTML = ''; let arr = Object.keys(cMap).map(k => { let i = cMap[k]; i.xirr = computeXIRR(i.cf); i.pct = currentValAum > 0 ? ((i.cv / currentValAum) * 100) : 0; i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0; return i; }).filter(i => (i.in > 0 || i.red > 0) && (gVal === 'ALL' || i.grp === gVal));
+            arr.sort((a, b) => { let v1 = a[clientSortCol] !== undefined ? a[clientSortCol] : ''; let v2 = b[clientSortCol] !== undefined ? b[clientSortCol] : ''; if(typeof v1 === 'string') v1 = v1.toLowerCase(); if(typeof v2 === 'string') v2 = v2.toLowerCase(); if (v1 < v2) return clientSortDesc ? 1 : -1; if (v1 > v2) return clientSortDesc ? -1 : 1; return 0; });
+            if (arr.length === 0) { cb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } else { arr.forEach(i => { cb.innerHTML += `<tr><td>${i.grp || '-'}</td><td><strong>${i.id}</strong></td><td><strong>${i.name}</strong></td><td class="pnl-positive">+${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.xirr.toFixed(2)}%</td><td class="${i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.absRet.toFixed(2)}%</td><td><span class="badge" style="background:#e2e8f0; color:#333;">${i.pct.toFixed(2)}%</span></td></tr>`; }); }
         }
 
-        // Render Scheme AUM Breakdown Table (SORTABLE with Abs Return)
         const sb = document.getElementById('mfd-scheme-aum-body'); 
         if(sb) {
-            sb.innerHTML = ''; 
-            
-            let schemeArr = Object.keys(sMap).map(s => {
-                let i = sMap[s];
-                let navObj = mfdNavs[i.isin];
-                i.rN = navObj ? navObj.nav : 0;
-                i.xirr = computeXIRR(i.cf);
-                i.pct = sAumTotal > 0 ? ((i.cv / sAumTotal) * 100) : 0;
-                i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0;
-                return i;
-            }).filter(i => i.u > 0.001 || i.red > 0);
-
-            schemeArr.sort((a, b) => {
-                let v1 = a[schemeSortCol] !== undefined ? a[schemeSortCol] : '';
-                let v2 = b[schemeSortCol] !== undefined ? b[schemeSortCol] : '';
-                if(typeof v1 === 'string') v1 = v1.toLowerCase();
-                if(typeof v2 === 'string') v2 = v2.toLowerCase();
-                if (v1 < v2) return schemeSortDesc ? 1 : -1;
-                if (v1 > v2) return schemeSortDesc ? -1 : 1;
-                return 0;
-            });
-
-            if (schemeArr.length === 0) { sb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } 
-            else {
-                schemeArr.forEach(i => {
-                    let xc = i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'; 
-                    let arC = i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'; 
-                    sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.u.toFixed(4)}</td><td>${i.rN.toFixed(4)}</td><td>${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${xc}">${i.xirr.toFixed(2)}%</td><td class="${arC}">${i.absRet.toFixed(2)}%</td><td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">${i.pct.toFixed(2)}%</span></td></tr>`;
-                });
-            }
+            sb.innerHTML = ''; let arr = Object.keys(sMap).map(s => { let i = sMap[s]; let nObj = mfdNavs[i.isin]; i.rN = nObj ? nObj.nav : 0; i.xirr = computeXIRR(i.cf); i.pct = sAumTotal > 0 ? ((i.cv / sAumTotal) * 100) : 0; i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0; return i; }).filter(i => i.u > 0.001 || i.red > 0);
+            arr.sort((a, b) => { let v1 = a[schemeSortCol] !== undefined ? a[schemeSortCol] : ''; let v2 = b[schemeSortCol] !== undefined ? b[schemeSortCol] : ''; if(typeof v1 === 'string') v1 = v1.toLowerCase(); if(typeof v2 === 'string') v2 = v2.toLowerCase(); if (v1 < v2) return schemeSortDesc ? 1 : -1; if (v1 > v2) return schemeSortDesc ? -1 : 1; return 0; });
+            if (arr.length === 0) { sb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } else { arr.forEach(i => { sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.u.toFixed(4)}</td><td>${i.rN.toFixed(4)}</td><td>${i.in.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.xirr.toFixed(2)}%</td><td class="${i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.absRet.toFixed(2)}%</td><td><span class="badge" style="background:#e2e8f0; color:#333;">${i.pct.toFixed(2)}%</span></td></tr>`; }); }
         }
 
-        // Render Comprehensive Client Details 
         const cd = document.getElementById('mfd-client-details-body'); 
-        if(cd) {
-            cd.innerHTML = '';
-            mfdClients.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
-                if (gVal !== 'ALL' && c.group !== gVal) return;
-                let key = c.pan || c.ucc || c.name; 
-                cd.innerHTML += `<tr><td><strong>${key}</strong></td><td>${c.group || '-'}</td><td><strong>${c.name}</strong></td><td>${c.phone || '-'}</td><td>${c.city || '-'}${c.state ? ', ' + c.state : ''}</td><td>${c.nomineeName || '-'}</td></tr>`;
-            });
-        }
+        if(cd) { cd.innerHTML = ''; mfdClients.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => { if (gVal !== 'ALL' && c.group !== gVal) return; cd.innerHTML += `<tr><td><strong>${c.pan || c.ucc || c.name}</strong></td><td>${c.group || '-'}</td><td><strong>${c.name}</strong></td><td>${c.phone || '-'}</td><td>${c.city || '-'}${c.state ? ', ' + c.state : ''}</td><td>${c.nomineeName || '-'}</td></tr>`; }); }
 
-        // Render Drill-Down Flow Tree
         const t = document.getElementById('mfd-drilldown-tree'); 
         if(t) {
             let tHtml = ''; const mn = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
             Object.keys(mTree).sort().reverse().forEach(y => {
-                let yd = mTree[y]; let yc = yd.n >= 0 ? 'pnl-positive' : 'pnl-negative';
-                tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> Year ${y}</span><span class="${yc}">${yd.n>0?'+':''}${yd.n.toFixed(2)}</span></div><div class="tree-children">`;
+                let yd = mTree[y]; tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> Year ${y}</span><span class="${yd.n >= 0 ? 'pnl-positive' : 'pnl-negative'}">${yd.n>0?'+':''}${yd.n.toFixed(2)}</span></div><div class="tree-children">`;
                 Object.keys(yd.m).sort().reverse().forEach(ms => {
-                    let md = yd.m[ms]; let mc = md.n >= 0 ? 'pnl-positive' : 'pnl-negative';
-                    tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${mn[parseInt(ms)]}</span><span class="${mc}">${md.n>0?'+':''}${md.n.toFixed(2)}</span></div><div class="tree-children">`;
-                    Object.keys(md.c).sort().forEach(cn => {
-                        let cv = md.c[cn]; if (cv !== 0) { let cc = cv > 0 ? 'pnl-positive' : 'pnl-negative'; tHtml += `<div class="tree-leaf"><span>${cn}</span><span class="${cc}">${cv>0?'+':''}${cv.toFixed(2)}</span></div>`; }
-                    });
-                    tHtml += `</div></div>`;
+                    let md = yd.m[ms]; tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${mn[parseInt(ms)]}</span><span class="${md.n >= 0 ? 'pnl-positive' : 'pnl-negative'}">${md.n>0?'+':''}${md.n.toFixed(2)}</span></div><div class="tree-children">`;
+                    Object.keys(md.c).sort().forEach(cn => { let cv = md.c[cn]; if (cv !== 0) { tHtml += `<div class="tree-leaf"><span>${cn}</span><span class="${cv > 0 ? 'pnl-positive' : 'pnl-negative'}">${cv>0?'+':''}${cv.toFixed(2)}</span></div>`; } }); tHtml += `</div></div>`;
                 }); tHtml += `</div></div>`;
-            });
-            t.innerHTML = tHtml || `<div style="padding:15px; text-align:center;">No data.</div>`;
+            }); t.innerHTML = tHtml || `<div style="padding:15px; text-align:center;">No data.</div>`;
         }
-
-        // Render the AUM Growth Chart
         updateAumChart();
     }
 
-    // -------------------------------------------------------------
-    // 7. CHART.JS AUM GROWTH LOGIC
-    // -------------------------------------------------------------
     function updateAumChart() {
-        const chartContainer = document.getElementById('aumGrowthChart');
-        if (!chartContainer) return;
-        
-        const ctx = chartContainer.getContext('2d');
-        
-        const filterVal = document.getElementById('mfd-report-client-filter') ? document.getElementById('mfd-report-client-filter').value : 'ALL'; 
-        const gVal = document.getElementById('mfd-report-group-filter') ? document.getElementById('mfd-report-group-filter').value : 'ALL';
-        const yearFlt = document.getElementById('mfd-chart-year-filter') ? document.getElementById('mfd-chart-year-filter').value : 'ALL';
+        const chartContainer = document.getElementById('aumGrowthChart'); if (!chartContainer) return; const ctx = chartContainer.getContext('2d');
+        const filterVal = document.getElementById('mfd-report-client-filter') ? document.getElementById('mfd-report-client-filter').value : 'ALL'; const gVal = document.getElementById('mfd-report-group-filter') ? document.getElementById('mfd-report-group-filter').value : 'ALL'; const yearFlt = document.getElementById('mfd-chart-year-filter') ? document.getElementById('mfd-chart-year-filter').value : 'ALL';
+        let validTxs = mfdTxs.filter(tx => { let ck = tx.pan_ucc || tx.clientName; return (gVal === 'ALL' || (tx.group || '') === gVal) && (filterVal === 'ALL' || ck === filterVal); });
+        validTxs.sort((a,b) => { let dA = a.date.includes('-') && a.date.split('-')[0].length === 2 ? new Date(`${a.date.split('-')[2]}-${a.date.split('-')[1]}-${a.date.split('-')[0]}T00:00:00`) : new Date(a.date); let dB = b.date.includes('-') && b.date.split('-')[0].length === 2 ? new Date(`${b.date.split('-')[2]}-${b.date.split('-')[1]}-${b.date.split('-')[0]}T00:00:00`) : new Date(b.date); return dA - dB; });
 
-        // Filter transactions logically matching the tables above
-        let validTxs = mfdTxs.filter(tx => {
-            let ck = tx.pan_ucc || tx.clientName;
-            let cg = tx.group || '';
-            let matchG = (gVal === 'ALL' || cg === gVal);
-            let matchC = (filterVal === 'ALL' || ck === filterVal);
-            return matchG && matchC;
-        });
-
-        // Sort chronologically
-        validTxs.sort((a,b) => {
-            let dA = a.date.includes('-') && a.date.split('-')[0].length === 2 ? new Date(`${a.date.split('-')[2]}-${a.date.split('-')[1]}-${a.date.split('-')[0]}T00:00:00`) : new Date(a.date);
-            let dB = b.date.includes('-') && b.date.split('-')[0].length === 2 ? new Date(`${b.date.split('-')[2]}-${b.date.split('-')[1]}-${b.date.split('-')[0]}T00:00:00`) : new Date(b.date);
-            return dA - dB;
-        });
-
-        let monthlyData = {};
-        let years = new Set();
-        let runningUnits = {}; 
-        let runningInvestment = 0;
-
+        let mD = {}; let years = new Set(); let rU = {}; let rI = 0;
         validTxs.forEach(tx => {
-            let d;
-            if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) {
-                let parts = tx.date.split('-');
-                d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
-            } else { 
-                d = new Date(tx.date); 
-            }
-            
-            if (isNaN(d)) return;
-
-            let y = d.getFullYear().toString();
-            let m = (d.getMonth() + 1).toString().padStart(2, '0');
-            let ym = `${y}-${m}`;
-            years.add(y);
-
-            let amt = Math.abs(parseFloat(tx.amount)) || 0;
-            let u = Math.abs(parseFloat(tx.unit)) || 0;
-            let typ = (tx.type||'').toLowerCase();
-            let isI = typ.includes('pur') || typ.includes('sip') || typ.includes('lump');
-            let isR = typ.includes('red') || typ.includes('sale');
-
-            if (!runningUnits[tx.isin]) runningUnits[tx.isin] = 0;
-
-            if (isI) {
-                runningUnits[tx.isin] += u;
-                runningInvestment += amt;
-            } else if (isR) {
-                runningUnits[tx.isin] -= u;
-                runningInvestment -= amt;
-            }
-
-            // Estimate Historical AUM using cumulative units * LATEST known NAV
-            let currentAumProxy = 0;
-            Object.keys(runningUnits).forEach(isin => {
-                let navObj = mfdNavs[isin];
-                let rN = navObj ? navObj.nav : 0;
-                currentAumProxy += (runningUnits[isin] * rN);
-            });
-
-            monthlyData[ym] = {
-                aum: currentAumProxy,
-                inv: runningInvestment
-            };
+            let d; if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) { let parts = tx.date.split('-'); d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`); } else { d = new Date(tx.date); } if (isNaN(d)) return;
+            let ym = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`; years.add(d.getFullYear().toString());
+            let amt = Math.abs(parseFloat(tx.amount)) || 0; let u = Math.abs(parseFloat(tx.unit)) || 0; let typ = (tx.type||'').toLowerCase();
+            if (!rU[tx.isin]) rU[tx.isin] = 0;
+            if (typ.includes('pur') || typ.includes('sip') || typ.includes('lump')) { rU[tx.isin] += u; rI += amt; } else if (typ.includes('red') || typ.includes('sale')) { rU[tx.isin] -= u; rI -= amt; }
+            let curAum = 0; Object.keys(rU).forEach(isin => { let navObj = mfdNavs[isin]; curAum += (rU[isin] * (navObj ? navObj.nav : 0)); }); mD[ym] = { aum: curAum, inv: rI };
         });
 
-        // Populate the Year Dropdown dynamically
-        const yearSelect = document.getElementById('mfd-chart-year-filter');
-        if (yearSelect && yearSelect.options.length === 1 && years.size > 0) {
-            [...years].sort().reverse().forEach(y => {
-                yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
-            });
-        }
-
-        // Construct Plot Data
-        let labels = [];
-        let aumPoints = [];
-        let invPoints = [];
-
-        if (yearFlt === 'ALL') {
-            labels = Object.keys(monthlyData).sort();
-            labels.forEach(ym => {
-                aumPoints.push(monthlyData[ym].aum);
-                invPoints.push(monthlyData[ym].inv);
-            });
-        } else {
-            // Drill down into specific year
-            const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const yS = document.getElementById('mfd-chart-year-filter'); if (yS && yS.options.length === 1 && years.size > 0) { [...years].sort().reverse().forEach(y => { yS.innerHTML += `<option value="${y}">${y}</option>`; }); }
+        let labels = []; let aP = []; let iP = [];
+        if (yearFlt === 'ALL') { Object.keys(mD).sort().forEach(ym => { labels.push(ym); aP.push(mD[ym].aum); iP.push(mD[ym].inv); }); } 
+        else {
+            const mN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
             for(let i=1; i<=12; i++) {
-                let mStr = i.toString().padStart(2, '0');
-                let ym = `${yearFlt}-${mStr}`;
-                labels.push(monthNames[i-1]);
-                
-                if (monthlyData[ym]) {
-                    aumPoints.push(monthlyData[ym].aum);
-                    invPoints.push(monthlyData[ym].inv);
-                } else {
-                    // Carry forward logic if no activity happened in this specific month
-                    let prevKeys = Object.keys(monthlyData).filter(k => k < ym).sort();
-                    if (prevKeys.length > 0) {
-                        let lastKey = prevKeys[prevKeys.length - 1];
-                        aumPoints.push(monthlyData[lastKey].aum);
-                        invPoints.push(monthlyData[lastKey].inv);
-                    } else {
-                        aumPoints.push(0);
-                        invPoints.push(0);
-                    }
-                }
+                let ym = `${yearFlt}-${i.toString().padStart(2, '0')}`; labels.push(mN[i-1]);
+                if (mD[ym]) { aP.push(mD[ym].aum); iP.push(mD[ym].inv); } else { let prev = Object.keys(mD).filter(k => k < ym).sort(); if (prev.length > 0) { let lK = prev[prev.length - 1]; aP.push(mD[lK].aum); iP.push(mD[lK].inv); } else { aP.push(0); iP.push(0); } }
             }
         }
 
-        // Re-render Chart
-        if (aumChartInstance) { aumChartInstance.destroy(); }
-
-        aumChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Estimated AUM',
-                        data: aumPoints,
-                        borderColor: '#8b5cf6', // Purple
-                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.3
-                    },
-                    {
-                        label: 'Net Amount Invested',
-                        data: invPoints,
-                        borderColor: '#2563eb', // Blue
-                        borderWidth: 2,
-                        borderDash: [5, 5],
-                        fill: false,
-                        tension: 0.3
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { 
-                    tooltip: { 
-                        mode: 'index', 
-                        intersect: false,
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) { label += ': '; }
-                                if (context.parsed.y !== null) {
-                                    label += new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(context.parsed.y);
-                                }
-                                return label;
-                            }
-                        }
-                    } 
-                },
-                interaction: { mode: 'nearest', axis: 'x', intersect: false },
-                scales: {
-                    y: { 
-                        beginAtZero: true, 
-                        ticks: { 
-                            callback: function(value) { 
-                                return '₹' + (value/100000).toFixed(1) + 'L'; 
-                            } 
-                        } 
-                    }
-                }
-            }
-        });
+        if (aumChartInstance) aumChartInstance.destroy();
+        aumChartInstance = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [ { label: 'Estimated AUM', data: aP, borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', borderWidth: 2, fill: true, tension: 0.3 }, { label: 'Net Amount Invested', data: iP, borderColor: '#2563eb', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.3 } ] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false } } });
     }
 </script>
 </body>
