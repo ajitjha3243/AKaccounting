@@ -338,6 +338,7 @@
         updateSortIcons(); const filterVal = document.getElementById('mfd-report-client-filter') ? document.getElementById('mfd-report-client-filter').value : 'ALL'; const gVal = document.getElementById('mfd-report-group-filter') ? document.getElementById('mfd-report-group-filter').value : 'ALL';
         let tIn = 0, tRed = 0, currentValAum = 0, cMap = {}, sMap = {}, mTree = {};
         mfdClients.forEach(c => { let k = c.pan || c.ucc || c.name; cMap[k] = { id: k, name: c.name, grp: c.group||'', in: 0, red: 0, u: 0, cv: 0, cf: [] }; });
+        
         mfdTxs.forEach(tx => {
             let amt = Math.abs(parseFloat(tx.amount))||0; let u = Math.abs(parseFloat(tx.unit))||0; let txNav = Math.abs(parseFloat(tx.nav))||0;
             if (u === 0 && amt > 0 && txNav > 0) u = amt / txNav;
@@ -352,7 +353,9 @@
 
         let lNavDate = new Date(0);
         Object.keys(cMap).forEach(k => {
-            let i = cMap[k]; let cv = 0; let cx = mfdTxs.filter(t => (t.pan_ucc || t.clientName) === k); let sb = {}; let lCNavDate = new Date(0);
+            let i = cMap[k]; let cv = 0; 
+            // Filter strictly for this client
+            let cx = mfdTxs.filter(t => (t.pan_ucc || t.clientName) === k); let sb = {}; let lCNavDate = new Date(0);
             cx.forEach(t => { 
                 let sKey = t.isin || t.scheme; if(!sb[sKey]) sb[sKey] = { u: 0, i: t.isin, fn: 0 }; 
                 let iR = (t.type||'').toLowerCase().includes('red') || (t.type||'').toLowerCase().includes('sale'); 
@@ -366,12 +369,23 @@
         });
 
         let sAumTotal = 0;
-        Object.keys(sMap).forEach(k => { let i = sMap[k]; if (i.in > 0 || i.red > 0) { 
-            let cx = mfdTxs.filter(t => (t.isin || t.scheme || 'Uncategorized') === k); let sbU = 0; let sbfn = 0;
-            cx.forEach(t => { let iR = (t.type||'').toLowerCase().includes('red') || (t.type||'').toLowerCase().includes('sale'); let u = Math.abs(parseFloat(t.unit))||0; let amt = Math.abs(parseFloat(t.amount))||0; let tNav = Math.abs(parseFloat(t.nav))||0; if (u === 0 && amt > 0 && tNav > 0) u = amt / tNav; sbU += iR ? -u : u; if(tNav > 0) sbfn = tNav; });
-            i.u = sbU;
-            if (i.u > 0) { let nObj = mfdNavs[i.isin]; let rN = nObj ? nObj.nav : sbfn; i.cv = i.u * rN; i.cf.push({ amt: i.cv, date: nObj && nObj.date ? new Date(nObj.date) : new Date() }); sAumTotal += i.cv; } else { i.cv = 0; }
-        }});
+        Object.keys(sMap).forEach(k => { 
+            let i = sMap[k]; 
+            if (i.in > 0 || i.red > 0) { 
+                // FIX: Respect the Global Group and Investor Filters when calculating units for the scheme
+                let cx = mfdTxs.filter(t => {
+                    let ck = t.pan_ucc || t.clientName;
+                    return ((t.isin || t.scheme || 'Uncategorized') === k) && 
+                           (gVal === 'ALL' || (t.group || '') === gVal) && 
+                           (filterVal === 'ALL' || ck === filterVal);
+                }); 
+                
+                let sbU = 0; let sbfn = 0;
+                cx.forEach(t => { let iR = (t.type||'').toLowerCase().includes('red') || (t.type||'').toLowerCase().includes('sale'); let u = Math.abs(parseFloat(t.unit))||0; let amt = Math.abs(parseFloat(t.amount))||0; let tNav = Math.abs(parseFloat(t.nav))||0; if (u === 0 && amt > 0 && tNav > 0) u = amt / tNav; sbU += iR ? -u : u; if(tNav > 0) sbfn = tNav; });
+                i.u = sbU;
+                if (i.u > 0) { let nObj = mfdNavs[i.isin]; let rN = nObj ? nObj.nav : sbfn; i.cv = i.u * rN; i.cf.push({ amt: i.cv, date: nObj && nObj.date ? new Date(nObj.date) : new Date() }); sAumTotal += i.cv; } else { i.cv = 0; }
+            }
+        });
 
         if(document.getElementById('mfd-current-val')) document.getElementById('mfd-current-val').innerText = currentValAum.toFixed(2); if(document.getElementById('mfd-net-inv')) document.getElementById('mfd-net-inv').innerText = (tIn - tRed).toFixed(2); if(document.getElementById('mfd-gross-inflow')) document.getElementById('mfd-gross-inflow').innerText = tIn.toFixed(2); if(document.getElementById('mfd-total-redemption')) document.getElementById('mfd-total-redemption').innerText = tRed.toFixed(2); if(document.getElementById('mfd-total-clients')) document.getElementById('mfd-total-clients').innerText = Object.keys(cMap).filter(k => cMap[k].in > 0 || cMap[k].red > 0).length;
 
@@ -405,7 +419,6 @@
         }
         updateAumChart();
     }
-
     function updateAumChart() {
         const chartContainer = document.getElementById('aumGrowthChart'); if (!chartContainer) return; const ctx = chartContainer.getContext('2d');
         const filterVal = document.getElementById('mfd-report-client-filter') ? document.getElementById('mfd-report-client-filter').value : 'ALL'; const gVal = document.getElementById('mfd-report-group-filter') ? document.getElementById('mfd-report-group-filter').value : 'ALL'; const yearFlt = document.getElementById('mfd-chart-year-filter') ? document.getElementById('mfd-chart-year-filter').value : 'ALL';
