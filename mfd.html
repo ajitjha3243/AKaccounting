@@ -14,7 +14,6 @@
     <style>
         :root { --bg-color: #f4f6f9; --card-bg: #ffffff; --text-color: #333333; --primary: #2563eb; --success: #16a34a; --danger: #dc2626; --warning: #f59e0b; --info: #0ea5e9; --border: #e5e7eb; }
         
-        /* Dark Mode Variables */
         body.dark-mode { --bg-color: #121212; --card-bg: #1e1e1e; --text-color: #e5e5e5; --border: #333333; }
         
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; transition: background 0.3s, color 0.3s; }
@@ -203,10 +202,11 @@
         <div class="panel">
             <div class="stylish-header orange" onclick="togglePanel('mfd-tx', this)"><span>⚙️ NAV & Transaction Entry</span><span class="chevron">▼</span></div>
             <div id="mfd-tx" class="collapsible-table-content" style="padding-top: 15px;">
-                
+                <!-- NAV Section -->
                 <div style="border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-bottom: 25px;">
                     <h3 style="margin-top: 0; color: var(--success); border-bottom: 1px solid var(--border); padding-bottom: 10px;">1. Update Scheme NAVs</h3>
                     <div style="margin-bottom: 20px;"><button type="button" id="btn-auto-nav" class="btn-primary" onclick="fetchAmfiNavs()" style="background: var(--info);">🔄 Auto-Fetch Latest NAVs (AMFI)</button></div>
+                    
                     <div class="upload-box">
                         <h3 style="margin-top: 0; color: var(--success);">📁 Upload Raw AMFI or CSV File</h3>
                         <p style="font-size: 0.85rem; margin-bottom: 10px;">If Auto-Fetch is blocked, <a href="https://www.amfiindia.com/spages/NAVAll.txt" target="_blank" style="color: var(--primary); font-weight: bold;">Right-Click Here & Save Link As "NAVAll.txt"</a>, then upload below.</p>
@@ -216,14 +216,17 @@
                         </div>
                         <input type="file" id="mfd-nav-csv" accept=".txt,.csv" onchange="uploadMfdNavCSV(event)">
                     </div>
+
                     <h4 style="margin: 0 0 10px 0;">Or Enter NAV Manually</h4>
                     <form id="mfd-nav-form" class="controls-row" onsubmit="handleManualNav(event)">
                         <div class="form-group" style="flex: 2;"><label>ISIN</label><input type="text" id="mfd-manual-nav-isin" required></div><div class="form-group"><label>NAV</label><input type="number" id="mfd-manual-nav-val" step="any" min="0" required></div><div class="form-group"><label>Date</label><input type="date" id="mfd-manual-nav-date" required></div><button type="submit" class="btn-primary" style="width: auto; padding: 10px 15px; background: var(--success);">Save</button>
                     </form>
                 </div>
 
+                <!-- TX Section -->
                 <div style="border: 1px solid var(--border); padding: 15px; border-radius: 6px;">
                     <h3 style="margin-top: 0; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 10px;">2. Log Client Transactions</h3>
+                    
                     <div class="upload-box">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <h3 style="margin-top: 0; color: var(--primary);">📂 Bulk Transaction Upload via CSV</h3>
@@ -239,6 +242,7 @@
                         </div>
                         <input type="file" id="mfd-tx-csv" accept=".csv" onchange="uploadMfdTxCSV(event)">
                     </div>
+
                     <h4 style="margin: 15px 0 10px 0;">Manual Transaction Entry</h4>
                     <form id="mfd-tx-form" style="padding: 15px; border-radius: 6px; border: 1px solid var(--border);">
                         <input type="hidden" id="mfd-tx-id">
@@ -283,8 +287,18 @@
     </div>
 </div>
 
-<!-- Extra Wide PDF Container to support Landscape A4 without wrapping -->
-<div id="pdf-export-container" style="display:none; padding:30px; background:#fff; color:#000; width: 1400px;"></div>
+<!-- Extra Wide PDF Container with Built-In CSS Watermark -->
+<div id="pdf-export-container" style="display:none; padding:30px; background:#fff; color:#000; width: 1400px; position:relative;">
+    <div style="position: absolute; top: 0; left: 0; bottom: 0; right: 0; pointer-events: none; opacity: 0.05; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; overflow: hidden; z-index: 0;">
+        <span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span>
+        <span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span>
+        <span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span>
+        <span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span>
+        <span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span>
+        <span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span>
+    </div>
+    <div id="pdf-export-content" style="position:relative; z-index:1;"></div>
+</div>
 <script>
     const firebaseConfig = { apiKey: "AIzaSyBgQ08BOvTb60ZpPM72733sQUcpgy9ujQY", authDomain: "equitydashboard-47f8c.firebaseapp.com", projectId: "equitydashboard-47f8c", storageBucket: "equitydashboard-47f8c.firebasestorage.app", messagingSenderId: "313210184210", appId: "1:313210184210:web:0d2492eab6d8e3a5f0aecb" };
     firebase.initializeApp(firebaseConfig); const db = firebase.firestore(); const auth = firebase.auth();
@@ -309,7 +323,7 @@
         const canvas = document.getElementById('aumGrowthChart'); const chartImg = canvas ? canvas.toDataURL('image/png', 1.0) : '';
 
         let html = `
-        <div style="font-family: sans-serif; color: #333; padding: 20px; box-sizing: border-box; background: #fff;">
+        <div style="font-family: sans-serif; color: #333; box-sizing: border-box; background: transparent;">
             <div style="border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px;">
                 <h2 style="color:#2563eb; margin:0 0 15px 0; font-size: 26px; text-transform: uppercase;">Portfolio Valuation Report</h2>
                 <div style="font-size:14px; color:#444; display: flex; justify-content: space-between; align-items: flex-end;">
@@ -319,13 +333,13 @@
             </div>
 
             <h3 style="margin-bottom:10px; color:#222; font-size: 16px;">1. Overall Portfolio Summary</h3>
-            <table style="width:100%; border-collapse:collapse; text-align:left; font-size:14px; margin-bottom: 30px; border: 1px solid #ddd;">
+            <table style="width:100%; border-collapse:collapse; text-align:left; font-size:14px; margin-bottom: 30px; border: 1px solid #ddd; background: rgba(255,255,255,0.9);">
                 <thead><tr style="background-color:#f4f6f9;"><th style="padding:10px; border-bottom:1px solid #ddd;">Group</th><th style="padding:10px; border-bottom:1px solid #ddd;">Net Invested</th><th style="padding:10px; border-bottom:1px solid #ddd;">Current Val</th><th style="padding:10px; border-bottom:1px solid #ddd;">XIRR</th><th style="padding:10px; border-bottom:1px solid #ddd;">Abs Return</th></tr></thead>
                 <tbody><tr><td style="padding:10px; border-bottom:1px solid #eee;">${clientData.grp || '-'}</td><td style="padding:10px; border-bottom:1px solid #eee; color:${clientData.netIn>=0?'#16a34a':'#dc2626'}">₹${clientData.netIn.toFixed(2)}</td><td style="padding:10px; border-bottom:1px solid #eee; font-weight:bold; font-size:16px;">₹${clientData.cv.toFixed(2)}</td><td style="padding:10px; border-bottom:1px solid #eee; color:${clientData.xirr>=0?'#16a34a':'#dc2626'}">${clientData.xirr.toFixed(2)}%</td><td style="padding:10px; border-bottom:1px solid #eee; color:${clientData.absRet>=0?'#16a34a':'#dc2626'}">${clientData.absRet.toFixed(2)}%</td></tr></tbody>
             </table>
 
             <h3 style="margin-bottom:10px; color:#222; font-size: 16px;">2. Scheme-wise Holdings</h3>
-            <table style="width:100%; border-collapse:collapse; text-align:left; font-size:13px; margin-bottom: 30px; border: 1px solid #ddd;">
+            <table style="width:100%; border-collapse:collapse; text-align:left; font-size:13px; margin-bottom: 30px; border: 1px solid #ddd; background: rgba(255,255,255,0.9);">
                 <thead><tr style="background-color:#f4f6f9;"><th style="padding:10px; border-bottom:1px solid #ddd;">Scheme / ISIN</th><th style="padding:10px; border-bottom:1px solid #ddd;">Units</th><th style="padding:10px; border-bottom:1px solid #ddd;">NAV</th><th style="padding:10px; border-bottom:1px solid #ddd;">Invested</th><th style="padding:10px; border-bottom:1px solid #ddd;">Current Val</th><th style="padding:10px; border-bottom:1px solid #ddd;">XIRR</th><th style="padding:10px; border-bottom:1px solid #ddd;">Abs Return</th><th style="padding:10px; border-bottom:1px solid #ddd;">% Wgt</th></tr></thead>
                 <tbody>`;
         
@@ -338,12 +352,14 @@
         let tRet = tIn > 0 ? ((tCv - tIn)/tIn)*100 : 0;
         html += `<tr style="background-color:#f8fafc; font-weight:bold;"><td colspan="3" style="padding:10px; text-align:right;">GRAND TOTAL:</td><td style="padding:10px;">₹${tIn.toFixed(2)}</td><td style="padding:10px; font-size: 15px;">₹${tCv.toFixed(2)}</td><td>-</td><td style="padding:10px; color:${tRet>=0?'#16a34a':'#dc2626'}">${tRet.toFixed(2)}%</td><td style="padding:10px;">100%</td></tr></tbody></table>`;
 
-        if(chartImg) { html += `<div style="page-break-inside: avoid;"><h3 style="margin-bottom:10px; color:#222; font-size: 16px;">3. AUM Growth Trend</h3><div style="text-align:center; padding: 15px; border: 1px solid #ddd; background: #fff; border-radius: 6px;"><img src="${chartImg}" style="width: 100%; max-height: 350px; object-fit: contain;"></div></div>`; }
+        if(chartImg) { html += `<div style="page-break-inside: avoid;"><h3 style="margin-bottom:10px; color:#222; font-size: 16px;">3. AUM Growth Trend</h3><div style="text-align:center; padding: 15px; border: 1px solid #ddd; background: rgba(255,255,255,0.9); border-radius: 6px;"><img src="${chartImg}" style="width: 100%; max-height: 350px; object-fit: contain;"></div></div>`; }
         html += `<p style="text-align:center; font-size:12px; color:#999; margin-top:40px;">This is a system generated report. Mutual fund investments are subject to market risks.</p></div>`;
         
-        const printDiv = document.getElementById('pdf-export-container'); printDiv.innerHTML = html; printDiv.style.display = 'block';
+        document.getElementById('pdf-export-content').innerHTML = html;
+        const mainContainer = document.getElementById('pdf-export-container'); mainContainer.style.display = 'block';
+        
         let opt = { margin: 0.4, filename: `Portfolio_${clientName.replace(/[^a-z0-9]/gi, '_')}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' } };
-        html2pdf().set(opt).from(printDiv).save().then(() => { printDiv.style.display = 'none'; });
+        html2pdf().set(opt).from(mainContainer).save().then(() => { mainContainer.style.display = 'none'; });
     }
 
     function togglePanel(cId, headerEl) { const c = document.getElementById(cId); if(c){ c.classList.toggle('active'); if(headerEl) headerEl.classList.toggle('active-header'); } }
@@ -453,14 +469,14 @@
         let tIn = 0, tRed = 0, currentValAum = 0, cMap = {}, sMap = {}, mTree = {};
         mfdClients.forEach(c => { let k = c.pan || c.ucc || c.name; cMap[k] = { id: k, name: c.name, grp: c.group||'', in: 0, red: 0, u: 0, cv: 0, cf: [] }; });
         mfdTxs.forEach(tx => {
-            let amt = Math.abs(parseFloat(tx.amount))||0; let u = Math.abs(parseFloat(tx.unit))||0; let txNav = Math.abs(parseFloat(tx.nav))||0;
-            if (u === 0 && amt > 0 && txNav > 0) u = amt / txNav;
+            let amt = Math.abs(parseFloat(tx.amount))||0; let u = Math.abs(parseFloat(tx.unit))||0; let txNav = Math.abs(parseFloat(tx.nav))||0; if (u === 0 && amt > 0 && txNav > 0) u = amt / txNav;
             let ck = tx.pan_ucc || tx.clientName; let sk = tx.isin || tx.scheme || 'Uncategorized'; let tp = (tx.type||'').toLowerCase(); let isR = tp.includes('red') || tp.includes('sale'); let isI = tp.includes('sip') || tp.includes('lump') || tp.includes('pur');
             let d; if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) { let parts = tx.date.split('-'); d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`); } else { d = new Date(tx.date); }
             if (!cMap[ck]) cMap[ck] = { id: ck, name: tx.clientName, grp: tx.group||'', in: 0, red: 0, u: 0, cv: 0, cf: [] }; if (!sMap[sk]) sMap[sk] = { isin: tx.isin, scheme: tx.scheme, in: 0, red: 0, u: 0, cv: 0, cf: [] };
             if (!(gVal === 'ALL' || cMap[ck].grp === gVal)) return; let inC = (filterVal === 'ALL' || ck === filterVal);
             if (isI) { tIn += amt; cMap[ck].in += amt; cMap[ck].cf.push({amt: -amt, date: d}); if (inC) { sMap[sk].in += amt; sMap[sk].cf.push({amt: -amt, date: d}); } } 
             else if (isR) { tRed += amt; cMap[ck].red += amt; cMap[ck].cf.push({amt: amt, date: d}); if (inC) { sMap[sk].red += amt; sMap[sk].cf.push({amt: amt, date: d}); } }
+            
             let fy = getFY(d); let m = (d.getMonth() + 1).toString().padStart(2, '0'); if (!mTree[fy]) mTree[fy] = { n: 0, m: {} }; if (!mTree[fy].m[m]) mTree[fy].m[m] = { n: 0, c: {} }; if (!mTree[fy].m[m].c[tx.clientName]) mTree[fy].m[m].c[tx.clientName] = 0; let pnlImp = isI ? amt : (isR ? -amt : 0); mTree[fy].n += pnlImp; mTree[fy].m[m].n += pnlImp; mTree[fy].m[m].c[tx.clientName] += pnlImp;
         });
 
@@ -514,8 +530,8 @@
         const t = document.getElementById('mfd-drilldown-tree'); 
         if(t) {
             let tHtml = ''; const mn = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-            Object.keys(mTree).sort().reverse().forEach(y => {
-                let yd = mTree[y]; tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${y}</span><span class="${yd.n >= 0 ? 'pnl-positive' : 'pnl-negative'}">${yd.n>0?'+':''}${yd.n.toFixed(2)}</span></div><div class="tree-children">`;
+            Object.keys(mTree).sort().reverse().forEach(fy => {
+                let yd = mTree[fy]; tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${fy}</span><span class="${yd.n >= 0 ? 'pnl-positive' : 'pnl-negative'}">${yd.n>0?'+':''}${yd.n.toFixed(2)}</span></div><div class="tree-children">`;
                 
                 Object.keys(yd.m).sort((a,b) => { let m1 = parseInt(a), m2 = parseInt(b); let shift1 = m1 >= 4 ? m1 - 3 : m1 + 9; let shift2 = m2 >= 4 ? m2 - 3 : m2 + 9; return shift2 - shift1; }).forEach(ms => {
                     let md = yd.m[ms]; tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${mn[parseInt(ms)]}</span><span class="${md.n >= 0 ? 'pnl-positive' : 'pnl-negative'}">${md.n>0?'+':''}${md.n.toFixed(2)}</span></div><div class="tree-children">`;
@@ -526,38 +542,84 @@
         updateAumChart();
     }
 
+    // UPGRADED CHART ENGINE
     function updateAumChart() {
         const chartContainer = document.getElementById('aumGrowthChart'); if (!chartContainer) return; const ctx = chartContainer.getContext('2d');
         const filterVal = document.getElementById('mfd-report-client-filter') ? document.getElementById('mfd-report-client-filter').value : 'ALL'; const gVal = document.getElementById('mfd-report-group-filter') ? document.getElementById('mfd-report-group-filter').value : 'ALL'; const yearFlt = document.getElementById('mfd-chart-year-filter') ? document.getElementById('mfd-chart-year-filter').value : 'ALL';
         let validTxs = mfdTxs.filter(tx => { let ck = tx.pan_ucc || tx.clientName; return (gVal === 'ALL' || (tx.group || '') === gVal) && (filterVal === 'ALL' || ck === filterVal); });
         
-        let mD = {}; let years = new Set(); let rU = {}; let rI = 0;
+        validTxs.sort((a,b) => { 
+            let dA = a.date.includes('-') && a.date.split('-')[0].length === 2 ? new Date(`${a.date.split('-')[2]}-${a.date.split('-')[1]}-${a.date.split('-')[0]}T00:00:00`) : new Date(a.date); 
+            let dB = b.date.includes('-') && b.date.split('-')[0].length === 2 ? new Date(`${b.date.split('-')[2]}-${b.date.split('-')[1]}-${b.date.split('-')[0]}T00:00:00`) : new Date(b.date); 
+            return dA - dB; 
+        });
+
+        // 1. Build a complete chronological timeline from Day 1 to Today
+        let runningUnits = {}; let runningInvestment = 0; let monthlyData = {}; let years = new Set();
+        
         validTxs.forEach(tx => {
             let d; if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) { let parts = tx.date.split('-'); d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`); } else { d = new Date(tx.date); } if (isNaN(d)) return;
-            let ymKey = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`; let fy = getFY(d); years.add(fy);
+            
+            let fy = getFY(d); years.add(fy);
+            let ymKey = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+            
             let amt = Math.abs(parseFloat(tx.amount)) || 0; let u = Math.abs(parseFloat(tx.unit)) || 0; let txNav = Math.abs(parseFloat(tx.nav))||0; if (u === 0 && amt > 0 && txNav > 0) u = amt / txNav;
-            let typ = (tx.type||'').toLowerCase(); if (!rU[tx.isin]) rU[tx.isin] = 0;
-            if (typ.includes('pur') || typ.includes('sip') || typ.includes('lump')) { rU[tx.isin] += u; rI += amt; } else if (typ.includes('red') || typ.includes('sale')) { rU[tx.isin] -= u; rI -= amt; }
-            let curAum = 0; Object.keys(rU).forEach(isin => { let navObj = mfdNavs[isin]; curAum += (rU[isin] * (navObj ? navObj.nav : 0)); }); mD[ymKey] = { aum: curAum, inv: rI };
+            let typ = (tx.type||'').toLowerCase();
+            
+            if (!runningUnits[tx.isin]) runningUnits[tx.isin] = 0;
+            if (typ.includes('pur') || typ.includes('sip') || typ.includes('lump')) { runningUnits[tx.isin] += u; runningInvestment += amt; } 
+            else if (typ.includes('red') || typ.includes('sale')) { runningUnits[tx.isin] -= u; runningInvestment -= amt; }
+            
+            let curAum = 0; Object.keys(runningUnits).forEach(isin => { let navObj = mfdNavs[isin]; curAum += (runningUnits[isin] * (navObj ? navObj.nav : 0)); }); 
+            
+            // Overwrites with the latest state for that specific month
+            monthlyData[ymKey] = { aum: curAum, inv: runningInvestment };
         });
 
         const yS = document.getElementById('mfd-chart-year-filter'); if (yS && yS.options.length === 1 && years.size > 0) { [...years].sort().reverse().forEach(y => { yS.innerHTML += `<option value="${y}">${y}</option>`; }); }
+        
         let labels = []; let aP = []; let iP = []; const mN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         
+        // 2. Map the chronological timeline into the chart arrays, filling in gaps properly
         if (yearFlt === 'ALL') { 
-            Object.keys(mD).sort().forEach(ym => { let [yyyy, mm] = ym.split('-'); labels.push(`${mN[parseInt(mm)-1]} ${yyyy}`); aP.push(mD[ym].aum); iP.push(mD[ym].inv); }); 
+            let sortedKeys = Object.keys(monthlyData).sort();
+            let lastAum = 0; let lastInv = 0;
+            
+            if (sortedKeys.length > 0) {
+                let firstDate = new Date(sortedKeys[0] + "-01");
+                let endDate = new Date();
+                
+                let currDate = new Date(firstDate);
+                while(currDate <= endDate) {
+                    let y = currDate.getFullYear(); let m = (currDate.getMonth() + 1).toString().padStart(2, '0');
+                    let targetKey = `${y}-${m}`;
+                    
+                    if (monthlyData[targetKey]) { lastAum = monthlyData[targetKey].aum; lastInv = monthlyData[targetKey].inv; }
+                    
+                    labels.push(`${mN[currDate.getMonth()]} ${y}`);
+                    aP.push(lastAum); iP.push(lastInv);
+                    
+                    currDate.setMonth(currDate.getMonth() + 1);
+                }
+            }
         } else {
             let startY = parseInt("20" + yearFlt.split(' ')[1].split('-')[0]); 
             let keysToCheck = []; for(let i=4; i<=12; i++) keysToCheck.push(`${startY}-${i.toString().padStart(2, '0')}`); for(let i=1; i<=3; i++) keysToCheck.push(`${startY+1}-${i.toString().padStart(2, '0')}`);
+            
             keysToCheck.forEach(ym => {
                 let [yyyy, mm] = ym.split('-'); labels.push(`${mN[parseInt(mm)-1]} ${yyyy.slice(-2)}`);
-                if (mD[ym]) { aP.push(mD[ym].aum); iP.push(mD[ym].inv); } else { let prevKeys = Object.keys(mD).filter(k => k < ym).sort(); if (prevKeys.length > 0) { let lK = prevKeys[prevKeys.length - 1]; aP.push(mD[lK].aum); iP.push(mD[lK].inv); } else { aP.push(0); iP.push(0); } }
+                if (monthlyData[ym]) { 
+                    aP.push(monthlyData[ym].aum); iP.push(monthlyData[ym].inv); 
+                } else { 
+                    let prevKeys = Object.keys(monthlyData).filter(k => k < ym).sort(); 
+                    if (prevKeys.length > 0) { 
+                        let lK = prevKeys[prevKeys.length - 1]; aP.push(monthlyData[lK].aum); iP.push(monthlyData[lK].inv); 
+                    } else { aP.push(0); iP.push(0); } 
+                }
             });
         }
 
         if (aumChartInstance) aumChartInstance.destroy();
-        aumChartInstance = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [ { label: 'Estimated AUM', data: aP, borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', borderWidth: 2, fill: true, tension: 0.3 }, { label: 'Net Amount Invested', data: iP, borderColor: '#2563eb', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.3 } ] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false } } });
+        aumChartInstance = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [ { label: 'Estimated AUM', data: aP, borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 2 }, { label: 'Net Invested', data: iP, borderColor: '#2563eb', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.3, pointRadius: 0 } ] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false } } });
     }
 </script>
-</body>
-</html>
