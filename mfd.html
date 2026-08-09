@@ -294,7 +294,8 @@
     const firebaseConfig = { apiKey: "AIzaSyBgQ08BOvTb60ZpPM72733sQUcpgy9ujQY", authDomain: "equitydashboard-47f8c.firebaseapp.com", projectId: "equitydashboard-47f8c", storageBucket: "equitydashboard-47f8c.firebasestorage.app", messagingSenderId: "313210184210", appId: "1:313210184210:web:0d2492eab6d8e3a5f0aecb" };
     firebase.initializeApp(firebaseConfig); const db = firebase.firestore(); const auth = firebase.auth();
     let currentUser = null; let mfdClients = []; let mfdTxs = []; let mfdNavs = {}; 
-    let mfdPage = 1; const pageSize = 15; let mfdSortCol = 'date'; let mfdSortDesc = true; let clientSortCol = 'cv'; let clientSortDesc = true; let schemeSortCol = 'cv'; let schemeSortDesc = true; let aumChartInstance = null; let pdfSchemeCache = [];
+    let mfdPage = 1; const pageSize = 15; let mfdSortCol = 'date'; let mfdSortDesc = true; let clientSortCol = 'cv'; let clientSortDesc = true; let schemeSortCol = 'cv'; let schemeSortDesc = true; let aumChartInstance = null; 
+    let pdfSchemeCache = []; let pdfClientCache = []; // Global caches for PDF generation
 
     // Dark Mode Toggle
     function toggleDarkMode() { document.body.classList.toggle('dark-mode'); const isD = document.body.classList.contains('dark-mode'); document.getElementById('dark-mode-icon').innerText = isD ? '☀️' : '🌙'; localStorage.setItem('mfdDarkMode', isD ? 'true' : 'false'); if(aumChartInstance) updateAumChart(); }
@@ -306,27 +307,123 @@
     // FY Date Helper
     function getFY(d) { let m = d.getMonth(); let y = d.getFullYear(); let start = m >= 3 ? y : y - 1; return `FY ${start}-${(start+1).toString().slice(-2)}`; }
 
-    // PDF Generator
+    // UPGRADED PDF Generator
     function downloadClientPDF() {
         const cFilter = document.getElementById('mfd-report-client-filter'); const clientVal = cFilter.value;
         if(clientVal === 'ALL') return alert('Please select a specific investor from the dropdown to generate their PDF Report.');
         const clientName = cFilter.options[cFilter.selectedIndex].text.split(' - ')[1] || clientVal;
         
-        let html = `<h2 style="color:#2563eb; margin-bottom:5px;">Portfolio Valuation Report</h2><p style="color:#555; margin-top:0;"><strong>Investor:</strong> ${clientName} | <strong>Generated:</strong> ${new Date().toLocaleDateString()}</p><hr style="margin-bottom:20px;">`;
-        html += `<h3 style="margin-bottom:10px; color:#333;">Scheme-wise Holdings</h3><table style="width:100%; border-collapse:collapse; text-align:left; font-size:12px; font-family:sans-serif; border: 1px solid #ddd;">`;
-        html += `<thead><tr style="background-color:#f4f6f9;"><th style="padding:8px; border-bottom:1px solid #ddd;">Scheme / ISIN</th><th style="padding:8px; border-bottom:1px solid #ddd;">Units</th><th style="padding:8px; border-bottom:1px solid #ddd;">Latest NAV</th><th style="padding:8px; border-bottom:1px solid #ddd;">Net Invested</th><th style="padding:8px; border-bottom:1px solid #ddd;">Current Val</th><th style="padding:8px; border-bottom:1px solid #ddd;">XIRR</th><th style="padding:8px; border-bottom:1px solid #ddd;">Abs Return</th></tr></thead><tbody>`;
+        let clientData = pdfClientCache.length > 0 ? pdfClientCache[0] : null;
+        if(!clientData) return alert('No data available for this client.');
+
+        // Extract Chart Image
+        const canvas = document.getElementById('aumGrowthChart');
+        const chartImg = canvas ? canvas.toDataURL('image/png', 1.0) : '';
+
+        // Build HTML Layout
+        let html = `
+        <div style="font-family: sans-serif; color: #333; padding: 20px; box-sizing: border-box;">
+            
+            <!-- HEADER -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px;">
+                <h2 style="color:#2563eb; margin:0; font-size: 22px;">Portfolio Valuation Report</h2>
+                <div style="text-align:right; font-size:12px; color:#555;">
+                    <strong>Investor:</strong> ${clientName}<br>
+                    <strong>PAN/UCC:</strong> ${clientData.id}<br>
+                    <strong>Date:</strong> ${new Date().toLocaleDateString()}
+                </div>
+            </div>
+
+            <!-- SECTION 1: Client Summary -->
+            <h3 style="margin-bottom:8px; color:#333; font-size: 14px;">1. Portfolio Summary</h3>
+            <table style="width:100%; border-collapse:collapse; text-align:left; font-size:12px; margin-bottom: 25px; border: 1px solid #ddd;">
+                <thead>
+                    <tr style="background-color:#f4f6f9;">
+                        <th style="padding:8px; border-bottom:1px solid #ddd;">Group</th>
+                        <th style="padding:8px; border-bottom:1px solid #ddd;">Net Invested</th>
+                        <th style="padding:8px; border-bottom:1px solid #ddd;">Current Val</th>
+                        <th style="padding:8px; border-bottom:1px solid #ddd;">XIRR</th>
+                        <th style="padding:8px; border-bottom:1px solid #ddd;">Abs Return</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding:8px; border-bottom:1px solid #eee;">${clientData.grp || '-'}</td>
+                        <td style="padding:8px; border-bottom:1px solid #eee; color:${clientData.netIn>=0?'#16a34a':'#dc2626'}">₹${clientData.netIn.toFixed(2)}</td>
+                        <td style="padding:8px; border-bottom:1px solid #eee; font-weight:bold; font-size:14px;">₹${clientData.cv.toFixed(2)}</td>
+                        <td style="padding:8px; border-bottom:1px solid #eee; color:${clientData.xirr>=0?'#16a34a':'#dc2626'}">${clientData.xirr.toFixed(2)}%</td>
+                        <td style="padding:8px; border-bottom:1px solid #eee; color:${clientData.absRet>=0?'#16a34a':'#dc2626'}">${clientData.absRet.toFixed(2)}%</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- SECTION 2: Scheme Breakdown -->
+            <h3 style="margin-bottom:8px; color:#333; font-size: 14px;">2. Scheme-wise Holdings</h3>
+            <table style="width:100%; border-collapse:collapse; text-align:left; font-size:11px; margin-bottom: 25px; border: 1px solid #ddd;">
+                <thead>
+                    <tr style="background-color:#f4f6f9;">
+                        <th style="padding:8px; border-bottom:1px solid #ddd;">Scheme / ISIN</th>
+                        <th style="padding:8px; border-bottom:1px solid #ddd;">Units</th>
+                        <th style="padding:8px; border-bottom:1px solid #ddd;">NAV</th>
+                        <th style="padding:8px; border-bottom:1px solid #ddd;">Invested</th>
+                        <th style="padding:8px; border-bottom:1px solid #ddd;">Current Val</th>
+                        <th style="padding:8px; border-bottom:1px solid #ddd;">XIRR</th>
+                        <th style="padding:8px; border-bottom:1px solid #ddd;">Abs Return</th>
+                        <th style="padding:8px; border-bottom:1px solid #ddd;">% Wgt</th>
+                    </tr>
+                </thead>
+                <tbody>`;
         
         let tIn = 0, tCv = 0;
         pdfSchemeCache.forEach(i => {
-            html += `<tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>${i.scheme}</strong><br><span style="color:#777; font-size:10px;">${i.isin}</span></td><td style="padding:8px; border-bottom:1px solid #eee;">${i.u.toFixed(4)}</td><td style="padding:8px; border-bottom:1px solid #eee;">₹${i.rN.toFixed(4)}</td><td style="padding:8px; border-bottom:1px solid #eee; color:${i.netIn>=0?'#16a34a':'#dc2626'}">₹${i.netIn.toFixed(2)}</td><td style="padding:8px; border-bottom:1px solid #eee;"><strong>₹${i.cv.toFixed(2)}</strong></td><td style="padding:8px; border-bottom:1px solid #eee; color:${i.xirr>=0?'#16a34a':'#dc2626'}">${i.xirr.toFixed(2)}%</td><td style="padding:8px; border-bottom:1px solid #eee; color:${i.absRet>=0?'#16a34a':'#dc2626'}">${i.absRet.toFixed(2)}%</td></tr>`;
+            html += `<tr>
+                <td style="padding:8px; border-bottom:1px solid #eee;"><strong>${i.scheme}</strong><br><span style="color:#777; font-size:9px;">${i.isin}</span></td>
+                <td style="padding:8px; border-bottom:1px solid #eee;">${i.u.toFixed(4)}</td>
+                <td style="padding:8px; border-bottom:1px solid #eee;">₹${i.rN.toFixed(4)}</td>
+                <td style="padding:8px; border-bottom:1px solid #eee; color:${i.netIn>=0?'#16a34a':'#dc2626'}">₹${i.netIn.toFixed(2)}</td>
+                <td style="padding:8px; border-bottom:1px solid #eee;"><strong>₹${i.cv.toFixed(2)}</strong></td>
+                <td style="padding:8px; border-bottom:1px solid #eee; color:${i.xirr>=0?'#16a34a':'#dc2626'}">${i.xirr.toFixed(2)}%</td>
+                <td style="padding:8px; border-bottom:1px solid #eee; color:${i.absRet>=0?'#16a34a':'#dc2626'}">${i.absRet.toFixed(2)}%</td>
+                <td style="padding:8px; border-bottom:1px solid #eee;">${i.pct.toFixed(2)}%</td>
+            </tr>`;
             tIn += i.netIn; tCv += i.cv;
         });
+
         let tRet = tIn > 0 ? ((tCv - tIn)/tIn)*100 : 0;
-        html += `<tr style="background-color:#f8fafc; font-weight:bold;"><td colspan="3" style="padding:8px;">GRAND TOTAL</td><td style="padding:8px;">₹${tIn.toFixed(2)}</td><td style="padding:8px;">₹${tCv.toFixed(2)}</td><td>-</td><td style="padding:8px; color:${tRet>=0?'#16a34a':'#dc2626'}">${tRet.toFixed(2)}%</td></tr>`;
-        html += `</tbody></table><p style="text-align:center; font-size:10px; color:#999; margin-top:30px;">This is a system generated report. Mutual fund investments are subject to market risks.</p>`;
+        html += `<tr style="background-color:#f8fafc; font-weight:bold;">
+                    <td colspan="3" style="padding:8px;">GRAND TOTAL</td>
+                    <td style="padding:8px;">₹${tIn.toFixed(2)}</td>
+                    <td style="padding:8px; font-size: 13px;">₹${tCv.toFixed(2)}</td>
+                    <td>-</td>
+                    <td style="padding:8px; color:${tRet>=0?'#16a34a':'#dc2626'}">${tRet.toFixed(2)}%</td>
+                    <td style="padding:8px;">100%</td>
+                </tr>
+                </tbody>
+            </table>`;
+
+        // SECTION 3: Chart
+        if(chartImg) {
+            html += `
+            <div style="page-break-inside: avoid;">
+                <h3 style="margin-bottom:8px; color:#333; font-size: 14px;">3. AUM Growth Trend</h3>
+                <div style="text-align:center; padding: 15px; border: 1px solid #ddd; background: #fff; border-radius: 6px;">
+                    <img src="${chartImg}" style="width: 100%; max-height: 280px; object-fit: contain;">
+                </div>
+            </div>`;
+        }
+
+        html += `<p style="text-align:center; font-size:10px; color:#999; margin-top:30px;">This is a system generated report. Mutual fund investments are subject to market risks.</p></div>`;
         
         const printDiv = document.getElementById('pdf-export-container'); printDiv.innerHTML = html; printDiv.style.display = 'block';
-        let opt = { margin: 0.5, filename: `Portfolio_${clientName.replace(/[^a-z0-9]/gi, '_')}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' } };
+        
+        // Setup PDF Options (A4 Portrait layout)
+        let opt = { 
+            margin: 0.4, 
+            filename: `Portfolio_${clientName.replace(/[^a-z0-9]/gi, '_')}.pdf`, 
+            image: { type: 'jpeg', quality: 0.98 }, 
+            html2canvas: { scale: 2 }, 
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } 
+        };
         html2pdf().set(opt).from(printDiv).save().then(() => { printDiv.style.display = 'none'; });
     }
 
@@ -437,8 +534,7 @@
         let tIn = 0, tRed = 0, currentValAum = 0, cMap = {}, sMap = {}, mTree = {};
         mfdClients.forEach(c => { let k = c.pan || c.ucc || c.name; cMap[k] = { id: k, name: c.name, grp: c.group||'', in: 0, red: 0, u: 0, cv: 0, cf: [] }; });
         mfdTxs.forEach(tx => {
-            let amt = Math.abs(parseFloat(tx.amount))||0; let u = Math.abs(parseFloat(tx.unit))||0; let txNav = Math.abs(parseFloat(tx.nav))||0;
-            if (u === 0 && amt > 0 && txNav > 0) u = amt / txNav;
+            let amt = Math.abs(parseFloat(tx.amount))||0; let u = Math.abs(parseFloat(tx.unit))||0; let txNav = Math.abs(parseFloat(tx.nav))||0; if (u === 0 && amt > 0 && txNav > 0) u = amt / txNav;
             let ck = tx.pan_ucc || tx.clientName; let sk = tx.isin || tx.scheme || 'Uncategorized'; let tp = (tx.type||'').toLowerCase(); let isR = tp.includes('red') || tp.includes('sale'); let isI = tp.includes('sip') || tp.includes('lump') || tp.includes('pur');
             let d; if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) { let parts = tx.date.split('-'); d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`); } else { d = new Date(tx.date); }
             if (!cMap[ck]) cMap[ck] = { id: ck, name: tx.clientName, grp: tx.group||'', in: 0, red: 0, u: 0, cv: 0, cf: [] }; if (!sMap[sk]) sMap[sk] = { isin: tx.isin, scheme: tx.scheme, in: 0, red: 0, u: 0, cv: 0, cf: [] };
@@ -446,22 +542,15 @@
             if (isI) { tIn += amt; cMap[ck].in += amt; cMap[ck].cf.push({amt: -amt, date: d}); if (inC) { sMap[sk].in += amt; sMap[sk].cf.push({amt: -amt, date: d}); } } 
             else if (isR) { tRed += amt; cMap[ck].red += amt; cMap[ck].cf.push({amt: amt, date: d}); if (inC) { sMap[sk].red += amt; sMap[sk].cf.push({amt: amt, date: d}); } }
             
-            // Financial Year formatting for Tree
             let fy = getFY(d); let m = (d.getMonth() + 1).toString().padStart(2, '0'); if (!mTree[fy]) mTree[fy] = { n: 0, m: {} }; if (!mTree[fy].m[m]) mTree[fy].m[m] = { n: 0, c: {} }; if (!mTree[fy].m[m].c[tx.clientName]) mTree[fy].m[m].c[tx.clientName] = 0; let pnlImp = isI ? amt : (isR ? -amt : 0); mTree[fy].n += pnlImp; mTree[fy].m[m].n += pnlImp; mTree[fy].m[m].c[tx.clientName] += pnlImp;
         });
 
         let lNavDate = new Date(0);
         Object.keys(cMap).forEach(k => {
             let i = cMap[k]; let cv = 0; let cx = mfdTxs.filter(t => (t.pan_ucc || t.clientName) === k); let sb = {}; let lCNavDate = new Date(0);
-            cx.forEach(t => { 
-                let sKey = t.isin || t.scheme; if(!sb[sKey]) sb[sKey] = { u: 0, i: t.isin, fn: 0 }; 
-                let iR = (t.type||'').toLowerCase().includes('red') || (t.type||'').toLowerCase().includes('sale'); 
-                let u = Math.abs(parseFloat(t.unit))||0; let amt = Math.abs(parseFloat(t.amount))||0; let tNav = Math.abs(parseFloat(t.nav))||0;
-                if (u === 0 && amt > 0 && tNav > 0) u = amt / tNav; sb[sKey].u += iR ? -u : u; if(tNav > 0) sb[sKey].fn = tNav; 
-            });
+            cx.forEach(t => { let sKey = t.isin || t.scheme; if(!sb[sKey]) sb[sKey] = { u: 0, i: t.isin, fn: 0 }; let iR = (t.type||'').toLowerCase().includes('red') || (t.type||'').toLowerCase().includes('sale'); let u = Math.abs(parseFloat(t.unit))||0; let amt = Math.abs(parseFloat(t.amount))||0; let tNav = Math.abs(parseFloat(t.nav))||0; if (u === 0 && amt > 0 && tNav > 0) u = amt / tNav; sb[sKey].u += iR ? -u : u; if(tNav > 0) sb[sKey].fn = tNav; });
             Object.keys(sb).forEach(sKey => { if (sb[sKey].u > 0) { let navObj = mfdNavs[sb[sKey].i]; let rN = navObj ? navObj.nav : (sb[sKey].fn || 0); let nDate = navObj && navObj.date ? new Date(navObj.date) : new Date(); if (nDate > lCNavDate) lCNavDate = nDate; if (nDate > lNavDate) lNavDate = nDate; cv += (sb[sKey].u * rN); } });
-            i.cv = cv; if (cv > 0) { i.cf.push({ amt: cv, date: lCNavDate.getTime() > 0 ? lCNavDate : new Date() }); }
-            if (gVal === 'ALL' || i.grp === gVal) { if (filterVal === 'ALL' || i.id === filterVal) currentValAum += cv; }
+            i.cv = cv; if (cv > 0) { i.cf.push({ amt: cv, date: lCNavDate.getTime() > 0 ? lCNavDate : new Date() }); } if (gVal === 'ALL' || i.grp === gVal) { if (filterVal === 'ALL' || i.id === filterVal) currentValAum += cv; }
         });
 
         let sAumTotal = 0;
@@ -471,27 +560,26 @@
                 let cx = mfdTxs.filter(t => { let ck = t.pan_ucc || t.clientName; return ((t.isin || t.scheme || 'Uncategorized') === k) && (gVal === 'ALL' || (t.group || '') === gVal) && (filterVal === 'ALL' || ck === filterVal); }); 
                 let sbU = 0; let sbfn = 0;
                 cx.forEach(t => { let iR = (t.type||'').toLowerCase().includes('red') || (t.type||'').toLowerCase().includes('sale'); let u = Math.abs(parseFloat(t.unit))||0; let amt = Math.abs(parseFloat(t.amount))||0; let tNav = Math.abs(parseFloat(t.nav))||0; if (u === 0 && amt > 0 && tNav > 0) u = amt / tNav; sbU += iR ? -u : u; if(tNav > 0) sbfn = tNav; });
-                i.u = sbU;
-                if (i.u > 0) { let nObj = mfdNavs[i.isin]; let rN = nObj ? nObj.nav : sbfn; i.cv = i.u * rN; i.cf.push({ amt: i.cv, date: nObj && nObj.date ? new Date(nObj.date) : new Date() }); sAumTotal += i.cv; } else { i.cv = 0; }
+                i.u = sbU; if (i.u > 0) { let nObj = mfdNavs[i.isin]; let rN = nObj ? nObj.nav : sbfn; i.cv = i.u * rN; i.cf.push({ amt: i.cv, date: nObj && nObj.date ? new Date(nObj.date) : new Date() }); sAumTotal += i.cv; } else { i.cv = 0; }
             }
         });
 
         if(document.getElementById('mfd-current-val')) document.getElementById('mfd-current-val').innerText = currentValAum.toFixed(2); if(document.getElementById('mfd-net-inv')) document.getElementById('mfd-net-inv').innerText = (tIn - tRed).toFixed(2); if(document.getElementById('mfd-gross-inflow')) document.getElementById('mfd-gross-inflow').innerText = tIn.toFixed(2); if(document.getElementById('mfd-total-redemption')) document.getElementById('mfd-total-redemption').innerText = tRed.toFixed(2); if(document.getElementById('mfd-total-clients')) document.getElementById('mfd-total-clients').innerText = Object.keys(cMap).filter(k => cMap[k].in > 0 || cMap[k].red > 0).length;
 
-        const cb = document.getElementById('mfd-client-aum-body'); 
+        const cb = document.getElementById('mfd-client-aum-body'); pdfClientCache = [];
         if(cb) {
             cb.innerHTML = ''; let arr = Object.keys(cMap).map(k => { let i = cMap[k]; i.xirr = computeXIRR(i.cf); i.pct = currentValAum > 0 ? ((i.cv / currentValAum) * 100) : 0; i.netIn = i.in - i.red; i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0; return i; }).filter(i => (i.in > 0 || i.red > 0) && (gVal === 'ALL' || i.grp === gVal) && (filterVal === 'ALL' || i.id === filterVal));
             arr.sort((a, b) => { let v1 = a[clientSortCol] !== undefined ? a[clientSortCol] : ''; let v2 = b[clientSortCol] !== undefined ? b[clientSortCol] : ''; if(typeof v1 === 'string') v1 = v1.toLowerCase(); if(typeof v2 === 'string') v2 = v2.toLowerCase(); if (v1 < v2) return clientSortDesc ? 1 : -1; if (v1 > v2) return clientSortDesc ? -1 : 1; return 0; });
-            if (arr.length === 0) { cb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } else { arr.forEach(i => { cb.innerHTML += `<tr><td>${i.grp || '-'}</td><td><strong>${i.id}</strong></td><td><strong>${i.name}</strong></td><td class="${i.netIn >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.netIn >= 0 ? '+' : ''}${i.netIn.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.xirr.toFixed(2)}%</td><td class="${i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.absRet.toFixed(2)}%</td><td><span class="badge" style="background:#e2e8f0; color:#333;">${i.pct.toFixed(2)}%</span></td></tr>`; }); }
+            pdfClientCache = arr;
+            if (arr.length === 0) { cb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } else { arr.forEach(i => { cb.innerHTML += `<tr><td>${i.grp || '-'}</td><td><strong>${i.id}</strong></td><td><strong>${i.name}</strong></td><td class="${i.netIn >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.netIn >= 0 ? '+' : ''}${i.netIn.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.xirr.toFixed(2)}%</td><td class="${i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.absRet.toFixed(2)}%</td><td><span class="badge" style="background:var(--border); color:var(--text-color);">${i.pct.toFixed(2)}%</span></td></tr>`; }); }
         }
 
-        const sb = document.getElementById('mfd-scheme-aum-body'); 
-        pdfSchemeCache = []; // Store for PDF
+        const sb = document.getElementById('mfd-scheme-aum-body'); pdfSchemeCache = [];
         if(sb) {
             sb.innerHTML = ''; let arr = Object.keys(sMap).map(s => { let i = sMap[s]; let nObj = mfdNavs[i.isin]; i.rN = nObj ? nObj.nav : 0; i.xirr = computeXIRR(i.cf); i.pct = sAumTotal > 0 ? ((i.cv / sAumTotal) * 100) : 0; i.netIn = i.in - i.red; i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0; return i; }).filter(i => i.u > 0.001 || i.red > 0);
             arr.sort((a, b) => { let v1 = a[schemeSortCol] !== undefined ? a[schemeSortCol] : ''; let v2 = b[schemeSortCol] !== undefined ? b[schemeSortCol] : ''; if(typeof v1 === 'string') v1 = v1.toLowerCase(); if(typeof v2 === 'string') v2 = v2.toLowerCase(); if (v1 < v2) return schemeSortDesc ? 1 : -1; if (v1 > v2) return schemeSortDesc ? -1 : 1; return 0; });
-            pdfSchemeCache = arr; // Cache it for PDF Generation
-            if (arr.length === 0) { sb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } else { arr.forEach(i => { sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.u.toFixed(4)}</td><td>${i.rN.toFixed(4)}</td><td class="${i.netIn >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.netIn >= 0 ? '+' : ''}${i.netIn.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.xirr.toFixed(2)}%</td><td class="${i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.absRet.toFixed(2)}%</td><td><span class="badge" style="background:#e2e8f0; color:#333;">${i.pct.toFixed(2)}%</span></td></tr>`; }); }
+            pdfSchemeCache = arr;
+            if (arr.length === 0) { sb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } else { arr.forEach(i => { sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.u.toFixed(4)}</td><td>${i.rN.toFixed(4)}</td><td class="${i.netIn >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.netIn >= 0 ? '+' : ''}${i.netIn.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.xirr.toFixed(2)}%</td><td class="${i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.absRet.toFixed(2)}%</td><td><span class="badge" style="background:var(--border); color:var(--text-color);">${i.pct.toFixed(2)}%</span></td></tr>`; }); }
         }
 
         const cd = document.getElementById('mfd-client-details-body'); 
@@ -521,10 +609,8 @@
         validTxs.forEach(tx => {
             let d; if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) { let parts = tx.date.split('-'); d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`); } else { d = new Date(tx.date); } if (isNaN(d)) return;
             let fy = getFY(d); let m = (d.getMonth() + 1).toString().padStart(2, '0'); let ym = `${fy} | ${m}`; years.add(fy);
-            let amt = Math.abs(parseFloat(tx.amount)) || 0; let u = Math.abs(parseFloat(tx.unit)) || 0; let txNav = Math.abs(parseFloat(tx.nav))||0;
-            if (u === 0 && amt > 0 && txNav > 0) u = amt / txNav;
-            let typ = (tx.type||'').toLowerCase();
-            if (!rU[tx.isin]) rU[tx.isin] = 0;
+            let amt = Math.abs(parseFloat(tx.amount)) || 0; let u = Math.abs(parseFloat(tx.unit)) || 0; let txNav = Math.abs(parseFloat(tx.nav))||0; if (u === 0 && amt > 0 && txNav > 0) u = amt / txNav;
+            let typ = (tx.type||'').toLowerCase(); if (!rU[tx.isin]) rU[tx.isin] = 0;
             if (typ.includes('pur') || typ.includes('sip') || typ.includes('lump')) { rU[tx.isin] += u; rI += amt; } else if (typ.includes('red') || typ.includes('sale')) { rU[tx.isin] -= u; rI -= amt; }
             let curAum = 0; Object.keys(rU).forEach(isin => { let navObj = mfdNavs[isin]; curAum += (rU[isin] * (navObj ? navObj.nav : 0)); }); mD[ym] = { aum: curAum, inv: rI };
         });
@@ -544,5 +630,7 @@
         aumChartInstance = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [ { label: 'Estimated AUM', data: aP, borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', borderWidth: 2, fill: true, tension: 0.3 }, { label: 'Net Amount Invested', data: iP, borderColor: '#2563eb', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.3 } ] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false } } });
     }
 </script>
+<!-- Hidden PDF Container for Clean Printing -->
+<div id="pdf-export-container" style="display:none; padding:30px; background:#fff; color:#000; width: 1000px;"></div>
 </body>
 </html>
