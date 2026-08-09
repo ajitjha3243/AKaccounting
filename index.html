@@ -19,8 +19,8 @@
         .container { max-width: 1200px; margin: 0 auto; }
         
         /* --- SECURE AUTHENTICATION OVERLAY --- */
-        #auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-        .auth-box { background: var(--card-bg); padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 380px; text-align: center; border-top: 5px solid var(--primary); }
+        #auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 20px; box-sizing: border-box; }
+        .auth-box { background: var(--card-bg); padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 380px; text-align: center; border-top: 5px solid var(--primary); box-sizing: border-box; }
         .auth-box h2 { margin-top: 0; color: var(--text-color); margin-bottom: 20px;}
         .auth-box input[type="email"], .auth-box input[type="password"] { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
         
@@ -45,64 +45,98 @@
 
         h1 { margin: 0; font-weight: 700; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 1.5rem;}
         .header-actions { display: flex; gap: 10px; }
-        .btn-backup { background: var(--purple); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
-        .btn-restore { background: #475569; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
+        .btn-backup { background: var(--purple); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: opacity 0.2s; }
+        .btn-restore { background: #475569; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: opacity 0.2s; }
+        .btn-backup:hover, .btn-restore:hover { opacity: 0.9; }
         
         .summary-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .card { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 5px solid var(--primary); }
+        .card { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid var(--primary); transition: transform 0.2s; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .card.equity { border-left-color: var(--primary); }
         .card.mf { border-left-color: var(--warning); }
         .card.cash { border-left-color: var(--success); }
         .card.pnl { border-left-color: var(--info); } 
-        .card.purple { border-left-color: var(--purple); } 
-        .card h3 { margin: 0 0 10px 0; font-size: 0.85rem; text-transform: uppercase; color: #666; }
-        .card p { margin: 0; font-size: 1.5rem; font-weight: bold; }
+        .card h3 { margin: 0 0 10px 0; font-size: 0.85rem; text-transform: uppercase; color: #64748b; font-weight: 600; }
+        .card p { margin: 0; font-size: 1.5rem; font-weight: bold; color: #1e293b; }
         
         .main-grid { display: grid; grid-template-columns: 1fr; gap: 25px; margin-bottom: 25px; align-items: start; }
         @media(min-width: 900px) { .main-grid { grid-template-columns: 350px 1fr; } }
-        .reports-grid { display: grid; grid-template-columns: 1fr; gap: 25px; }
+        .reports-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
         @media(min-width: 900px) { .reports-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
         
-        .panel { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 25px; }
-        .panel h2 { margin-top: 0; font-size: 1.2rem; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .panel { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 25px; }
         
-        .panel-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; user-select: none; transition: color 0.2s; }
+        /* Modernized Interactive Headers */
+        .panel-header { 
+            display: flex; justify-content: space-between; align-items: center; cursor: pointer; 
+            border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 15px; 
+            user-select: none; transition: color 0.2s; 
+        }
         .panel-header:hover { color: var(--primary); }
-        .panel-header h2 { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+        .panel-header h2 { margin: 0; font-size: 1.2rem; border-bottom: none; padding-bottom: 0; }
         
-        .table-header-toggle { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; margin-bottom: 15px; transition: color 0.2s; }
-        .collapsible-table-content { display: none; }
+        .table-header-toggle { 
+            display: flex; justify-content: space-between; align-items: center; cursor: pointer; 
+            user-select: none; margin-bottom: 10px; transition: all 0.2s; 
+            background: #f8fafc; border: 1px solid var(--border); padding: 12px 15px; border-radius: 6px;
+        }
+        .table-header-toggle:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .table-header-toggle h3 { margin: 0; font-size: 1rem; color: #334155; }
+
+        .collapsible-table-content { display: none; padding-bottom: 15px; }
         .collapsible-table-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
         .tx-form-container { display: none; }
         .tx-form-container.active { display: block; animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
         .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; }
-        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; }
-        select[multiple] { height: 90px; border: 1px solid var(--border); border-radius: 4px; padding: 4px; outline: none; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; color: #475569; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; transition: border-color 0.2s; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
+        select[multiple] { height: 90px; padding: 4px; }
         
         button.btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: 0.2s; }
         button.btn-primary:hover { background: #1d4ed8; }
-        button.btn-secondary { width: 100%; background: #64748b; color: white; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; }
+        button.btn-secondary { width: 100%; background: #64748b; color: white; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+        button.btn-secondary:hover { background: #475569; }
         
         .controls-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid var(--border); }
         .controls-row .form-group { margin-bottom: 0; flex: 1; min-width: 150px; }
-        button.btn-export { background: var(--success); color: white; border: none; padding: 9px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; }
-        button.btn-live { background: var(--info); color: white; border: none; padding: 9px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; }
+        button.btn-export { background: var(--success); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; transition: 0.2s; }
+        button.btn-export:hover { background: #15803d; }
+        button.btn-live { background: var(--info); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; transition: 0.2s; }
         button.btn-live:hover { background: #0284c7; }
         
-        .table-container { overflow-x: auto; }
+        /* Improved Table Design for Mobile & Tablet */
+        .table-container { 
+            overflow-x: auto; 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+            background: white;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
-        th, td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
-        th { background-color: #f8fafc; font-weight: 600; white-space: nowrap; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        th { 
+            background-color: #f8fafc; 
+            color: #334155; 
+            font-weight: 600; 
+            white-space: nowrap; 
+            border-bottom: 2px solid #e2e8f0;
+        }
         
+        /* Zebra Striping & Hover */
+        tbody tr:nth-child(even) { background-color: #fafaf9; }
+        tbody tr:hover { background-color: #f1f5f9; transition: background-color 0.15s ease-in-out; }
+
         th.sortable { cursor: pointer; transition: background 0.2s; user-select: none; }
         th.sortable:hover { background-color: #e2e8f0; }
         .sort-icon { font-size: 0.8rem; margin-left: 5px; color: var(--primary); }
-        .col-filter { width: 100%; padding: 4px; font-size: 0.8rem; font-weight: normal; margin-top: 6px; border: 1px solid #cbd5e1; border-radius: 3px; box-sizing: border-box; }
+        .col-filter { width: 100%; padding: 6px; font-size: 0.8rem; font-weight: normal; margin-top: 6px; border: 1px solid #cbd5e1; border-radius: 3px; box-sizing: border-box; }
+        .col-filter:focus { outline: none; border-color: var(--primary); }
 
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; display: inline-block;}
         .badge.purchase { background: #fef3c7; color: #b45309; }
         .badge.sale { background: #dbeafe; color: #1d4ed8; }
         .badge.expense { background: #fee2e2; color: #991b1b; }
@@ -117,30 +151,58 @@
         .badge.lumpsum { background: #dbeafe; color: #1d4ed8; }
         .badge.redemption { background: #fee2e2; color: #991b1b; }
         
-        .btn-edit-tx { background: none; border: none; color: var(--primary); cursor: pointer; font-weight: 500; margin-right: 8px; }
-        .btn-delete { background: none; border: none; color: var(--danger); cursor: pointer; font-weight: 500; }
+        .btn-edit-tx { background: none; border: none; color: var(--primary); cursor: pointer; font-weight: 600; margin-right: 12px; padding: 4px 8px; border-radius: 4px; transition: background 0.2s;}
+        .btn-edit-tx:hover { background: #dbeafe; }
+        .btn-delete { background: none; border: none; color: var(--danger); cursor: pointer; font-weight: 600; padding: 4px 8px; border-radius: 4px; transition: background 0.2s;}
+        .btn-delete:hover { background: #fee2e2; }
         .pnl-positive { color: var(--success); font-weight: bold; }
         .pnl-negative { color: var(--danger); font-weight: bold; }
         .pnl-neutral { color: var(--text-color); font-weight: bold; }
 
         .pagination-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border); }
-        .pagination-controls button { padding: 8px 16px; border: 1px solid var(--border); background: var(--card-bg); cursor: pointer; border-radius: 4px; font-weight: 600; transition: background 0.2s; }
+        .pagination-controls button { padding: 8px 16px; border: 1px solid var(--border); background: var(--card-bg); cursor: pointer; border-radius: 4px; font-weight: 600; transition: background 0.2s; color: #334155; }
         .pagination-controls button:hover:not(:disabled) { background: #e2e8f0; }
         .pagination-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
         #page-indicator, #other-page-indicator { font-weight: 500; color: #64748b; font-size: 0.95rem; }
 
-        .tree-container { font-size: 0.9rem; background: #fff; }
+        .tree-container { font-size: 0.9rem; background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .tree-node { margin-bottom: 4px; }
-        .tree-header { display: flex; justify-content: space-between; padding: 8px 12px; background: #f8fafc; cursor: pointer; border-radius: 4px; user-select: none; transition: all 0.2s; border: 1px solid #e2e8f0;}
+        .tree-header { display: flex; justify-content: space-between; padding: 10px 12px; background: #f8fafc; cursor: pointer; border-radius: 4px; user-select: none; transition: all 0.2s; border: 1px solid #e2e8f0; font-weight: 500; }
         .tree-header:hover { background: #e2e8f0; border-color: #cbd5e1; }
         .tree-header span:first-child { font-weight: 600; display: flex; align-items: center;}
-        .tree-arrow { display: inline-block; width: 16px; font-size: 0.75rem; transition: transform 0.2s; color: #64748b; }
+        .tree-arrow { display: inline-block; width: 20px; font-size: 0.75rem; transition: transform 0.2s; color: #64748b; }
         .tree-node.active > .tree-header .tree-arrow { transform: rotate(90deg); color: var(--primary); }
-        .tree-children { display: none; padding-left: 20px; border-left: 2px solid #e2e8f0; margin-left: 7px; margin-top: 4px; padding-bottom: 4px;}
+        .tree-children { display: none; padding-left: 15px; border-left: 2px solid #e2e8f0; margin-left: 10px; margin-top: 4px; padding-bottom: 4px;}
         .tree-node.active > .tree-children { display: block; animation: fadeIn 0.3s ease-in-out; }
-        .tree-leaf { display: flex; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid var(--border); margin-left: 10px; background: #fafafa;}
+        .tree-leaf { display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--border); margin-left: 10px; background: #fafafa; border-radius: 4px; margin-bottom: 2px; }
         .tree-leaf:last-child { border-bottom: none; }
         .tree-leaf span:first-child { font-weight: 500; color: #475569; }
+
+        /* --- MOBILE/TABLET RESPONSIVENESS --- */
+        @media(max-width: 768px) {
+            body { padding: 10px; }
+            .header-top { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .header-actions { width: 100%; flex-wrap: wrap; justify-content: space-between; }
+            .btn-backup, .btn-restore { flex: 1; padding: 10px; text-align: center; }
+            
+            .summary-container { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .card { padding: 15px; }
+            .card p { font-size: 1.25rem; }
+            
+            .main-grid, .reports-grid { grid-template-columns: 1fr; gap: 15px; }
+            
+            th, td { padding: 10px 8px; font-size: 0.85rem; }
+            .panel { padding: 15px; margin-bottom: 15px; }
+            
+            .controls-row { flex-direction: column; align-items: stretch; gap: 10px; padding: 10px; }
+            .controls-row .form-group { min-width: 100%; margin-bottom: 5px; }
+            button.btn-export, button.btn-live { width: 100%; margin-top: 5px; }
+            
+            /* Give table toggles a more button-like feel on mobile */
+            .table-header-toggle { padding: 14px 15px; }
+            
+            .user-controls { width: 100%; justify-content: space-between; box-sizing: border-box; }
+        }
     </style>
 </head>
 <body>
@@ -203,9 +265,9 @@
         <div class="panel" style="margin-bottom: 0; padding-top: 10px;">
             <div class="panel-header" onclick="togglePanel('log-tx-content', 'log-tx-icon')">
                 <h2>Log Transaction</h2>
-                <span id="log-tx-icon">▼</span>
+                <span id="log-tx-icon">▼</span> <!-- Changed default to ▼ -->
             </div>
-            <div id="log-tx-content" class="tx-form-container active">
+            <div id="log-tx-content" class="tx-form-container"> <!-- Removed active class -->
                 <form id="tx-form">
                     <input type="hidden" id="tx-id">
                     <div class="form-group"><label>Date</label><input type="date" id="date" required></div>
@@ -235,9 +297,9 @@
         <div class="panel" style="margin-bottom: 0; padding-top: 10px;">
             <div class="panel-header" onclick="togglePanel('script-dash-content', 'script-dash-icon')">
                 <h2>Script Analysis Dashboard</h2>
-                <span id="script-dash-icon">▲</span>
+                <span id="script-dash-icon">▼</span> <!-- Changed to ▼ -->
             </div>
-            <div id="script-dash-content" class="collapsible-table-content active">
+            <div id="script-dash-content" class="collapsible-table-content"> <!-- Removed active class -->
                 <div class="controls-row">
                     <div class="form-group">
                         <label>Select Script(s) <small style="color: #64748b;">(Ctrl/Cmd + Click)</small></label>
@@ -249,9 +311,10 @@
                     </div>
                 </div>
                 <div id="script-dash-data" style="display: none;">
-                    <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                    <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                        <!-- Mini Tables are kept simple but use new styling naturally -->
                         <div>
-                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px;">Current Holdings</h3>
+                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Current Holdings</h3>
                             <div class="table-container">
                                 <table>
                                     <thead><tr><th>Script</th><th>Broker</th><th>Qty</th><th>Avg Price</th><th>Invested</th></tr></thead>
@@ -260,17 +323,17 @@
                             </div>
                         </div>
                         <div>
-                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px;">Month-wise P&L</h3>
+                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Month-wise P&L</h3>
                             <div class="table-container">
                                 <table>
                                     <thead><tr><th>Month</th><th>P&L</th></tr></thead>
                                     <tbody id="dash-pnl-body"></tbody>
-                                    <tfoot><tr><th style="background-color: var(--card-bg);">Total Realized</th><th id="dash-pnl-total" style="background-color: var(--card-bg);">0.00</th></tr></tfoot>
+                                    <tfoot><tr><th style="background-color: #f8fafc;">Total Realized</th><th id="dash-pnl-total" style="background-color: #f8fafc;">0.00</th></tr></tfoot>
                                 </table>
                             </div>
                         </div>
                         <div>
-                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px;">Last 2 Sales</h3>
+                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Last 2 Sales</h3>
                             <div class="table-container">
                                 <table>
                                     <thead><tr><th>Date</th><th>Symbol</th><th>Qty</th><th>Price</th></tr></thead>
@@ -292,59 +355,103 @@
             
             <div class="form-group" style="min-width: 260px;">
                 <label>Live API Config (Finnhub/AlphaVantage)</label>
-                <input type="password" id="live-api-key" placeholder="Optional Free API Key" style="padding: 7px; font-size: 0.85rem;">
+                <input type="password" id="live-api-key" placeholder="Optional Free API Key" style="padding: 10px; font-size: 0.85rem;">
             </div>
             <button class="btn-live" onclick="fetchLivePrices()">🔄 Fetch Live Prices</button>
         </div>
         
         <div class="reports-grid">
-            <div class="table-container" style="grid-column: 1 / -1;">
+            
+            <!-- Table 1 -->
+            <div style="grid-column: 1 / -1;">
                 <div class="table-header-toggle" onclick="togglePanel('holdings-content', 'holdings-icon')">
-                    <h3 style="margin:0;">Current Holdings (Balance & Live Market Track)</h3><span id="holdings-icon">▲</span>
+                    <h3 style="margin:0;">Current Holdings (Balance & Live Market Track)</h3><span id="holdings-icon">▼</span>
                 </div>
-                <div id="holdings-content" class="collapsible-table-content active">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Symbol</th>
-                                <th>Broker</th>
-                                <th>Class</th>
-                                <th>Qty</th>
-                                <th>Avg Price</th>
-                                <th>Invested Amt</th>
-                                <th style="background: #f0fdf4;">Live Price</th>
-                                <th style="background: #f0fdf4;">Current Value</th>
-                                <th style="background: #f0fdf4;">Unrealized P&L</th>
-                            </tr>
-                        </thead>
-                        <tbody id="holdings-body"></tbody>
-                    </table>
+                <div id="holdings-content" class="collapsible-table-content"> <!-- Removed active class -->
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Broker</th>
+                                    <th>Class</th>
+                                    <th>Qty</th>
+                                    <th>Avg Price</th>
+                                    <th>Invested Amt</th>
+                                    <th style="background: #e6f4ea; color:#137333;">Live Price</th>
+                                    <th style="background: #e6f4ea; color:#137333;">Current Value</th>
+                                    <th style="background: #e6f4ea; color:#137333;">Unrealized P&L</th>
+                                </tr>
+                            </thead>
+                            <tbody id="holdings-body"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
             
-            <div class="table-container"><h3>Investment by Broker</h3><table><thead><tr><th>Broker</th><th>Current Investment</th></tr></thead><tbody id="broker-investment-body"></tbody></table></div>
-            <div class="table-container"><h3>Broker Ledger (Cash) Balance</h3><table><thead><tr><th>Broker</th><th>Available Balance</th></tr></thead><tbody id="broker-ledger-body"></tbody></table></div>
-            
-            <div class="table-container" style="grid-column: 1 / -1; max-width: 600px;">
-                <h3>Hierarchical P&L (FY -> Month -> Day -> Script)</h3>
-                <div id="hierarchical-pnl-body" class="tree-container"></div>
+            <!-- Table 2 -->
+            <div>
+                <div class="table-header-toggle" onclick="togglePanel('broker-inv-content', 'broker-inv-icon')">
+                    <h3>Investment by Broker</h3><span id="broker-inv-icon">▼</span>
+                </div>
+                <div id="broker-inv-content" class="collapsible-table-content">
+                    <div class="table-container"><table><thead><tr><th>Broker</th><th>Current Investment</th></tr></thead><tbody id="broker-investment-body"></tbody></table></div>
+                </div>
             </div>
 
-            <div class="table-container"><h3>Realized P&L by Script</h3><table><thead><tr><th>Symbol</th><th>Broker</th><th>Class</th><th>Realized P&L</th></tr></thead><tbody id="pnl-body"></tbody></table></div>
-            <div class="table-container"><h3>Realized P&L by Broker</h3><table><thead><tr><th>Broker</th><th>Realized P&L</th></tr></thead><tbody id="broker-pnl-body"></tbody></table></div>
+            <!-- Table 3 -->
+            <div>
+                <div class="table-header-toggle" onclick="togglePanel('broker-ledger-content', 'broker-ledger-icon')">
+                    <h3>Broker Ledger (Cash) Balance</h3><span id="broker-ledger-icon">▼</span>
+                </div>
+                <div id="broker-ledger-content" class="collapsible-table-content">
+                    <div class="table-container"><table><thead><tr><th>Broker</th><th>Available Balance</th></tr></thead><tbody id="broker-ledger-body"></tbody></table></div>
+                </div>
+            </div>
+            
+            <!-- Table 4 -->
+            <div style="grid-column: 1 / -1; max-width: 600px;">
+                <div class="table-header-toggle" onclick="togglePanel('hierarchical-pnl-content', 'hierarchical-pnl-icon')">
+                    <h3>Hierarchical P&L (FY -> Month -> Day -> Script)</h3><span id="hierarchical-pnl-icon">▼</span>
+                </div>
+                <div id="hierarchical-pnl-content" class="collapsible-table-content">
+                    <div id="hierarchical-pnl-body" class="tree-container"></div>
+                </div>
+            </div>
+
+            <!-- Table 5 -->
+            <div>
+                <div class="table-header-toggle" onclick="togglePanel('pnl-script-content', 'pnl-script-icon')">
+                    <h3>Realized P&L by Script</h3><span id="pnl-script-icon">▼</span>
+                </div>
+                <div id="pnl-script-content" class="collapsible-table-content">
+                    <div class="table-container"><table><thead><tr><th>Symbol</th><th>Broker</th><th>Class</th><th>Realized P&L</th></tr></thead><tbody id="pnl-body"></tbody></table></div>
+                </div>
+            </div>
+
+            <!-- Table 6 -->
+            <div>
+                <div class="table-header-toggle" onclick="togglePanel('pnl-broker-content', 'pnl-broker-icon')">
+                    <h3>Realized P&L by Broker</h3><span id="pnl-broker-icon">▼</span>
+                </div>
+                <div id="pnl-broker-content" class="collapsible-table-content">
+                    <div class="table-container"><table><thead><tr><th>Broker</th><th>Realized P&L</th></tr></thead><tbody id="broker-pnl-body"></tbody></table></div>
+                </div>
+            </div>
+            
         </div>
     </div>
 
     <div class="panel" style="padding-top: 10px;">
         <div class="panel-header" onclick="togglePanel('ledger-content', 'ledger-icon')">
             <h2>Raw Transaction Ledger</h2>
-            <span id="ledger-icon">▲</span>
+            <span id="ledger-icon">▼</span>
         </div>
-        <div id="ledger-content" class="collapsible-table-content active">
-            <div class="controls-row" style="background: #e0e7ff; border-color: #c7d2fe;">
+        <div id="ledger-content" class="collapsible-table-content"> <!-- Removed active class -->
+            <div class="controls-row" style="background: #f1f5f9; border-color: #e2e8f0;">
                 <div class="form-group" style="flex: 2; min-width: 250px;">
                     <label>Global Live Search</label>
-                    <input type="text" id="ledger-search" placeholder="Start typing to search globally..." oninput="resetPageAndRender()" style="border-color: #a5b4fc;">
+                    <input type="text" id="ledger-search" placeholder="Start typing to search globally..." oninput="resetPageAndRender()" style="border-color: #cbd5e1;">
                 </div>
                 <button class="btn-export" onclick="exportCSV()">Download CSV</button>
             </div>
@@ -412,10 +519,10 @@
     <div class="panel" style="padding-top: 10px; margin-bottom: 25px;">
         <div class="panel-header" onclick="togglePanel('other-drilldown-content', 'other-drilldown-icon')">
             <h2>Monthly Income & Expense Drilldown</h2>
-            <span id="other-drilldown-icon">▲</span>
+            <span id="other-drilldown-icon">▼</span>
         </div>
-        <div id="other-drilldown-content" class="collapsible-table-content active">
-            <div class="table-container" style="max-width: 800px;">
+        <div id="other-drilldown-content" class="collapsible-table-content"> <!-- Removed active class -->
+            <div class="table-container" style="max-width: 800px; padding: 10px; border:none; box-shadow:none; background:transparent;">
                  <div id="other-hierarchical-body" class="tree-container"></div>
             </div>
         </div>
@@ -425,9 +532,9 @@
     <div class="panel" style="padding-top: 10px; margin-bottom: 25px;">
         <div class="panel-header" onclick="togglePanel('other-party-dash-content', 'other-party-dash-icon')">
             <h2>Transaction Party Balances</h2>
-            <span id="other-party-dash-icon">▲</span>
+            <span id="other-party-dash-icon">▼</span>
         </div>
-        <div id="other-party-dash-content" class="collapsible-table-content active">
+        <div id="other-party-dash-content" class="collapsible-table-content">
             <p style="font-size: 0.85rem; color: #64748b; margin-top: -5px; margin-bottom: 15px;"><em>Positive value = They owe you (Receivable) | Negative value = You owe them (Payable)</em></p>
             <div class="table-container" style="max-width: 600px;">
                 <table>
@@ -450,7 +557,7 @@
                 <h2>Log Transaction</h2>
                 <span id="other-log-tx-icon">▼</span>
             </div>
-            <div id="other-log-tx-content" class="tx-form-container active">
+            <div id="other-log-tx-content" class="tx-form-container"> <!-- Removed active class -->
                 <form id="other-tx-form">
                     <input type="hidden" id="other-tx-id">
                     <div class="form-group"><label>1) Date</label><input type="date" id="other-date" required></div>
@@ -482,21 +589,21 @@
         <div class="panel" style="padding-top: 10px;">
             <div class="panel-header" onclick="togglePanel('other-ledger-content', 'other-ledger-icon')">
                 <h2>Raw Transaction Ledger</h2>
-                <span id="other-ledger-icon">▲</span>
+                <span id="other-ledger-icon">▼</span>
             </div>
-            <div id="other-ledger-content" class="collapsible-table-content active">
-                <div class="controls-row" style="background: #e0e7ff; border-color: #c7d2fe;">
-                    <div class="form-group" style="flex: 2; min-width: 250px;"><label>Global Live Search</label><input type="text" id="other-ledger-search" oninput="resetOtherPageAndRender()" style="border-color: #a5b4fc;"></div>
+            <div id="other-ledger-content" class="collapsible-table-content"> <!-- Removed active class -->
+                <div class="controls-row" style="background: #f1f5f9; border-color: #e2e8f0;">
+                    <div class="form-group" style="flex: 2; min-width: 250px;"><label>Global Live Search</label><input type="text" id="other-ledger-search" placeholder="Start typing to search globally..." oninput="resetOtherPageAndRender()" style="border-color: #cbd5e1;"></div>
                     <button class="btn-export" onclick="exportOtherCSV()">Download CSV</button>
                 </div>
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
-                                <th class="sortable" onclick="setOtherSort('date')">Date <span class="sort-icon" id="other-sort-date"></span><br><input type="text" id="other-flt-date" class="col-filter" oninput="resetOtherPageAndRender()"></th>
-                                <th class="sortable" onclick="setOtherSort('txType')">Type <span class="sort-icon" id="other-sort-txType"></span><br><input type="text" id="other-flt-type" class="col-filter" oninput="resetOtherPageAndRender()"></th>
-                                <th class="sortable" onclick="setOtherSort('name')">Party Name <span class="sort-icon" id="other-sort-name"></span><br><input type="text" id="other-flt-name" class="col-filter" oninput="resetOtherPageAndRender()"></th>
-                                <th class="sortable" onclick="setOtherSort('remark')">Remark <span class="sort-icon" id="other-sort-remark"></span><br><input type="text" id="other-flt-remark" class="col-filter" oninput="resetOtherPageAndRender()"></th>
+                                <th class="sortable" onclick="setOtherSort('date')">Date <span class="sort-icon" id="other-sort-date"></span><br><input type="text" id="other-flt-date" class="col-filter" placeholder="Filter..." oninput="resetOtherPageAndRender()"></th>
+                                <th class="sortable" onclick="setOtherSort('txType')">Type <span class="sort-icon" id="other-sort-txType"></span><br><input type="text" id="other-flt-type" class="col-filter" placeholder="Filter..." oninput="resetOtherPageAndRender()"></th>
+                                <th class="sortable" onclick="setOtherSort('name')">Party Name <span class="sort-icon" id="other-sort-name"></span><br><input type="text" id="other-flt-name" class="col-filter" placeholder="Filter..." oninput="resetOtherPageAndRender()"></th>
+                                <th class="sortable" onclick="setOtherSort('remark')">Remark <span class="sort-icon" id="other-sort-remark"></span><br><input type="text" id="other-flt-remark" class="col-filter" placeholder="Filter..." oninput="resetOtherPageAndRender()"></th>
                                 <th class="sortable" onclick="setOtherSort('qty')">Qty <span class="sort-icon" id="other-sort-qty"></span></th>
                                 <th class="sortable" onclick="setOtherSort('rate')">Rate <span class="sort-icon" id="other-sort-rate"></span></th>
                                 <th class="sortable" onclick="setOtherSort('amount')" style="min-width: 100px;">Amount <span class="sort-icon" id="other-sort-amount"></span><br><div id="other-flt-total-display" style="margin-top: 6px; padding: 4px; font-size: 0.85rem; font-weight: bold; color: var(--primary); background: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 3px; display: none; text-align: center;">0.00</div></th>
@@ -885,7 +992,7 @@
             let item = inventory[key];
             if (item.qty > 0.0001) { holdingsBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${item.broker}</td><td>${item.qty.toFixed(4)}</td><td>${(item.cost/item.qty).toFixed(2)}</td><td>${item.cost.toFixed(2)}</td></tr>`; }
         });
-        if(holdingsBody.innerHTML === '') holdingsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#666; padding: 15px;">No current holdings</td></tr>`;
+        if(holdingsBody.innerHTML === '') holdingsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b; padding: 15px;">No current holdings</td></tr>`;
 
         const pnlBody = document.getElementById('dash-pnl-body');
         pnlBody.innerHTML = '';
@@ -909,7 +1016,7 @@
                 salesBody.innerHTML += `<tr><td>${tx.date}</td><td><strong>${tx.symbol}</strong></td><td>${tx.qty.toFixed(4)}</td><td>${tx.price.toFixed(2)}</td></tr>`;
             });
         } else {
-            salesBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#666; padding: 15px;">No recent sales</td></tr>`;
+            salesBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No recent sales</td></tr>`;
         }
     }
 
@@ -1012,9 +1119,9 @@
                     <td>${item.qty.toFixed(4)}</td>
                     <td>${(item.cost/item.qty).toFixed(2)}</td>
                     <td>${item.cost.toFixed(2)}</td>
-                    <td style="background: #f0fdf4; font-weight:bold;">${livePrice ? livePrice.toFixed(2) : 'Click Fetch'}</td>
-                    <td style="background: #f0fdf4;">${currentValStr}</td>
-                    <td style="background: #f0fdf4;" class="${pnlStyleClass}">${unrealizedPnLStr}</td>
+                    <td style="background: #e6f4ea; color:#137333; font-weight:bold;">${livePrice ? livePrice.toFixed(2) : 'Click Fetch'}</td>
+                    <td style="background: #e6f4ea;"><strong>${currentValStr}</strong></td>
+                    <td style="background: #e6f4ea;" class="${pnlStyleClass}">${unrealizedPnLStr}</td>
                 </tr>`;
             }
             if (item.pnl !== 0 && item.hasTrade && item.symbol.toUpperCase() !== 'EXPENSE' && item.symbol.toUpperCase() !== 'CASH') {
