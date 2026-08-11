@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Goal-Based Mutual Fund Dashboard</title>
+    <title>Pro Goal-Based Portfolio & Asset Tracker</title>
     
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
@@ -18,7 +18,7 @@
             --border: #e2e8f0; --muted: #64748b;
         }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
-        .container { max-width: 1300px; margin: 0 auto; }
+        .container { max-width: 1320px; margin: 0 auto; }
         
         /* Auth Overlay */
         #auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
@@ -90,7 +90,7 @@
         .btn-goal-sm { padding: 4px 10px; font-size: 0.75rem; border-radius: 4px; border: 1px solid var(--border); background: white; cursor: pointer; font-weight: 600; }
         .btn-goal-sm:hover { background: #f8fafc; border-color: #cbd5e1; }
 
-        /* Folios Dynamic Inputs inside Form */
+        /* Folios Dynamic Inputs */
         .folio-inputs-wrapper { display: flex; flex-direction: column; gap: 6px; }
         .folio-input-row { display: flex; gap: 8px; align-items: center; }
         .btn-add-folio { background: #e0f2fe; color: var(--primary); border: 1px solid #bfdbfe; padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; cursor: pointer; width: fit-content; margin-top: 4px; }
@@ -129,15 +129,21 @@
         .badge.sip { background: #dcfce7; color: #15803d; }
         .badge.lumpsum { background: #dbeafe; color: #1d4ed8; }
         .badge.redemption { background: #fee2e2; color: #991b1b; }
+        .badge.deposit { background: #dcfce7; color: #15803d; }
+        .badge.withdrawal { background: #fee2e2; color: #991b1b; }
+        .badge.val-update { background: #f3e8ff; color: #7e22ce; }
+
+        .badge-model { font-size: 0.68rem; padding: 2px 6px; border-radius: 3px; font-weight: bold; background: #e2e8f0; color: #475569; }
+        .badge-model.val { background: #fef3c7; color: #b45309; }
 
         .pnl-positive { color: var(--success); font-weight: 700; }
         .pnl-negative { color: var(--danger); font-weight: 700; }
 
-        /* Search & Filter Bar */
+        /* Search Bar */
         .table-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
         .search-input { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; min-width: 260px; }
 
-        /* Print / PDF Styling Engine */
+        /* Print / PDF Engine */
         @media print {
             body { background: white; color: black; padding: 0; }
             #auth-overlay, .header-actions, .panel-header span, .goal-actions, .btn-primary, #tx-form-content, #goal-form-content, .table-toolbar, .btn-logout, td:last-child, th:last-child { display: none !important; }
@@ -162,8 +168,8 @@
 <!-- AUTHENTICATION OVERLAY -->
 <div id="auth-overlay">
     <div class="auth-box">
-        <h2>Goal MF Tracker</h2>
-        <p class="sub">Goal-Driven Valuation, Folio Mapping & XIRR</p>
+        <h2>Goal Portfolio Tracker</h2>
+        <p class="sub">Unitized & Non-Unitized Asset Allocation & XIRR</p>
         
         <div class="workspace-links">
             <p>Switch Workspace</p>
@@ -192,8 +198,8 @@
     <!-- HEADER -->
     <div class="header-top">
         <div>
-            <h1 style="margin:0; font-size: 1.45rem; font-weight: 800;">🎯 Goal-Based Mutual Fund Portfolio</h1>
-            <span style="font-size:0.85rem; color:var(--muted);">Discounted Goal Target, Folio-Mapped Tracking, XIRR Analytics & SIP Deficit</span>
+            <h1 style="margin:0; font-size: 1.45rem; font-weight: 800;">🎯 Goal-Based Investment & Portfolio Dashboard</h1>
+            <span style="font-size:0.85rem; color:var(--muted);">Unitized (MF/Stocks) & Non-Unitized (PPF/EPF/FD) Tracking, Discounted Deficits & XIRR</span>
         </div>
         <div class="user-controls">
             <span id="display-user-email">user@example.com</span>
@@ -204,7 +210,7 @@
             <button class="btn-action btn-csv-export" onclick="exportTransactionsCSV()">📊 Export CSV</button>
             <button class="btn-action btn-csv-import" onclick="document.getElementById('tx-csv-file').click()">📥 Upload Tx CSV</button>
             <input type="file" id="tx-csv-file" style="display:none" accept=".csv" onchange="importTransactionsCSV(event)">
-            <button class="btn-action btn-nav-update" onclick="document.getElementById('nav-csv-file').click()">📈 Update NAVs CSV</button>
+            <button class="btn-action btn-nav-update" onclick="document.getElementById('nav-csv-file').click()">📈 Update NAV / Balance CSV</button>
             <input type="file" id="nav-csv-file" style="display:none" accept=".csv" onchange="importNavCSV(event)">
             <button class="btn-action btn-backup" onclick="backupData()">💾 Backup</button>
             <button class="btn-action btn-restore" onclick="document.getElementById('import-file').click()">📂 Restore</button>
@@ -216,10 +222,10 @@
     <div class="summary-container">
         <div class="card target"><h3>Future Goal Target</h3><p id="sum-future-target">₹0.00</p></div>
         <div class="card discounted"><h3>Present Discounted Target</h3><p id="sum-discounted-target">₹0.00</p></div>
-        <div class="card invested"><h3>Total Invested (Cost)</h3><p id="sum-invested">₹0.00</p></div>
+        <div class="card invested"><h3>Total Invested Principal</h3><p id="sum-invested">₹0.00</p></div>
         <div class="card current"><h3>Current Valuation</h3><p id="sum-current">₹0.00</p></div>
         <div class="card shortfall"><h3>Net PV Deficit (Shortfall)</h3><p id="sum-shortfall" style="color:var(--danger);">₹0.00</p></div>
-        <div class="card gain"><h3>Total Unrealized Profit</h3><p id="sum-gain">₹0.00</p></div>
+        <div class="card gain"><h3>Total Profit / Gain</h3><p id="sum-gain">₹0.00</p></div>
     </div>
 
     <!-- ACTIVE GOALS PROGRESS CARDS -->
@@ -229,14 +235,14 @@
     <!-- CREATE / EDIT GOAL PANEL -->
     <div class="panel">
         <div class="panel-header" onclick="togglePanel('goal-form-content', 'goal-form-icon')">
-            <h2>➕ Add / Configure Financial Goal (with Multiple Folios)</h2>
+            <h2>➕ Add / Configure Financial Goal</h2>
             <span id="goal-form-icon">▼</span>
         </div>
         <div id="goal-form-content" class="collapsible-content">
             <form id="goal-form" onsubmit="saveGoal(event)">
                 <input type="hidden" id="goal-id">
                 <div class="form-grid">
-                    <div class="form-group"><label>1) Goal Name</label><input type="text" id="goal-name" placeholder="e.g. Retirement Corpus, Child Higher Education" required></div>
+                    <div class="form-group"><label>1) Goal Name</label><input type="text" id="goal-name" placeholder="e.g. Retirement Corpus, Child Education, House Downpayment" required></div>
                     <div class="form-group"><label>2) Target Future Amount (₹)</label><input type="number" id="goal-target" min="0" step="1000" placeholder="e.g. 5000000" required></div>
                     <div class="form-group"><label>3) Target Year</label><input type="number" id="goal-year" min="2026" max="2075" value="2035" required></div>
                     <div class="form-group"><label>4) Expected Discount Rate (% p.a.)</label><input type="number" id="goal-cagr" step="0.1" value="12.0" required></div>
@@ -244,14 +250,14 @@
                 
                 <!-- Dynamic Multiple Folios Section -->
                 <div class="form-group" style="margin-top: 10px;">
-                    <label>5) Mapped Folio Numbers (for Automatic CSV Matching)</label>
+                    <label>5) Mapped Folio / Account Numbers (for Auto CSV Matching)</label>
                     <div id="folios-wrapper" class="folio-inputs-wrapper">
                         <div class="folio-input-row">
-                            <input type="text" class="goal-folio-input" placeholder="e.g. 10293847/99">
+                            <input type="text" class="goal-folio-input" placeholder="e.g. 10293847/99 or PPF-DEL-01">
                             <button type="button" class="btn-del-folio" onclick="removeFolioRow(this)">✕</button>
                         </div>
                     </div>
-                    <button type="button" class="btn-add-folio" onclick="addFolioRow()">+ Add Another Folio</button>
+                    <button type="button" class="btn-add-folio" onclick="addFolioRow()">+ Add Another Folio / Account</button>
                 </div>
 
                 <button type="submit" id="goal-btn" class="btn-primary" style="margin-top:12px;">Save Goal</button>
@@ -260,39 +266,52 @@
         </div>
     </div>
 
-    <!-- LOG / EDIT MF TRANSACTION PANEL -->
+    <!-- LOG / EDIT TRANSACTION PANEL (METHOD 2 INTEGRATED) -->
     <div class="panel">
         <div class="panel-header" onclick="togglePanel('tx-form-content', 'tx-form-icon')">
-            <h2 id="tx-panel-title">📝 Log / Edit Mutual Fund Transaction</h2>
+            <h2 id="tx-panel-title">📝 Log / Edit Investment Transaction (Unitized or Non-Unitized)</h2>
             <span id="tx-form-icon">▼</span>
         </div>
         <div id="tx-form-content" class="collapsible-content">
             <!-- CSV Guide Box -->
             <div class="csv-guide-box">
                 <strong>💡 CSV Upload Format Guide:</strong><br>
-                • <strong>Transaction CSV:</strong> <code>Date,Folio,Scheme Name,Type,Units,NAV,Total Amount</code> <em>(Type = SIP, Lumpsum, or Redemption)</em><br>
-                • <strong>NAV CSV:</strong> <code>Scheme Name,NAV</code><br>
-                <em>Transactions are mapped to goals automatically if their Folio matches a goal's registered folios!</em>
+                • <strong>Transaction CSV:</strong> <code>Date,Folio,Scheme Name,Asset Model,Type,Units,NAV,Total Amount</code><br>
+                  <em>(Asset Model: <code>UNITIZED</code> or <code>VALUE_ONLY</code> | Unitized Types: <code>SIP</code>, <code>Lumpsum</code>, <code>Redemption</code> | Value-Only Types: <code>Deposit</code>, <code>Withdrawal</code>, <code>Valuation Update</code>)</em><br>
+                • <strong>NAV / Balance Update CSV:</strong> <code>Scheme Name,Latest NAV or Balance</code><br>
             </div>
 
             <form id="mf-tx-form" onsubmit="saveTransaction(event)">
                 <input type="hidden" id="tx-id">
                 <div class="form-grid">
-                    <div class="form-group"><label>Date</label><input type="date" id="tx-date" required></div>
-                    <div class="form-group"><label>Folio Number</label><input type="text" id="tx-folio" placeholder="e.g. 10293847/99" oninput="autoSuggestGoalByFolio()"></div>
-                    <div class="form-group"><label>Linked Goal</label><select id="tx-goal-select" required></select></div>
-                    <div class="form-group"><label>Transaction Type</label>
-                        <select id="tx-type" required>
-                            <option value="SIP">SIP (Systematic Investment)</option>
-                            <option value="Lumpsum">Lumpsum (One-Time)</option>
-                            <option value="Redemption">Redemption (Withdrawal)</option>
+                    <div class="form-group"><label>1) Date</label><input type="date" id="tx-date" required></div>
+                    
+                    <div class="form-group">
+                        <label>2) Asset Tracking Model</label>
+                        <select id="tx-model" onchange="handleAssetModelChange()" required>
+                            <option value="UNITIZED">Unitized (Mutual Fund, ETF, Shares)</option>
+                            <option value="VALUE_ONLY">Non-Unitized / Value-Only (PPF, EPF, FD, Real Estate, Gold)</option>
                         </select>
                     </div>
-                    <div class="form-group"><label>Mutual Fund Scheme Name</label><input type="text" id="tx-scheme" list="scheme-datalist" placeholder="e.g. Parag Parikh Flexi Cap Fund" required><datalist id="scheme-datalist"></datalist></div>
-                    <div class="form-group"><label>Units Transacted</label><input type="number" id="tx-units" step="any" min="0" required oninput="calcTxTotal()"></div>
-                    <div class="form-group"><label>Transaction NAV (₹)</label><input type="number" id="tx-nav" step="any" min="0" required oninput="calcTxTotal()"></div>
-                    <div class="form-group"><label>Total Amount (₹)</label><input type="number" id="tx-total" step="any" required></div>
-                    <div class="form-group"><label>Latest NAV (Optional)</label><input type="number" id="tx-current-nav" step="any" placeholder="Auto-updates scheme"></div>
+
+                    <div class="form-group"><label>3) Folio / Account Number</label><input type="text" id="tx-folio" placeholder="e.g. 10293847/99 or PPF-909" oninput="autoSuggestGoalByFolio()"></div>
+                    <div class="form-group"><label>4) Linked Goal</label><select id="tx-goal-select" required></select></div>
+                    
+                    <div class="form-group">
+                        <label>5) Transaction Type</label>
+                        <select id="tx-type" required>
+                            <!-- Dynamically populated based on Model -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group"><label>6) Scheme / Asset Name</label><input type="text" id="tx-scheme" list="scheme-datalist" placeholder="e.g. Parag Parikh Flexi Cap or SBI PPF Account" required><datalist id="scheme-datalist"></datalist></div>
+                    
+                    <!-- Unitized Specific Inputs -->
+                    <div class="form-group" id="group-units"><label>7) Units Transacted</label><input type="number" id="tx-units" step="any" min="0" oninput="calcTxTotal()"></div>
+                    <div class="form-group" id="group-nav"><label>8) Transaction NAV (₹)</label><input type="number" id="tx-nav" step="any" min="0" oninput="calcTxTotal()"></div>
+                    
+                    <div class="form-group"><label id="label-amount">9) Total Amount / Current Balance (₹)</label><input type="number" id="tx-total" step="any" required></div>
+                    <div class="form-group" id="group-current-nav"><label id="label-latest-val">10) Latest NAV (Optional)</label><input type="number" id="tx-current-nav" step="any" placeholder="Auto-updates valuation"></div>
                 </div>
                 <button type="submit" id="tx-btn" class="btn-primary" style="margin-top:10px;">Save Transaction</button>
                 <button type="button" id="tx-cancel-btn" style="display:none; margin-top:10px; background:#64748b;" class="btn-primary" onclick="cancelTxEdit()">Cancel Edit</button>
@@ -300,10 +319,10 @@
         </div>
     </div>
 
-    <!-- SCHEME HOLDINGS & PERFORMANCE (WITH XIRR) -->
+    <!-- SCHEME HOLDINGS & PERFORMANCE (METHOD 2 INTEGRATED) -->
     <div class="panel">
         <div class="panel-header" onclick="togglePanel('holdings-content', 'holdings-icon')">
-            <h2>📊 Scheme Holdings, Valuations & Performance (with XIRR)</h2>
+            <h2>📊 Asset Holdings, Balances & Performance (with XIRR)</h2>
             <span id="holdings-icon">▼</span>
         </div>
         <div id="holdings-content" class="collapsible-content">
@@ -311,15 +330,16 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Scheme Name</th>
-                            <th>Folio</th>
+                            <th>Scheme / Asset Name</th>
+                            <th>Model</th>
+                            <th>Folio / Account</th>
                             <th>Linked Goal</th>
                             <th>Units Held</th>
-                            <th>Avg NAV</th>
+                            <th>Avg NAV / Price</th>
                             <th>Invested Cost</th>
-                            <th>Current NAV</th>
-                            <th>Current Value</th>
-                            <th>Abs Return</th>
+                            <th>Latest NAV / Balance</th>
+                            <th>Current Valuation</th>
+                            <th>Gain / Return</th>
                             <th style="background:#e0e7ff; color:#3730a3;">XIRR (%)</th>
                         </tr>
                     </thead>
@@ -344,7 +364,8 @@
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Folio</th>
+                            <th>Model</th>
+                            <th>Folio / A/c</th>
                             <th>Goal</th>
                             <th>Type</th>
                             <th>Scheme Name</th>
@@ -380,12 +401,12 @@
     const auth = firebase.auth();
 
     // ==========================================
-    // 2. STATE VARIABLES
+    // 2. STATE VARIABLES & UI CONTROLS
     // ==========================================
     let currentUser = null;
     let goals = [];
     let transactions = [];
-    let manualNavMap = {}; // Scheme -> Latest NAV
+    let manualNavMap = {}; // Scheme -> Latest NAV or Balance
 
     function togglePanel(contentId, iconId) {
         const content = document.getElementById(contentId);
@@ -396,19 +417,55 @@
         }
     }
 
-    function calcTxTotal() {
-        const units = parseFloat(document.getElementById('tx-units').value) || 0;
-        const nav = parseFloat(document.getElementById('tx-nav').value) || 0;
-        document.getElementById('tx-total').value = (units * nav).toFixed(2);
+    function handleAssetModelChange() {
+        const model = document.getElementById('tx-model').value;
+        const typeSelect = document.getElementById('tx-type');
+        const groupUnits = document.getElementById('group-units');
+        const groupNav = document.getElementById('group-nav');
+        const groupCurrentNav = document.getElementById('group-current-nav');
+        const labelAmount = document.getElementById('label-amount');
+
+        if (model === 'VALUE_ONLY') {
+            typeSelect.innerHTML = `
+                <option value="Deposit">Deposit / Contribution (Add Principal)</option>
+                <option value="Withdrawal">Withdrawal (Reduce Principal & Balance)</option>
+                <option value="Valuation Update">Valuation Update / Balance Statement</option>
+            `;
+            groupUnits.style.display = 'none';
+            groupNav.style.display = 'none';
+            groupCurrentNav.style.display = 'none';
+            labelAmount.innerText = '9) Transaction Amount / Total Balance (₹)';
+            document.getElementById('tx-units').value = '0';
+            document.getElementById('tx-nav').value = '0';
+        } else {
+            typeSelect.innerHTML = `
+                <option value="SIP">SIP (Systematic Investment)</option>
+                <option value="Lumpsum">Lumpsum (One-Time Purchase)</option>
+                <option value="Redemption">Redemption (Withdrawal / Sell)</option>
+            `;
+            groupUnits.style.display = 'block';
+            groupNav.style.display = 'block';
+            groupCurrentNav.style.display = 'block';
+            labelAmount.innerText = '9) Total Transaction Amount (₹)';
+        }
     }
 
-    // Dynamic Folio Input Rows
+    function calcTxTotal() {
+        const model = document.getElementById('tx-model').value;
+        if (model === 'UNITIZED') {
+            const units = parseFloat(document.getElementById('tx-units').value) || 0;
+            const nav = parseFloat(document.getElementById('tx-nav').value) || 0;
+            document.getElementById('tx-total').value = (units * nav).toFixed(2);
+        }
+    }
+
+    // Dynamic Folio Inputs
     function addFolioRow(val = '') {
         const wrap = document.getElementById('folios-wrapper');
         const div = document.createElement('div');
         div.className = 'folio-input-row';
         div.innerHTML = `
-            <input type="text" class="goal-folio-input" placeholder="e.g. 10293847/99" value="${val}">
+            <input type="text" class="goal-folio-input" placeholder="e.g. 10293847/99 or PPF-DEL-01" value="${val}">
             <button type="button" class="btn-del-folio" onclick="removeFolioRow(this)">✕</button>
         `;
         wrap.appendChild(div);
@@ -416,11 +473,8 @@
 
     function removeFolioRow(btn) {
         const wrap = document.getElementById('folios-wrapper');
-        if (wrap.children.length > 1) {
-            btn.parentElement.remove();
-        } else {
-            btn.parentElement.querySelector('input').value = '';
-        }
+        if (wrap.children.length > 1) btn.parentElement.remove();
+        else btn.parentElement.querySelector('input').value = '';
     }
 
     function getFoliosFromForm() {
@@ -432,13 +486,11 @@
         const folio = document.getElementById('tx-folio').value.trim();
         if (!folio) return;
         const matched = goals.find(g => (g.folios || []).includes(folio));
-        if (matched) {
-            document.getElementById('tx-goal-select').value = matched.id;
-        }
+        if (matched) document.getElementById('tx-goal-select').value = matched.id;
     }
 
     // ==========================================
-    // 3. ROBUST XIRR CALCULATION ENGINE
+    // 3. ROBUST XIRR ENGINE
     // ==========================================
     function calculateXIRR(cashFlows) {
         if (!cashFlows || cashFlows.length < 2) return 0;
@@ -475,6 +527,7 @@
             document.getElementById('main-app').style.display = 'block';
             document.getElementById('display-user-email').innerText = user.email || 'User';
             document.getElementById('tx-date').valueAsDate = new Date();
+            handleAssetModelChange();
             loadAllData();
         } else {
             currentUser = null;
@@ -540,7 +593,7 @@
     function resetFolioRows() {
         document.getElementById('folios-wrapper').innerHTML = `
             <div class="folio-input-row">
-                <input type="text" class="goal-folio-input" placeholder="e.g. 10293847/99">
+                <input type="text" class="goal-folio-input" placeholder="e.g. 10293847/99 or PPF-DEL-01">
                 <button type="button" class="btn-del-folio" onclick="removeFolioRow(this)">✕</button>
             </div>
         `;
@@ -549,24 +602,30 @@
     async function saveTransaction(e) {
         e.preventDefault();
         const id = document.getElementById('tx-id').value;
+        const model = document.getElementById('tx-model').value;
         const scheme = document.getElementById('tx-scheme').value.trim();
         const folio = document.getElementById('tx-folio').value.trim();
         const customCurrentNav = parseFloat(document.getElementById('tx-current-nav').value) || null;
-        
+        const totalAmount = parseFloat(document.getElementById('tx-total').value) || 0;
+
         const txData = {
             userId: currentUser.uid,
             date: document.getElementById('tx-date').value,
+            schemeType: model,
             folio: folio,
             goalId: document.getElementById('tx-goal-select').value,
             type: document.getElementById('tx-type').value,
             scheme: scheme,
-            units: parseFloat(document.getElementById('tx-units').value) || 0,
-            nav: parseFloat(document.getElementById('tx-nav').value) || 0,
-            total: parseFloat(document.getElementById('tx-total').value) || 0,
+            units: model === 'VALUE_ONLY' ? 0 : (parseFloat(document.getElementById('tx-units').value) || 0),
+            nav: model === 'VALUE_ONLY' ? 0 : (parseFloat(document.getElementById('tx-nav').value) || 0),
+            total: totalAmount,
             currentNav: customCurrentNav
         };
 
         if (customCurrentNav) manualNavMap[scheme] = customCurrentNav;
+        if (model === 'VALUE_ONLY' && txData.type === 'Valuation Update') {
+            manualNavMap[scheme] = totalAmount;
+        }
 
         if (id) {
             await db.collection('mf_goal_txs').doc(id).update(txData);
@@ -575,6 +634,7 @@
             await db.collection('mf_goal_txs').add(txData);
             document.getElementById('mf-tx-form').reset();
             document.getElementById('tx-date').valueAsDate = new Date();
+            handleAssetModelChange();
         }
         await loadAllData();
     }
@@ -590,11 +650,8 @@
         
         const wrap = document.getElementById('folios-wrapper');
         wrap.innerHTML = '';
-        if (g.folios && g.folios.length > 0) {
-            g.folios.forEach(f => addFolioRow(f));
-        } else {
-            addFolioRow('');
-        }
+        if (g.folios && g.folios.length > 0) g.folios.forEach(f => addFolioRow(f));
+        else addFolioRow('');
 
         document.getElementById('goal-btn').innerText = 'Update Goal';
         document.getElementById('goal-cancel-btn').style.display = 'inline-block';
@@ -617,17 +674,20 @@
         if (!t) return;
         document.getElementById('tx-id').value = t.id;
         document.getElementById('tx-date').value = t.date;
+        document.getElementById('tx-model').value = t.schemeType || 'UNITIZED';
+        handleAssetModelChange();
+
         document.getElementById('tx-folio').value = t.folio || '';
         document.getElementById('tx-goal-select').value = t.goalId;
         document.getElementById('tx-type').value = t.type;
         document.getElementById('tx-scheme').value = t.scheme;
-        document.getElementById('tx-units').value = t.units;
-        document.getElementById('tx-nav').value = t.nav;
+        document.getElementById('tx-units').value = t.units || 0;
+        document.getElementById('tx-nav').value = t.nav || 0;
         document.getElementById('tx-total').value = t.total;
         document.getElementById('tx-current-nav').value = t.currentNav || '';
         
         document.getElementById('tx-btn').innerText = 'Update Transaction';
-        document.getElementById('tx-panel-title').innerText = '✏️ Edit Mutual Fund Transaction';
+        document.getElementById('tx-panel-title').innerText = '✏️ Edit Investment Transaction';
         document.getElementById('tx-cancel-btn').style.display = 'inline-block';
         if (!document.getElementById('tx-form-content').classList.contains('active')) {
             togglePanel('tx-form-content', 'tx-form-icon');
@@ -638,10 +698,11 @@
     function cancelTxEdit() {
         document.getElementById('tx-id').value = '';
         document.getElementById('tx-btn').innerText = 'Save Transaction';
-        document.getElementById('tx-panel-title').innerText = '📝 Log / Edit Mutual Fund Transaction';
+        document.getElementById('tx-panel-title').innerText = '📝 Log / Edit Investment Transaction';
         document.getElementById('tx-cancel-btn').style.display = 'none';
         document.getElementById('mf-tx-form').reset();
         document.getElementById('tx-date').valueAsDate = new Date();
+        handleAssetModelChange();
     }
 
     async function deleteTx(id) {
@@ -652,14 +713,14 @@
     }
 
     async function deleteGoal(id) {
-        if (confirm("Delete this goal? Linked transactions will remain in ledger.")) {
+        if (confirm("Delete this goal? Linked transactions will remain in the ledger.")) {
             await db.collection('mf_goals').doc(id).delete();
             await loadAllData();
         }
     }
 
     // ==========================================
-    // 6. CSV TRANSACTIONS & NAV IMPORT / EXPORT
+    // 6. CSV IMPORT / EXPORT (METHOD 2 AWARE)
     // ==========================================
     function importTransactionsCSV(event) {
         const file = event.target.files[0];
@@ -673,10 +734,11 @@
             lines.forEach((line, idx) => {
                 if (!line.trim() || idx === 0 && line.toLowerCase().includes('date')) return;
                 const parts = line.split(',').map(p => p.trim().replace(/^"|"$/g, ''));
-                if (parts.length >= 6) {
-                    const [date, folio, scheme, type, units, nav, total] = parts;
+                if (parts.length >= 7) {
+                    // Format: Date,Folio,Scheme,AssetModel,Type,Units,NAV,Total
+                    const [date, folio, scheme, modelRaw, type, units, nav, total] = parts;
                     
-                    // Auto-map goal based on folio
+                    let model = (modelRaw || '').toUpperCase().includes('VAL') ? 'VALUE_ONLY' : 'UNITIZED';
                     let matchedGoal = goals.find(g => (g.folios || []).includes(folio));
                     let goalId = matchedGoal ? matchedGoal.id : (goals[0] ? goals[0].id : 'general');
 
@@ -684,13 +746,14 @@
                     batch.set(ref, {
                         userId: currentUser.uid,
                         date: date,
+                        schemeType: model,
                         folio: folio || '',
                         scheme: scheme,
                         goalId: goalId,
-                        type: type || 'SIP',
-                        units: parseFloat(units) || 0,
-                        nav: parseFloat(nav) || 0,
-                        total: parseFloat(total) || (parseFloat(units) * parseFloat(nav)) || 0,
+                        type: type || (model === 'VALUE_ONLY' ? 'Deposit' : 'SIP'),
+                        units: model === 'VALUE_ONLY' ? 0 : (parseFloat(units) || 0),
+                        nav: model === 'VALUE_ONLY' ? 0 : (parseFloat(nav) || 0),
+                        total: parseFloat(total) || 0,
                         currentNav: null
                     });
                     count++;
@@ -699,10 +762,10 @@
 
             if (count > 0) {
                 await batch.commit();
-                alert(`Successfully imported ${count} transactions with automatic Folio Goal mapping!`);
+                alert(`Successfully imported ${count} transactions with Folio Goal mapping!`);
                 loadAllData();
             } else {
-                alert("No valid transaction rows found. Please check format: Date,Folio,Scheme,Type,Units,NAV,Total");
+                alert("No valid transaction rows found. Expected: Date,Folio,Scheme,AssetModel,Type,Units,NAV,Total");
             }
             event.target.value = '';
         };
@@ -720,14 +783,14 @@
                 const parts = line.split(',');
                 if (parts.length >= 2) {
                     const scheme = parts[0].trim().replace(/^"|"$/g, '');
-                    const nav = parseFloat(parts[1].trim());
-                    if (scheme && !isNaN(nav) && nav > 0) {
-                        manualNavMap[scheme] = nav;
+                    const val = parseFloat(parts[1].trim());
+                    if (scheme && !isNaN(val) && val > 0) {
+                        manualNavMap[scheme] = val;
                         updatedCount++;
                     }
                 }
             });
-            alert(`Updated latest NAV for ${updatedCount} schemes successfully!`);
+            alert(`Updated latest NAV / Account Balance for ${updatedCount} schemes!`);
             renderApp();
             event.target.value = '';
         };
@@ -736,21 +799,21 @@
 
     function exportTransactionsCSV() {
         if (transactions.length === 0) return alert("No transactions available to export.");
-        let csv = "Date,Folio,Goal,Type,Scheme Name,Units,NAV,Total Amount\n";
+        let csv = "Date,Folio,Goal,Asset Model,Type,Scheme Name,Units,NAV,Total Amount\n";
         transactions.forEach(t => {
             const g = goals.find(x => x.id === t.goalId);
-            csv += `"${t.date}","${t.folio || ''}","${g ? g.name : 'General'}","${t.type}","${t.scheme}",${t.units},${t.nav},${t.total}\n`;
+            csv += `"${t.date}","${t.folio || ''}","${g ? g.name : 'General'}","${t.schemeType || 'UNITIZED'}","${t.type}","${t.scheme}",${t.units || 0},${t.nav || 0},${t.total}\n`;
         });
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `MF_Goal_Ledger_${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `Portfolio_Ledger_${new Date().toISOString().split('T')[0]}.csv`;
         a.click();
     }
 
     // ==========================================
-    // 7. RENDER & ADVANCED CALCULATIONS
+    // 7. RENDER & METHOD 2 VALUATION ENGINE
     // ==========================================
     function renderApp() {
         const goalSelect = document.getElementById('tx-goal-select');
@@ -760,15 +823,17 @@
         const uniqueSchemes = [...new Set(transactions.map(t => t.scheme))].sort();
         document.getElementById('scheme-datalist').innerHTML = uniqueSchemes.map(s => `<option value="${s}">`).join('');
 
-        // Sort chronologically for latest NAV & XIRR Cash Flows
+        // Chronological sort
         const chronTxs = [...transactions].sort((a,b) => new Date(a.date) - new Date(b.date));
+        
+        // Discover latest logged NAVs
         const latestTxNavMap = {};
         chronTxs.forEach(t => {
             if (t.currentNav) latestTxNavMap[t.scheme] = t.currentNav;
             else if (t.nav) latestTxNavMap[t.scheme] = t.nav;
         });
 
-        // Holdings & Cash Flow aggregations for XIRR
+        // Initialize Holding structures
         let holdings = {};
         let goalValuations = {};
         let goalCashFlows = {};
@@ -779,29 +844,68 @@
             goalCashFlows[g.id] = [];
         });
 
+        // === METHOD 2 VALUATION LOGIC ===
         chronTxs.forEach(tx => {
+            let model = tx.schemeType || 'UNITIZED';
             let key = `${tx.scheme}::${tx.folio || 'NA'}::${tx.goalId}`;
-            let effectiveNav = manualNavMap[tx.scheme] || latestTxNavMap[tx.scheme] || tx.nav;
 
             if (!holdings[key]) {
-                holdings[key] = { scheme: tx.scheme, folio: tx.folio || 'N/A', goalId: tx.goalId, units: 0, cost: 0, latestNav: effectiveNav };
+                holdings[key] = { 
+                    scheme: tx.scheme, 
+                    folio: tx.folio || 'N/A', 
+                    goalId: tx.goalId, 
+                    schemeType: model,
+                    units: 0, 
+                    cost: 0, 
+                    latestValOrNav: 0,
+                    currentVal: 0
+                };
             }
-            holdings[key].latestNav = effectiveNav;
 
             if (!schemeCashFlows[key]) schemeCashFlows[key] = [];
-
             let txDate = new Date(tx.date);
-            if (tx.type === 'SIP' || tx.type === 'Lumpsum') {
-                holdings[key].units += tx.units;
-                holdings[key].cost += tx.total;
-                schemeCashFlows[key].push({ date: txDate, amount: -Math.abs(tx.total) });
-                if (goalCashFlows[tx.goalId]) goalCashFlows[tx.goalId].push({ date: txDate, amount: -Math.abs(tx.total) });
-            } else if (tx.type === 'Redemption') {
-                let avgNav = holdings[key].units > 0 ? (holdings[key].cost / holdings[key].units) : 0;
-                holdings[key].units -= tx.units;
-                holdings[key].cost -= (avgNav * tx.units);
-                schemeCashFlows[key].push({ date: txDate, amount: Math.abs(tx.total) });
-                if (goalCashFlows[tx.goalId]) goalCashFlows[tx.goalId].push({ date: txDate, amount: Math.abs(tx.total) });
+
+            if (model === 'VALUE_ONLY') {
+                // Non-Unitized Balance Account (PPF/EPF/FD)
+                if (tx.type === 'Deposit' || tx.type === 'Lumpsum' || tx.type === 'SIP') {
+                    holdings[key].cost += tx.total;
+                    holdings[key].currentVal += tx.total;
+                    schemeCashFlows[key].push({ date: txDate, amount: -Math.abs(tx.total) });
+                    if (goalCashFlows[tx.goalId]) goalCashFlows[tx.goalId].push({ date: txDate, amount: -Math.abs(tx.total) });
+                } else if (tx.type === 'Withdrawal' || tx.type === 'Redemption') {
+                    holdings[key].cost = Math.max(0, holdings[key].cost - tx.total);
+                    holdings[key].currentVal = Math.max(0, holdings[key].currentVal - tx.total);
+                    schemeCashFlows[key].push({ date: txDate, amount: Math.abs(tx.total) });
+                    if (goalCashFlows[tx.goalId]) goalCashFlows[tx.goalId].push({ date: txDate, amount: Math.abs(tx.total) });
+                } else if (tx.type === 'Valuation Update') {
+                    // Overrides balance to latest statement value without increasing cost
+                    holdings[key].currentVal = tx.total;
+                }
+
+                // If manual CSV update provided, override value
+                if (manualNavMap[tx.scheme]) {
+                    holdings[key].currentVal = manualNavMap[tx.scheme];
+                }
+                holdings[key].latestValOrNav = holdings[key].currentVal;
+
+            } else {
+                // Unitized Scheme (Mutual Funds, ETFs, Stocks)
+                let effectiveNav = manualNavMap[tx.scheme] || latestTxNavMap[tx.scheme] || tx.nav;
+                holdings[key].latestValOrNav = effectiveNav;
+
+                if (tx.type === 'SIP' || tx.type === 'Lumpsum') {
+                    holdings[key].units += tx.units;
+                    holdings[key].cost += tx.total;
+                    schemeCashFlows[key].push({ date: txDate, amount: -Math.abs(tx.total) });
+                    if (goalCashFlows[tx.goalId]) goalCashFlows[tx.goalId].push({ date: txDate, amount: -Math.abs(tx.total) });
+                } else if (tx.type === 'Redemption') {
+                    let avgNav = holdings[key].units > 0 ? (holdings[key].cost / holdings[key].units) : 0;
+                    holdings[key].units -= tx.units;
+                    holdings[key].cost -= (avgNav * tx.units);
+                    schemeCashFlows[key].push({ date: txDate, amount: Math.abs(tx.total) });
+                    if (goalCashFlows[tx.goalId]) goalCashFlows[tx.goalId].push({ date: txDate, amount: Math.abs(tx.total) });
+                }
+                holdings[key].currentVal = holdings[key].units * effectiveNav;
             }
         });
 
@@ -820,8 +924,10 @@
 
         Object.keys(holdings).sort().forEach(k => {
             let h = holdings[k];
-            if (h.units > 0.0001) {
-                let curVal = h.units * h.latestNav;
+            let isValOnly = h.schemeType === 'VALUE_ONLY';
+
+            if (h.currentVal > 0.01 || h.cost > 0.01) {
+                let curVal = h.currentVal;
                 let gain = curVal - h.cost;
                 totalInvested += h.cost;
                 totalCurrentVal += curVal;
@@ -837,24 +943,26 @@
 
                 let goalObj = goals.find(g => g.id === h.goalId);
                 let gainClass = gain >= 0 ? 'pnl-positive' : 'pnl-negative';
+                let absReturn = h.cost > 0 ? ((gain / h.cost) * 100) : 0;
 
                 holdingsBody.innerHTML += `<tr>
                     <td><strong>${h.scheme}</strong></td>
+                    <td><span class="badge-model ${isValOnly ? 'val' : ''}">${isValOnly ? 'Non-Unitized' : 'Unitized'}</span></td>
                     <td><span class="folio-pill">${h.folio}</span></td>
                     <td>${goalObj ? goalObj.name : 'General'}</td>
-                    <td>${h.units.toFixed(3)}</td>
-                    <td>₹${(h.cost / h.units).toFixed(2)}</td>
+                    <td>${isValOnly ? '-' : h.units.toFixed(3)}</td>
+                    <td>${isValOnly ? '-' : '₹' + (h.cost / (h.units || 1)).toFixed(2)}</td>
                     <td>₹${h.cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    <td style="color:#2563eb; font-weight:600;">₹${h.latestNav.toFixed(2)}</td>
+                    <td style="color:#2563eb; font-weight:600;">₹${h.latestValOrNav.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                     <td><strong>₹${curVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
-                    <td class="${gainClass}">${gain >= 0 ? '+' : ''}₹${gain.toFixed(2)} (${((gain/h.cost)*100).toFixed(1)}%)</td>
+                    <td class="${gainClass}">${gain >= 0 ? '+' : ''}₹${gain.toFixed(2)} (${absReturn.toFixed(1)}%)</td>
                     <td style="font-weight:700; color:#4338ca;">${schemeXIRR !== 0 ? schemeXIRR.toFixed(2) + '%' : '-'}</td>
                 </tr>`;
             }
         });
 
         if (holdingsBody.innerHTML === '') {
-            holdingsBody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 20px; color:var(--muted);">No active scheme holdings found.</td></tr>`;
+            holdingsBody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding: 20px; color:var(--muted);">No active scheme holdings found.</td></tr>`;
         }
 
         // Render Goals with Discounted Value & XIRR
@@ -934,7 +1042,7 @@
             goalsContainer.innerHTML = `<div style="grid-column: 1 / -1; padding: 25px; text-align: center; color: var(--muted); background: white; border-radius: 8px; border: 1px dashed var(--border);">No financial goals defined yet. Configure your first goal above.</div>`;
         }
 
-        // Summary Top Cards
+        // Summary Cards
         document.getElementById('sum-future-target').innerText = `₹${totalFutureTarget.toLocaleString()}`;
         document.getElementById('sum-discounted-target').innerText = `₹${totalDiscountedTarget.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
         document.getElementById('sum-invested').innerText = `₹${totalInvested.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
@@ -946,7 +1054,7 @@
         profitEl.innerText = `${netProfit >= 0 ? '+' : ''}₹${netProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         profitEl.className = netProfit >= 0 ? 'pnl-positive' : 'pnl-negative';
 
-        // Render Raw Ledger with Search Filter & Edit Trigger
+        // Ledger with Filter
         const searchQ = (document.getElementById('ledger-search')?.value || '').toLowerCase();
         const ledgerBody = document.getElementById('ledger-body');
         ledgerBody.innerHTML = '';
@@ -961,16 +1069,19 @@
 
         filteredTxs.forEach(tx => {
             let gObj = goals.find(g => g.id === tx.goalId);
-            let bClass = tx.type.toLowerCase();
+            let bClass = tx.type.toLowerCase().replace(' ', '-');
+            let isVal = tx.schemeType === 'VALUE_ONLY';
+
             ledgerBody.innerHTML += `<tr>
                 <td>${tx.date}</td>
+                <td><span class="badge-model ${isVal ? 'val' : ''}">${isVal ? 'Non-Unitized' : 'Unitized'}</span></td>
                 <td><span class="folio-pill">${tx.folio || '-'}</span></td>
                 <td><strong>${gObj ? gObj.name : 'General'}</strong></td>
                 <td><span class="badge ${bClass}">${tx.type}</span></td>
                 <td>${tx.scheme}</td>
-                <td>${tx.units.toFixed(3)}</td>
-                <td>₹${tx.nav.toFixed(2)}</td>
-                <td><strong>₹${tx.total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
+                <td>${isVal ? '-' : (tx.units || 0).toFixed(3)}</td>
+                <td>${isVal ? '-' : '₹' + (tx.nav || 0).toFixed(2)}</td>
+                <td><strong>₹${(tx.total || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
                 <td>
                     <button onclick="editTx('${tx.id}')" style="background:none; border:none; color:var(--primary); cursor:pointer; font-weight:700; margin-right:8px;">Edit</button>
                     <button onclick="deleteTx('${tx.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-weight:700;">Delete</button>
@@ -979,17 +1090,17 @@
         });
 
         if (filteredTxs.length === 0) {
-            ledgerBody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 20px; color:var(--muted);">No matching transactions found.</td></tr>`;
+            ledgerBody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 20px; color:var(--muted);">No matching transactions found.</td></tr>`;
         }
     }
 
     // ==========================================
-    // 8. BACKUP & RESTORE DATA OPS
+    // 8. BACKUP & RESTORE
     // ==========================================
     async function backupData() {
         if (!currentUser) return;
         const backup = {
-            format: "mf-goal-pro-v2-backup",
+            format: "mf-goal-method2-backup",
             date: new Date().toISOString(),
             goals: goals,
             transactions: transactions,
@@ -998,7 +1109,7 @@
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup));
         const link = document.createElement("a");
         link.setAttribute("href", dataStr);
-        link.setAttribute("download", `MF_Goal_Folio_Backup_${new Date().toISOString().split('T')[0]}.json`);
+        link.setAttribute("download", `Portfolio_Pro_Backup_${new Date().toISOString().split('T')[0]}.json`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
