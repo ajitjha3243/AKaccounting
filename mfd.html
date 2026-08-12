@@ -43,7 +43,7 @@
         
         .stylish-header { display: flex; justify-content: space-between; align-items: center; color: white; padding: 14px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 1.1rem; transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); user-select: none; margin-bottom: 0; }
         .stylish-header:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
-        .stylish-header.blue { background: linear-gradient(135deg, #1e40af, #3b82f6); } .stylish-header.purple { background: linear-gradient(135deg, #6b21a8, #8b5cf6); } .stylish-header.green { background: linear-gradient(135deg, #166534, #22c55e); } .stylish-header.orange { background: linear-gradient(135deg, #c2410c, #f97316); } .stylish-header.pink { background: linear-gradient(135deg, #be123c, #f43f5e); } .stylish-header.teal { background: linear-gradient(135deg, #0f766e, #06b6d4); } .stylish-header.slate { background: linear-gradient(135deg, #334155, #64748b); }
+        .stylish-header.blue { background: linear-gradient(135deg, #1e40af, #3b82f6); } .stylish-header.purple { background: linear-gradient(135deg, #6b21a8, #8b5cf6); } .stylish-header.green { background: linear-gradient(135deg, #166534, #22c55e); } .stylish-header.orange { background: linear-gradient(135deg, #c2410c, #f97316); } .stylish-header.pink { background: linear-gradient(135deg, #be123c, #f43f5e); } .stylish-header.teal { background: linear-gradient(135deg, #0f766e, #06b6d4); } .stylish-header.slate { background: linear-gradient(135deg, #334155, #64748b); } .stylish-header.gold { background: linear-gradient(135deg, #b45309, #eab308); }
         .chevron { transition: transform 0.3s ease; display: inline-block; font-size: 0.9rem; } .active-header .chevron { transform: rotate(180deg); }
         .collapsible-table-content { display: none; } .collapsible-table-content.active { display: block; animation: fadeIn 0.4s ease-in-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -75,7 +75,7 @@
             <div><label>Email</label><input type="email" id="login-email" required></div>
             <div><label>Password</label><input type="password" id="login-password" required></div>
             <button type="submit" class="btn-primary">Log In</button>
-            <p id="login-error" style="color: #dc2626; font-size: 0.85rem; display: none; margin-top: 15px;"></p>
+            <p id="login-error" style="color: var(--danger); font-size: 0.85rem; display: none; margin-top: 15px;"></p>
         </form>
     </div>
 </div>
@@ -155,6 +155,24 @@
                 </table>
             </div>
         </div>
+        
+        <!-- NEW GOAL PROGRESS REPORT -->
+        <div class="panel">
+            <div class="stylish-header teal active-header" onclick="togglePanel('goal-report-content', this)"><span>🎯 Goal Progress Report</span><span class="chevron">▼</span></div>
+            <div id="goal-report-content" class="collapsible-table-content active" style="padding-top: 15px; overflow-x: auto;">
+                <table>
+                    <thead><tr>
+                        <th>Client Name</th>
+                        <th>Goal Name</th>
+                        <th>Target Value (₹)</th>
+                        <th>Current Value (Mapped)</th>
+                        <th>Progress (%)</th>
+                        <th>Shortfall (₹)</th>
+                    </tr></thead>
+                    <tbody id="mfd-goal-report-body"></tbody>
+                </table>
+            </div>
+        </div>
 
         <div class="panel">
             <div class="stylish-header slate active-header" onclick="togglePanel('chart-content', this)"><span>📉 AUM Growth Trend</span><span class="chevron">▼</span></div>
@@ -172,20 +190,24 @@
         <div class="panel">
             <div class="stylish-header teal" onclick="togglePanel('client-details-content', this)"><span>📝 Comprehensive Client Details Report</span><span class="chevron">▼</span></div>
             <div id="client-details-content" class="collapsible-table-content" style="padding-top: 15px; overflow-x: auto;">
-                <table><thead><tr><th>PAN/UCC</th><th>Group</th><th>Client Name</th><th>Mobile</th><th>City / State</th><th>Nominee</th></tr></thead><tbody id="mfd-client-details-body"></tbody></table>
+                <!-- Updated with DOB -->
+                <table><thead><tr><th>PAN/UCC</th><th>Group</th><th>Client Name</th><th>DOB</th><th>Mobile</th><th>City / State</th><th>Nominee</th></tr></thead><tbody id="mfd-client-details-body"></tbody></table>
             </div>
         </div>
     </div>
 
     <!-- DATA ENTRY GRID -->
     <div class="main-grid">
+        
+        <!-- CLIENT MASTER -->
         <div class="panel">
             <div class="stylish-header green" onclick="togglePanel('mfd-crm', this)"><span>👥 Client Master (CRM)</span><span class="chevron">▼</span></div>
             <div id="mfd-crm" class="collapsible-table-content" style="padding-top: 15px;">
                 <form id="mfd-client-form">
                     <input type="hidden" id="mfd-client-id">
                     <div class="controls-row"><div class="form-group"><label>Client Name*</label><input type="text" id="mfd-client-name" required></div><div class="form-group"><label>Group / Family</label><input type="text" id="mfd-client-group"></div></div>
-                    <div class="controls-row"><div class="form-group"><label>PAN</label><input type="text" id="mfd-client-pan" style="text-transform: uppercase;"></div><div class="form-group"><label>UCC</label><input type="text" id="mfd-client-ucc"></div></div>
+                    <!-- Added DOB field -->
+                    <div class="controls-row"><div class="form-group"><label>PAN</label><input type="text" id="mfd-client-pan" style="text-transform: uppercase;"></div><div class="form-group"><label>UCC</label><input type="text" id="mfd-client-ucc"></div><div class="form-group"><label>Date of Birth</label><input type="date" id="mfd-client-dob"></div></div>
                     <div class="controls-row"><div class="form-group"><label>Mobile</label><input type="tel" id="mfd-client-phone"></div><div class="form-group"><label>Folio Number(s)</label><input type="text" id="mfd-client-folio"></div></div>
                     <div class="controls-row"><div class="form-group"><label>Address</label><input type="text" id="mfd-client-address"></div><div class="form-group"><label>Area</label><input type="text" id="mfd-client-area"></div></div>
                     <div class="controls-row"><div class="form-group"><label>City</label><input type="text" id="mfd-client-city"></div><div class="form-group"><label>State</label><input type="text" id="mfd-client-state"></div><div class="form-group"><label>PIN Code</label><input type="text" id="mfd-client-pincode"></div></div>
@@ -196,6 +218,46 @@
                 <hr style="margin: 20px 0; border-color: var(--border);">
                 <h3>Saved Clients Directory</h3>
                 <div class="table-container"><table><thead><tr><th>Group</th><th>PAN/UCC</th><th>Client Name</th><th>Action</th></tr></thead><tbody id="mfd-clients-list-body"></tbody></table></div>
+            </div>
+        </div>
+        
+        <!-- NEW GOAL MASTER -->
+        <div class="panel">
+            <div class="stylish-header pink" onclick="togglePanel('mfd-goals-panel', this)"><span>🎯 Goal Master</span><span class="chevron">▼</span></div>
+            <div id="mfd-goals-panel" class="collapsible-table-content" style="padding-top: 15px;">
+                <form id="mfd-goal-form" class="controls-row">
+                    <input type="hidden" id="mfd-goal-id">
+                    <div class="form-group" style="flex:2;"><label>Goal Name (e.g. Retirement, Child Education)</label><input type="text" id="mfd-goal-name" required></div>
+                    <button type="submit" id="mfd-goal-btn" class="btn-primary" style="width:auto; margin-bottom:12px;">Save Goal</button>
+                </form>
+                <div class="table-container"><table><thead><tr><th>Goal Name</th><th>Action</th></tr></thead><tbody id="mfd-goals-list-body"></tbody></table></div>
+            </div>
+        </div>
+
+        <!-- NEW GOAL MAPPING -->
+        <div class="panel">
+            <div class="stylish-header gold" onclick="togglePanel('mfd-goal-mapping-panel', this)"><span>🔗 Goal Mapping</span><span class="chevron">▼</span></div>
+            <div id="mfd-goal-mapping-panel" class="collapsible-table-content" style="padding-top: 15px;">
+                <form id="mfd-goal-map-form">
+                    <input type="hidden" id="mfd-goal-map-id">
+                    <div class="controls-row">
+                        <div class="form-group"><label>Select Goal</label><select id="map-goal-select" required></select></div>
+                        <div class="form-group"><label>Target Value (₹)</label><input type="number" id="map-goal-target" min="0" required></div>
+                    </div>
+                    <div class="controls-row">
+                        <div class="form-group" style="flex:2;"><label>Select Client</label><select id="map-client-select" required onchange="renderClientFoliosForMapping()"><option value="">-- Choose Client --</option></select></div>
+                    </div>
+                    
+                    <div id="map-folios-container" style="background:var(--bg-color); padding:15px; border-radius:6px; border:1px solid var(--border); margin-bottom:15px; display:none;">
+                        <h4 style="margin-top:0; color:var(--text-color);">Select Folios/Schemes to map to this Goal:</h4>
+                        <div id="map-folios-list" style="max-height: 200px; overflow-y:auto;"></div>
+                    </div>
+                    
+                    <button type="submit" id="mfd-goal-map-btn" class="btn-primary">Save Mapping</button>
+                </form>
+                
+                <h3 style="margin-top:25px;">Saved Goal Mappings</h3>
+                <div class="table-container"><table><thead><tr><th>Goal</th><th>Client</th><th>Target (₹)</th><th>Mapped Folios</th><th>Action</th></tr></thead><tbody id="mfd-goal-maps-list-body"></tbody></table></div>
             </div>
         </div>
 
@@ -212,7 +274,7 @@
                         <p style="font-size: 0.85rem; margin-bottom: 10px;">If Auto-Fetch is blocked, <a href="https://www.amfiindia.com/spages/NAVAll.txt" target="_blank" style="color: var(--primary); font-weight: bold;">Right-Click Here & Save Link As "NAVAll.txt"</a>, then upload below.</p>
                         <div style="padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid var(--border); background: var(--bg-color);">
                             <p style="margin: 0 0 5px 0; font-size: 0.8rem; font-weight: bold;">Custom CSV Format:</p>
-                            <code style="font-size: 0.8rem;">ISIN, NAV, Date (YYYY-MM-DD)</code>
+                            <code style="font-size: 0.8rem;">ISIN, NAV, Date (DD-MM-YYYY)</code>
                         </div>
                         <input type="file" id="mfd-nav-csv" accept=".txt,.csv" onchange="uploadMfdNavCSV(event)">
                     </div>
@@ -236,7 +298,7 @@
                             <p style="margin: 0 0 8px 0; font-size: 0.85rem; font-weight: bold;">Required Column Order (No Headers Needed in Data):</p>
                             <div style="display: flex; flex-wrap: wrap; gap: 6px;">
                                 <span class="badge neutral">1. Group</span><span class="badge neutral">2. Investor Name</span><span class="badge neutral">3. PAN/UCC</span><span class="badge neutral">4. Type</span>
-                                <span class="badge neutral">5. Date</span><span class="badge neutral">6. Folio No.</span><span class="badge neutral">7. Scheme Name</span><span class="badge neutral">8. ISIN</span>
+                                <span class="badge neutral">5. Date (DD-MM-YYYY)</span><span class="badge neutral">6. Folio No.</span><span class="badge neutral">7. Scheme Name</span><span class="badge neutral">8. ISIN</span>
                                 <span class="badge neutral">9. NAV</span><span class="badge neutral">10. Units</span><span class="badge neutral">11. Amount</span>
                             </div>
                         </div>
@@ -287,15 +349,9 @@
     </div>
 </div>
 
-<!-- Extra Wide PDF Container with Built-In CSS Watermark -->
 <div id="pdf-export-container" style="display:none; padding:30px; background:#fff; color:#000; width: 1400px; position:relative;">
     <div style="position: absolute; top: 0; left: 0; bottom: 0; right: 0; pointer-events: none; opacity: 0.05; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; overflow: hidden; z-index: 0;">
-        <span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span>
-        <span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span>
-        <span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span>
-        <span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span>
-        <span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span>
-        <span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span>
+        <span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span><span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span><span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span><span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span><span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span><span style="font-size: 80px; font-weight: bold; font-family: sans-serif; color: #000; transform: rotate(-30deg); user-select: none; white-space: nowrap; margin: 100px;">NJ WEALTH</span>
     </div>
     <div id="pdf-export-content" style="position:relative; z-index:1;"></div>
 </div>
@@ -303,17 +359,18 @@
     const firebaseConfig = { apiKey: "AIzaSyBgQ08BOvTb60ZpPM72733sQUcpgy9ujQY", authDomain: "equitydashboard-47f8c.firebaseapp.com", projectId: "equitydashboard-47f8c", storageBucket: "equitydashboard-47f8c.firebasestorage.app", messagingSenderId: "313210184210", appId: "1:313210184210:web:0d2492eab6d8e3a5f0aecb" };
     firebase.initializeApp(firebaseConfig); const db = firebase.firestore(); const auth = firebase.auth();
     let currentUser = null; let mfdClients = []; let mfdTxs = []; let mfdNavs = {}; 
+    let mfdGoals = []; let mfdGoalMappings = [];
     let mfdPage = 1; const pageSize = 15; let mfdSortCol = 'date'; let mfdSortDesc = true; let clientSortCol = 'cv'; let clientSortDesc = true; let schemeSortCol = 'cv'; let schemeSortDesc = true; let aumChartInstance = null; 
     let pdfSchemeCache = []; let pdfClientCache = []; 
 
     function toggleDarkMode() { document.body.classList.toggle('dark-mode'); const isD = document.body.classList.contains('dark-mode'); document.getElementById('dark-mode-icon').innerText = isD ? '☀️' : '🌙'; localStorage.setItem('mfdDarkMode', isD ? 'true' : 'false'); if(aumChartInstance) updateAumChart(); }
     if(localStorage.getItem('mfdDarkMode') === 'true') { document.body.classList.add('dark-mode'); document.getElementById('dark-mode-icon').innerText = '☀️'; }
 
-    function downloadTxTemplate() { const c = "Group,Investor Name,PAN/UCC,Type,Date,Folio No.,Scheme Name,ISIN,NAV,Units,Amount\n"; const link = document.createElement("a"); link.setAttribute("href", "data:text/csv;charset=utf-8," + encodeURIComponent(c)); link.setAttribute("download", "Tx_Upload_Template.csv"); document.body.appendChild(link); link.click(); document.body.removeChild(link); }
+    function downloadTxTemplate() { const c = "Group,Investor Name,PAN/UCC,Type,Date (DD-MM-YYYY),Folio No.,Scheme Name,ISIN,NAV,Units,Amount\n"; const link = document.createElement("a"); link.setAttribute("href", "data:text/csv;charset=utf-8," + encodeURIComponent(c)); link.setAttribute("download", "Tx_Upload_Template.csv"); document.body.appendChild(link); link.click(); document.body.removeChild(link); }
 
     function getFY(d) { let m = d.getMonth(); let y = d.getFullYear(); let start = m >= 3 ? y : y - 1; return `FY ${start}-${(start+1).toString().slice(-2)}`; }
 
-    // UPGRADED PDF GENERATOR
+    // PDF GENERATOR
     function downloadClientPDF() {
         const cFilter = document.getElementById('mfd-report-client-filter'); const clientVal = cFilter.value;
         if(clientVal === 'ALL') return alert('Please select a specific investor from the dropdown to generate their PDF Report.');
@@ -390,12 +447,55 @@
 
     async function backupData() { if(!currentUser) return; try { const backup = { format: "pro-equity-full-backup", date: new Date().toISOString(), transactions: (await db.collection('transactions').where("userId", "==", currentUser.uid).get()).docs.map(d => {let data=d.data(); delete data.userId; return data;}), other_transactions: (await db.collection('other_transactions').where("userId", "==", currentUser.uid).get()).docs.map(d => {let data=d.data(); delete data.userId; return data;}), mfd_clients: (await db.collection('mfd_clients').where("userId", "==", currentUser.uid).get()).docs.map(d => {let data=d.data(); delete data.userId; return data;}), mfd_transactions: (await db.collection('mfd_transactions').where("userId", "==", currentUser.uid).get()).docs.map(d => {let data=d.data(); delete data.userId; return data;}), mfd_navs: (await db.collection('mfd_navs').get()).docs.map(d => {return {id: d.id, ...d.data()};}) }; const link = document.createElement("a"); link.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup))); link.setAttribute("download", `Full_Backup_${new Date().toISOString().split('T')[0]}.json`); document.body.appendChild(link); link.click(); document.body.removeChild(link); } catch(e) { alert('Backup failed: ' + e); } }
 
-    async function loadMfdData() { if (!currentUser) return; mfdClients = (await db.collection('mfd_clients').where("userId", "==", currentUser.uid).get()).docs.map(doc => ({ id: doc.id, ...doc.data() })); mfdTxs = (await db.collection('mfd_transactions').where("userId", "==", currentUser.uid).get()).docs.map(doc => ({ id: doc.id, ...doc.data() })); mfdNavs = {}; (await db.collection('mfd_navs').get()).docs.forEach(doc => { mfdNavs[doc.id] = doc.data(); }); renderMfdApp(); }
+    async function loadMfdData() { 
+        if (!currentUser) return; 
+        mfdClients = (await db.collection('mfd_clients').where("userId", "==", currentUser.uid).get()).docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+        mfdTxs = (await db.collection('mfd_transactions').where("userId", "==", currentUser.uid).get()).docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+        mfdGoals = (await db.collection('mfd_goals').where("userId", "==", currentUser.uid).get()).docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+        mfdGoalMappings = (await db.collection('mfd_goal_mappings').where("userId", "==", currentUser.uid).get()).docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+        mfdNavs = {}; (await db.collection('mfd_navs').get()).docs.forEach(doc => { mfdNavs[doc.id] = doc.data(); }); 
+        renderMfdApp(); 
+    }
 
-    if(document.getElementById('mfd-client-form')) { document.getElementById('mfd-client-form').addEventListener('submit', async function(e) { e.preventDefault(); const cid = document.getElementById('mfd-client-id').value; const cData = { userId: currentUser.uid, name: document.getElementById('mfd-client-name').value.trim(), group: document.getElementById('mfd-client-group').value.trim(), pan: document.getElementById('mfd-client-pan').value.trim().toUpperCase(), ucc: document.getElementById('mfd-client-ucc').value.trim(), phone: document.getElementById('mfd-client-phone').value.trim(), folio: document.getElementById('mfd-client-folio').value.trim(), address: document.getElementById('mfd-client-address').value.trim(), area: document.getElementById('mfd-client-area').value.trim(), city: document.getElementById('mfd-client-city').value.trim(), state: document.getElementById('mfd-client-state').value.trim(), pincode: document.getElementById('mfd-client-pincode').value.trim(), nomineeName: document.getElementById('mfd-client-nominee-name').value.trim(), nomineePhone: document.getElementById('mfd-client-nominee-phone').value.trim() }; if (cid) { await db.collection('mfd_clients').doc(cid).update(cData); cancelMfdClientEdit(); } else { await db.collection('mfd_clients').add(cData); document.getElementById('mfd-client-form').reset(); } loadMfdData(); }); }
-    async function editMfdClient(id) { const d = await db.collection('mfd_clients').doc(id).get(); if (!d.exists) return; const c = d.data(); document.getElementById('mfd-client-id').value = id; document.getElementById('mfd-client-name').value = c.name || ''; document.getElementById('mfd-client-group').value = c.group || ''; document.getElementById('mfd-client-pan').value = c.pan || ''; document.getElementById('mfd-client-ucc').value = c.ucc || ''; document.getElementById('mfd-client-phone').value = c.phone || ''; document.getElementById('mfd-client-folio').value = c.folio || ''; document.getElementById('mfd-client-address').value = c.address || ''; document.getElementById('mfd-client-area').value = c.area || ''; document.getElementById('mfd-client-city').value = c.city || ''; document.getElementById('mfd-client-state').value = c.state || ''; document.getElementById('mfd-client-pincode').value = c.pincode || ''; document.getElementById('mfd-client-nominee-name').value = c.nomineeName || ''; document.getElementById('mfd-client-nominee-phone').value = c.nomineePhone || ''; document.getElementById('mfd-client-btn').innerText = `Update Client`; document.getElementById('mfd-client-cancel-btn').style.display = 'inline-block'; let crmContent = document.getElementById('mfd-crm'); if(crmContent && !crmContent.classList.contains('active')) togglePanel('mfd-crm', crmContent.previousElementSibling); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    // CRM Actions
+    if(document.getElementById('mfd-client-form')) { document.getElementById('mfd-client-form').addEventListener('submit', async function(e) { e.preventDefault(); const cid = document.getElementById('mfd-client-id').value; const cData = { userId: currentUser.uid, name: document.getElementById('mfd-client-name').value.trim(), group: document.getElementById('mfd-client-group').value.trim(), pan: document.getElementById('mfd-client-pan').value.trim().toUpperCase(), ucc: document.getElementById('mfd-client-ucc').value.trim(), phone: document.getElementById('mfd-client-phone').value.trim(), folio: document.getElementById('mfd-client-folio').value.trim(), address: document.getElementById('mfd-client-address').value.trim(), area: document.getElementById('mfd-client-area').value.trim(), city: document.getElementById('mfd-client-city').value.trim(), state: document.getElementById('mfd-client-state').value.trim(), pincode: document.getElementById('mfd-client-pincode').value.trim(), nomineeName: document.getElementById('mfd-client-nominee-name').value.trim(), nomineePhone: document.getElementById('mfd-client-nominee-phone').value.trim(), dob: document.getElementById('mfd-client-dob').value }; if (cid) { await db.collection('mfd_clients').doc(cid).update(cData); cancelMfdClientEdit(); } else { await db.collection('mfd_clients').add(cData); document.getElementById('mfd-client-form').reset(); } loadMfdData(); }); }
+    async function editMfdClient(id) { const d = await db.collection('mfd_clients').doc(id).get(); if (!d.exists) return; const c = d.data(); document.getElementById('mfd-client-id').value = id; document.getElementById('mfd-client-name').value = c.name || ''; document.getElementById('mfd-client-group').value = c.group || ''; document.getElementById('mfd-client-pan').value = c.pan || ''; document.getElementById('mfd-client-ucc').value = c.ucc || ''; document.getElementById('mfd-client-phone').value = c.phone || ''; document.getElementById('mfd-client-folio').value = c.folio || ''; document.getElementById('mfd-client-address').value = c.address || ''; document.getElementById('mfd-client-area').value = c.area || ''; document.getElementById('mfd-client-city').value = c.city || ''; document.getElementById('mfd-client-state').value = c.state || ''; document.getElementById('mfd-client-pincode').value = c.pincode || ''; document.getElementById('mfd-client-nominee-name').value = c.nomineeName || ''; document.getElementById('mfd-client-nominee-phone').value = c.nomineePhone || ''; document.getElementById('mfd-client-dob').value = c.dob || ''; document.getElementById('mfd-client-btn').innerText = `Update Client`; document.getElementById('mfd-client-cancel-btn').style.display = 'inline-block'; let crmContent = document.getElementById('mfd-crm'); if(crmContent && !crmContent.classList.contains('active')) togglePanel('mfd-crm', crmContent.previousElementSibling); window.scrollTo({ top: 0, behavior: 'smooth' }); }
     function cancelMfdClientEdit() { document.getElementById('mfd-client-id').value = ''; document.getElementById('mfd-client-btn').innerText = 'Save Client'; document.getElementById('mfd-client-cancel-btn').style.display = 'none'; document.getElementById('mfd-client-form').reset(); }
     async function deleteMfdClient(id) { if(confirm("Delete this client? This will NOT delete their transactions.")) { await db.collection('mfd_clients').doc(id).delete(); loadMfdData(); } }
+
+    // Goal Master Actions
+    if(document.getElementById('mfd-goal-form')) {
+        document.getElementById('mfd-goal-form').addEventListener('submit', async function(e) {
+            e.preventDefault(); const gid = document.getElementById('mfd-goal-id').value; const name = document.getElementById('mfd-goal-name').value.trim();
+            if(gid) { await db.collection('mfd_goals').doc(gid).update({name: name}); } else { await db.collection('mfd_goals').add({userId: currentUser.uid, name: name}); }
+            document.getElementById('mfd-goal-form').reset(); document.getElementById('mfd-goal-id').value = ''; loadMfdData();
+        });
+    }
+    async function deleteMfdGoal(id) { if(confirm("Delete this goal?")) { await db.collection('mfd_goals').doc(id).delete(); loadMfdData(); } }
+
+    // Goal Mapping Actions
+    function renderClientFoliosForMapping() {
+        const clientId = document.getElementById('map-client-select').value; const container = document.getElementById('map-folios-container'); const list = document.getElementById('map-folios-list'); list.innerHTML = '';
+        if(!clientId) { container.style.display = 'none'; return; }
+        let clientTxs = mfdTxs.filter(tx => (tx.pan_ucc || tx.clientName) === clientId); let uniqueFolios = {};
+        clientTxs.forEach(tx => { let key = `${tx.folio || 'NoFolio'}_${tx.isin}`; if(!uniqueFolios[key]) { uniqueFolios[key] = { folio: tx.folio || 'N/A', scheme: tx.scheme, isin: tx.isin }; } });
+        if(Object.keys(uniqueFolios).length === 0) { list.innerHTML = '<p style="color:#666; font-size:0.9rem;">No transactions found for this client.</p>'; } 
+        else { Object.keys(uniqueFolios).forEach(k => { let f = uniqueFolios[k]; list.innerHTML += `<div style="margin-bottom:8px;"><label style="display:flex; align-items:center; gap:8px; font-weight:normal; cursor:pointer;"><input type="checkbox" class="map-folio-chk" value="${f.isin}|${f.folio}"> <span><strong>${f.scheme}</strong> (Folio: ${f.folio})</span></label></div>`; }); }
+        container.style.display = 'block';
+    }
+
+    if(document.getElementById('mfd-goal-map-form')) {
+        document.getElementById('mfd-goal-map-form').addEventListener('submit', async function(e) {
+            e.preventDefault(); const mid = document.getElementById('mfd-goal-map-id').value; const goalId = document.getElementById('map-goal-select').value; const target = parseFloat(document.getElementById('map-goal-target').value); const clientId = document.getElementById('map-client-select').value;
+            let selectedFolios = []; document.querySelectorAll('.map-folio-chk:checked').forEach(chk => { let parts = chk.value.split('|'); selectedFolios.push({ isin: parts[0], folio: parts[1] === 'N/A' ? '' : parts[1] }); });
+            if(selectedFolios.length === 0) return alert("Please select at least one scheme/folio to map.");
+            const data = { userId: currentUser.uid, goalId: goalId, target: target, clientId: clientId, folios: selectedFolios };
+            if(mid) { await db.collection('mfd_goal_mappings').doc(mid).update(data); } else { await db.collection('mfd_goal_mappings').add(data); }
+            document.getElementById('mfd-goal-map-form').reset(); document.getElementById('map-folios-container').style.display = 'none'; loadMfdData();
+        });
+    }
+    async function deleteMfdGoalMap(id) { if(confirm("Delete mapping?")) { await db.collection('mfd_goal_mappings').doc(id).delete(); loadMfdData(); } }
+
 
     function calcMfdManualTx() { let n = parseFloat(document.getElementById('mfd-tx-nav').value) || 0; let u = parseFloat(document.getElementById('mfd-tx-unit').value) || 0; if (n > 0 && u > 0) document.getElementById('mfd-tx-amount').value = (n * u).toFixed(2); }
     function calcMfdManualUnit() { let n = parseFloat(document.getElementById('mfd-tx-nav').value) || 0; let a = parseFloat(document.getElementById('mfd-tx-amount').value) || 0; if (n > 0 && a > 0) document.getElementById('mfd-tx-unit').value = (a / n).toFixed(4); }
@@ -420,6 +520,16 @@
         } catch (error) { alert(error.message); } finally { btn.innerText = origText; btn.disabled = false; }
     }
 
+    // Handles direct DD-MM-YYYY conversions safely
+    function parseCsvDateDDMMYYYY(dateStr) {
+        let p = dateStr.split('-');
+        if(p.length === 3) {
+            let dd = p[0]; let mm = p[1]; let yy = p[2];
+            if(yy.length === 4) return `${yy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`;
+        }
+        return new Date().toISOString().split('T')[0];
+    }
+
     function uploadMfdNavCSV(e) {
         const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
         reader.onload = async function(ev) {
@@ -431,18 +541,41 @@
                         let navStr = parts[4].trim(); if (navStr && !isNaN(parseFloat(navStr))) { let isoDate = parseAmfiDate(parts[5].trim()); if (parts[1].trim() !== '-') { batch.set(db.collection('mfd_navs').doc(parts[1].trim()), { nav: parseFloat(navStr), date: isoDate, updated: todayISO }); sCount++; } if (parts[2].trim() !== '-') { batch.set(db.collection('mfd_navs').doc(parts[2].trim()), { nav: parseFloat(navStr), date: isoDate, updated: todayISO }); sCount++; } }
                     }
                 } else if (line.includes(',')) {
-                    const c = line.split(',').map(x => x.replace(/^"|"$/g, '').trim()); if (c.length >= 2 && c[0] && parseFloat(c[1]) > 0 && c[0].toUpperCase() !== 'ISIN') { batch.set(db.collection('mfd_navs').doc(c[0]), { nav: parseFloat(c[1]), date: c[2] ? c[2] : todayISO.split('T')[0], updated: todayISO }); sCount++; }
+                    const c = line.split(',').map(x => x.replace(/^"|"$/g, '').trim()); if (c.length >= 2 && c[0] && parseFloat(c[1]) > 0 && c[0].toUpperCase() !== 'ISIN') { 
+                        let dDate = c[2] ? parseCsvDateDDMMYYYY(c[2]) : todayISO.split('T')[0];
+                        batch.set(db.collection('mfd_navs').doc(c[0]), { nav: parseFloat(c[1]), date: dDate, updated: todayISO }); sCount++; 
+                    }
                 }
             }
             if (sCount > 0) { await batch.commit(); alert(`Processed ${sCount} NAVs!`); } else { alert("No valid NAV records found."); } e.target.value = ''; loadMfdData();
         }; reader.readAsText(file);
     }
     async function handleManualNav(e) { e.preventDefault(); const isin = document.getElementById('mfd-manual-nav-isin').value.trim(); const navVal = parseFloat(document.getElementById('mfd-manual-nav-val').value); const dateVal = document.getElementById('mfd-manual-nav-date').value; if(!isin || !navVal || !dateVal) return alert("Fill all fields."); try { await db.collection('mfd_navs').doc(isin).set({ nav: navVal, date: dateVal, updated: new Date().toISOString() }); alert(`Updated NAV`); document.getElementById('mfd-nav-form').reset(); document.getElementById('mfd-manual-nav-date').valueAsDate = new Date(); loadMfdData(); } catch(error) { alert("Error: " + error.message); } }
-    function uploadMfdTxCSV(e) { const file = e.target.files[0]; if (!file || !currentUser) return; const reader = new FileReader(); reader.onload = async function(ev) { const lines = ev.target.result.split('\n'); let sCount = 0; let skip = 0; for (let i = 1; i < lines.length; i++) { const cols = lines[i].split(',').map(x => x.replace(/^"|"$/g, '').trim()); if (cols.length >= 11) { const iden = cols[2]; const matchC = mfdClients.find(c => (c.pan && c.pan === iden) || (c.ucc && c.ucc === iden)); if (!matchC) { skip++; continue; } const txData = { userId: currentUser.uid, group: cols[0] || matchC.group || '', clientName: matchC.name, pan_ucc: iden, type: cols[3] || 'Lumpsum', date: cols[4] || new Date().toISOString().split('T')[0], folio: cols[5] || '', scheme: cols[6] || 'Mutual Fund Scheme', isin: cols[7] || '', nav: parseFloat(cols[8]) || 0, unit: parseFloat(cols[9]) || 0, amount: parseFloat(cols[10]) || 0 }; await db.collection('mfd_transactions').add(txData); sCount++; } } alert(`Import Complete! Success: ${sCount} Skipped: ${skip}`); e.target.value = ''; loadMfdData(); }; reader.readAsText(file); }
+    
+    function uploadMfdTxCSV(e) { 
+        const file = e.target.files[0]; if (!file || !currentUser) return; const reader = new FileReader(); 
+        reader.onload = async function(ev) { 
+            const lines = ev.target.result.split('\n'); let sCount = 0; let skip = 0; 
+            for (let i = 1; i < lines.length; i++) { 
+                const cols = lines[i].split(',').map(x => x.replace(/^"|"$/g, '').trim()); 
+                if (cols.length >= 11) { 
+                    const iden = cols[2]; const matchC = mfdClients.find(c => (c.pan && c.pan === iden) || (c.ucc && c.ucc === iden)); 
+                    if (!matchC) { skip++; continue; } 
+                    
+                    let csvDate = cols[4]; let isoDate = csvDate ? parseCsvDateDDMMYYYY(csvDate) : new Date().toISOString().split('T')[0];
+
+                    const txData = { userId: currentUser.uid, group: cols[0] || matchC.group || '', clientName: matchC.name, pan_ucc: iden, type: cols[3] || 'Lumpsum', date: isoDate, folio: cols[5] || '', scheme: cols[6] || 'Mutual Fund Scheme', isin: cols[7] || '', nav: parseFloat(cols[8]) || 0, unit: parseFloat(cols[9]) || 0, amount: parseFloat(cols[10]) || 0 }; 
+                    await db.collection('mfd_transactions').add(txData); sCount++; 
+                } 
+            } 
+            alert(`Import Complete! Success: ${sCount} Skipped: ${skip}`); e.target.value = ''; loadMfdData(); 
+        }; reader.readAsText(file); 
+    }
+    
     function toggleAllMfdTx(source) { document.querySelectorAll('.mfd-chk').forEach(cb => cb.checked = source.checked); }
     async function deleteSelectedMfdTx() { const checkboxes = document.querySelectorAll('.mfd-chk:checked'); if(checkboxes.length === 0) return alert("Select a transaction."); if(!confirm(`Delete ${checkboxes.length} transactions?`)) return; for (let cb of checkboxes) { await db.collection('mfd_transactions').doc(cb.value).delete(); } alert("Deleted."); loadMfdData(); }
     function filterMfdTxs() { const s = (document.getElementById('mfd-search') ? document.getElementById('mfd-search').value : '').toLowerCase().trim(); const fD = (document.getElementById('mfd-flt-date') ? document.getElementById('mfd-flt-date').value : '').toLowerCase().trim(); const fG = (document.getElementById('mfd-flt-group') ? document.getElementById('mfd-flt-group').value : '').toLowerCase().trim(); const fU = (document.getElementById('mfd-flt-ucc') ? document.getElementById('mfd-flt-ucc').value : '').toLowerCase().trim(); const fN = (document.getElementById('mfd-flt-name') ? document.getElementById('mfd-flt-name').value : '').toLowerCase().trim(); const fS = (document.getElementById('mfd-flt-scheme') ? document.getElementById('mfd-flt-scheme').value : '').toLowerCase().trim(); const fI = (document.getElementById('mfd-flt-isin') ? document.getElementById('mfd-flt-isin').value : '').toLowerCase().trim(); const fT = (document.getElementById('mfd-flt-type') ? document.getElementById('mfd-flt-type').value : '').toLowerCase().trim(); return [...mfdTxs].filter(tx => { if(fD && !(tx.date || '').toLowerCase().includes(fD)) return false; if(fG && !(tx.group || '').toLowerCase().includes(fG)) return false; if(fU && !(tx.pan_ucc || '').toLowerCase().includes(fU)) return false; if(fN && !(tx.clientName || '').toLowerCase().includes(fN)) return false; if(fS && !(tx.scheme || '').toLowerCase().includes(fS)) return false; if(fI && !(tx.isin || '').toLowerCase().includes(fI)) return false; if(fT && !(tx.type || '').toLowerCase().includes(fT)) return false; if(s && !((tx.clientName||'').toLowerCase().includes(s) || (tx.pan_ucc||'').toLowerCase().includes(s) || (tx.scheme||'').toLowerCase().includes(s) || (tx.group||'').toLowerCase().includes(s) || (tx.isin||'').toLowerCase().includes(s))) return false; return true; }); }
-    function exportMfdCSV() { let dyn = filterMfdTxs(); if (dyn.length === 0) return alert("No data."); let c = "data:text/csv;charset=utf-8,ID,Group,Date,PAN/UCC,Investor Name,Scheme,ISIN,Type,NAV,Unit,Amount,Folio\n"; dyn.forEach(tx => { c += [tx.id, `"${tx.group||''}"`, tx.date, `"${tx.pan_ucc||''}"`, `"${tx.clientName||''}"`, `"${tx.scheme||''}"`, `"${tx.isin||''}"`, tx.type, tx.nav, tx.unit, tx.amount, `"${tx.folio||''}"`].join(",") + "\n"; }); const link = document.createElement("a"); link.setAttribute("href", encodeURI(c)); link.setAttribute("download", `MFD_Export_${new Date().toISOString().split('T')[0]}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link); }
+    function exportMfdCSV() { let dyn = filterMfdTxs(); if (dyn.length === 0) return alert("No data."); let c = "data:text/csv;charset=utf-8,ID,Group,Date (DD-MM-YYYY),PAN/UCC,Investor Name,Scheme,ISIN,Type,NAV,Unit,Amount,Folio\n"; dyn.forEach(tx => { let d = tx.date.split('-'); let ddmmyyyy = d.length === 3 ? `${d[2]}-${d[1]}-${d[0]}` : tx.date; c += [tx.id, `"${tx.group||''}"`, ddmmyyyy, `"${tx.pan_ucc||''}"`, `"${tx.clientName||''}"`, `"${tx.scheme||''}"`, `"${tx.isin||''}"`, tx.type, tx.nav, tx.unit, tx.amount, `"${tx.folio||''}"`].join(",") + "\n"; }); const link = document.createElement("a"); link.setAttribute("href", encodeURI(c)); link.setAttribute("download", `MFD_Export_${new Date().toISOString().split('T')[0]}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link); }
     function setMfdSort(col) { if (mfdSortCol === col) { mfdSortDesc = !mfdSortDesc; } else { mfdSortCol = col; mfdSortDesc = col === 'date'; } mfdPage=1; renderMfdApp(); }
 
     function renderMfdApp() {
@@ -453,12 +586,27 @@
         if(groupFilter) { groupFilter.innerHTML = '<option value="ALL">All Groups</option>'; [...groups].sort().forEach(g => { groupFilter.innerHTML += `<option value="${g}" ${g===currGroupFlt?'selected':''}>${g}</option>`; }); }
         if(clientFilter) { clientFilter.innerHTML = '<option value="ALL">All Investors</option>'; [...clients].sort().forEach(c => { let cObj = mfdClients.find(x => x.pan===c || x.ucc===c || x.name===c); let n = cObj ? cObj.name : c; clientFilter.innerHTML += `<option value="${c}" ${c===currClientFlt?'selected':''}>${c} - ${n}</option>`; }); }
 
+        // Goals Dropdowns
+        const goalListBody = document.getElementById('mfd-goals-list-body'); if(goalListBody) goalListBody.innerHTML = '';
+        const mapGoalSel = document.getElementById('map-goal-select'); if(mapGoalSel) mapGoalSel.innerHTML = '<option value="">-- Choose Goal --</option>';
+        mfdGoals.sort((a,b) => a.name.localeCompare(b.name)).forEach(g => {
+            if(goalListBody) goalListBody.innerHTML += `<tr><td><strong>${g.name}</strong></td><td><button class="btn-delete" onclick="deleteMfdGoal('${g.id}')">Del</button></td></tr>`;
+            if(mapGoalSel) mapGoalSel.innerHTML += `<option value="${g.id}">${g.name}</option>`;
+        });
+
+        const mapClientSel = document.getElementById('map-client-select');
+        if(mapClientSel) {
+            let curSel = mapClientSel.value; mapClientSel.innerHTML = '<option value="">-- Choose Client --</option>';
+            [...clients].sort().forEach(c => { let cObj = mfdClients.find(x => x.pan===c || x.ucc===c || x.name===c); mapClientSel.innerHTML += `<option value="${c}" ${c===curSel?'selected':''}>${c} - ${cObj?cObj.name:c}</option>`; });
+        }
+
         renderMfdReportsOnly(); updateSortIcons(); const dyn = filterMfdTxs();
         dyn.sort((a,b) => { let v1 = a[mfdSortCol] || ''; let v2 = b[mfdSortCol] || ''; if(mfdSortCol === 'amount' || mfdSortCol === 'nav' || mfdSortCol === 'unit') { v1 = parseFloat(v1) || 0; v2 = parseFloat(v2) || 0; } else { v1 = v1.toString().toLowerCase(); v2 = v2.toString().toLowerCase(); } if (v1 < v2) return mfdSortDesc ? 1 : -1; if (v1 > v2) return mfdSortDesc ? -1 : 1; return 0; });
         const lb = document.getElementById('mfd-ledger-body'); if(lb) lb.innerHTML = ''; const tp = Math.ceil(dyn.length / pageSize) || 1; if (mfdPage > tp) mfdPage = tp; const startIdx = (mfdPage - 1) * pageSize; const pageTxs = dyn.slice(startIdx, startIdx + pageSize);
         pageTxs.forEach(tx => {
             let t = (tx.type || '').trim().toLowerCase(); let iR = t.includes('red') || t.includes('sale'); let bC = iR ? 'redemption' : 'sip'; if (t.includes('lump')) bC = 'lumpsum'; let aC = iR ? 'pnl-negative' : 'pnl-positive';
-            if(lb) { lb.innerHTML += `<tr><td style="text-align: center;"><input type="checkbox" class="mfd-chk" value="${tx.id}"></td><td>${tx.date}</td><td><strong>${tx.group || '-'}</strong></td><td><strong>${tx.pan_ucc || '-'}</strong></td><td><strong>${tx.clientName}</strong></td><td>${tx.scheme}</td><td><small>${tx.isin || '-'}</small></td><td><span class="badge ${bC}">${tx.type}</span></td><td>${tx.nav > 0 ? tx.nav.toFixed(4) : '-'}</td><td>${tx.unit > 0 ? tx.unit.toFixed(4) : '-'}</td><td class="${aC}">${iR ? '-' : '+'}${(tx.amount||0).toFixed(2)}</td><td><button class="btn-edit-tx" onclick="editMfdTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteMfdTx('${tx.id}')">Del</button></td></tr>`; }
+            let d = tx.date; if(d.includes('-') && d.split('-')[0].length === 4) d = `${d.split('-')[2]}-${d.split('-')[1]}-${d.split('-')[0]}`; // YYYY-MM-DD -> DD-MM-YYYY for display
+            if(lb) { lb.innerHTML += `<tr><td style="text-align: center;"><input type="checkbox" class="mfd-chk" value="${tx.id}"></td><td>${d}</td><td><strong>${tx.group || '-'}</strong></td><td><strong>${tx.pan_ucc || '-'}</strong></td><td><strong>${tx.clientName}</strong></td><td>${tx.scheme}</td><td><small>${tx.isin || '-'}</small></td><td><span class="badge ${bC}">${tx.type}</span></td><td>${tx.nav > 0 ? tx.nav.toFixed(4) : '-'}</td><td>${tx.unit > 0 ? tx.unit.toFixed(4) : '-'}</td><td class="${aC}">${iR ? '-' : '+'}${(tx.amount||0).toFixed(2)}</td><td><button class="btn-edit-tx" onclick="editMfdTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteMfdTx('${tx.id}')">Del</button></td></tr>`; }
         });
         if (pageTxs.length === 0 && lb) { lb.innerHTML = `<tr><td colspan="12" style="text-align:center; padding:15px; color:#666;">No transactions found.</td></tr>`; }
         if(document.getElementById('mfd-page-indicator')) document.getElementById('mfd-page-indicator').innerText = `Page ${mfdPage} of ${tp}`; if(document.getElementById('mfd-btn-prev')) document.getElementById('mfd-btn-prev').disabled = mfdPage === 1; if(document.getElementById('mfd-btn-next')) document.getElementById('mfd-btn-next').disabled = mfdPage === tp;
@@ -494,14 +642,14 @@
             if (gVal === 'ALL' || i.grp === gVal) { if (filterVal === 'ALL' || i.id === filterVal) currentValAum += cv; }
         });
 
-        let sAumTotal = 0;
+        let sAumTotal = 0; let globalSchemeU = {};
         Object.keys(sMap).forEach(k => { 
             let i = sMap[k]; 
             if (i.in > 0 || i.red > 0) { 
                 let cx = mfdTxs.filter(t => { let ck = t.pan_ucc || t.clientName; return ((t.isin || t.scheme || 'Uncategorized') === k) && (gVal === 'ALL' || (t.group || '') === gVal) && (filterVal === 'ALL' || ck === filterVal); }); 
                 let sbU = 0; let sbfn = 0;
                 cx.forEach(t => { let iR = (t.type||'').toLowerCase().includes('red') || (t.type||'').toLowerCase().includes('sale'); let u = Math.abs(parseFloat(t.unit))||0; let amt = Math.abs(parseFloat(t.amount))||0; let tNav = Math.abs(parseFloat(t.nav))||0; if (u === 0 && amt > 0 && tNav > 0) u = amt / tNav; sbU += iR ? -u : u; if(tNav > 0) sbfn = tNav; });
-                i.u = sbU;
+                i.u = sbU; globalSchemeU[i.isin] = sbU;
                 if (i.u > 0) { let nObj = mfdNavs[i.isin]; let rN = nObj ? nObj.nav : sbfn; i.cv = i.u * rN; i.cf.push({ amt: i.cv, date: nObj && nObj.date ? new Date(nObj.date) : new Date() }); sAumTotal += i.cv; } else { i.cv = 0; }
             }
         });
@@ -525,7 +673,31 @@
         }
 
         const cd = document.getElementById('mfd-client-details-body'); 
-        if(cd) { cd.innerHTML = ''; mfdClients.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => { let key = c.pan || c.ucc || c.name; if (gVal !== 'ALL' && c.group !== gVal) return; if (filterVal !== 'ALL' && key !== filterVal) return; cd.innerHTML += `<tr><td><strong>${key}</strong></td><td>${c.group || '-'}</td><td><strong>${c.name}</strong></td><td>${c.phone || '-'}</td><td>${c.city || '-'}${c.state ? ', ' + c.state : ''}</td><td>${c.nomineeName || '-'}</td></tr>`; }); }
+        if(cd) { cd.innerHTML = ''; mfdClients.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => { let key = c.pan || c.ucc || c.name; if (gVal !== 'ALL' && c.group !== gVal) return; if (filterVal !== 'ALL' && key !== filterVal) return; cd.innerHTML += `<tr><td><strong>${key}</strong></td><td>${c.group || '-'}</td><td><strong>${c.name}</strong></td><td>${c.dob || '-'}</td><td>${c.phone || '-'}</td><td>${c.city || '-'}${c.state ? ', ' + c.state : ''}</td><td>${c.nomineeName || '-'}</td></tr>`; }); }
+
+        // Render Goals Report
+        const gb = document.getElementById('mfd-goal-report-body'); const mapBody = document.getElementById('mfd-goal-maps-list-body');
+        if(gb) gb.innerHTML = ''; if(mapBody) mapBody.innerHTML = '';
+        mfdGoalMappings.forEach(map => {
+            let gObj = mfdGoals.find(g => g.id === map.goalId); let gName = gObj ? gObj.name : 'Unknown Goal';
+            let cObj = mfdClients.find(c => c.pan===map.clientId || c.ucc===map.clientId || c.name===map.clientId); let cName = cObj ? cObj.name : map.clientId;
+            
+            // Calculate Current Value of specific mapped folios
+            let mappedCv = 0; let fHtml = '';
+            map.folios.forEach(f => {
+                let nObj = mfdNavs[f.isin]; let rN = nObj ? nObj.nav : 0;
+                let cx = mfdTxs.filter(t => (t.pan_ucc || t.clientName) === map.clientId && t.isin === f.isin && (t.folio || '') === f.folio);
+                let u = 0; cx.forEach(t => { let iR = (t.type||'').toLowerCase().includes('red'); let tu = Math.abs(parseFloat(t.unit))||0; u += iR ? -tu : tu; });
+                if(u>0) mappedCv += (u * rN);
+                fHtml += `<span class="badge neutral">${f.isin} (${f.folio||'N/A'})</span> `;
+            });
+
+            let prog = map.target > 0 ? (mappedCv / map.target) * 100 : 0; let progC = prog >= 100 ? 'pnl-positive' : '';
+            let short = map.target - mappedCv; if(short < 0) short = 0;
+
+            if(gb) { gb.innerHTML += `<tr><td><strong>${cName}</strong></td><td><strong>${gName}</strong></td><td>₹${map.target.toFixed(2)}</td><td><strong>₹${mappedCv.toFixed(2)}</strong></td><td><span class="${progC}">${prog.toFixed(1)}%</span></td><td style="color:#dc2626;">₹${short.toFixed(2)}</td></tr>`; }
+            if(mapBody) { mapBody.innerHTML += `<tr><td><strong>${gName}</strong></td><td>${cName}</td><td>₹${map.target.toFixed(2)}</td><td>${fHtml}</td><td><button class="btn-delete" onclick="deleteMfdGoalMap('${map.id}')">Del</button></td></tr>`; }
+        });
 
         const t = document.getElementById('mfd-drilldown-tree'); 
         if(t) {
@@ -542,7 +714,6 @@
         updateAumChart();
     }
 
-    // UPGRADED CHART ENGINE
     function updateAumChart() {
         const chartContainer = document.getElementById('aumGrowthChart'); if (!chartContainer) return; const ctx = chartContainer.getContext('2d');
         const filterVal = document.getElementById('mfd-report-client-filter') ? document.getElementById('mfd-report-client-filter').value : 'ALL'; const gVal = document.getElementById('mfd-report-group-filter') ? document.getElementById('mfd-report-group-filter').value : 'ALL'; const yearFlt = document.getElementById('mfd-chart-year-filter') ? document.getElementById('mfd-chart-year-filter').value : 'ALL';
@@ -554,7 +725,6 @@
             return dA - dB; 
         });
 
-        // 1. Build a complete chronological timeline from Day 1 to Today
         let runningUnits = {}; let runningInvestment = 0; let monthlyData = {}; let years = new Set();
         
         validTxs.forEach(tx => {
@@ -571,8 +741,6 @@
             else if (typ.includes('red') || typ.includes('sale')) { runningUnits[tx.isin] -= u; runningInvestment -= amt; }
             
             let curAum = 0; Object.keys(runningUnits).forEach(isin => { let navObj = mfdNavs[isin]; curAum += (runningUnits[isin] * (navObj ? navObj.nav : 0)); }); 
-            
-            // Overwrites with the latest state for that specific month
             monthlyData[ymKey] = { aum: curAum, inv: runningInvestment };
         });
 
@@ -580,26 +748,14 @@
         
         let labels = []; let aP = []; let iP = []; const mN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         
-        // 2. Map the chronological timeline into the chart arrays, filling in gaps properly
         if (yearFlt === 'ALL') { 
-            let sortedKeys = Object.keys(monthlyData).sort();
-            let lastAum = 0; let lastInv = 0;
-            
+            let sortedKeys = Object.keys(monthlyData).sort(); let lastAum = 0; let lastInv = 0;
             if (sortedKeys.length > 0) {
-                let firstDate = new Date(sortedKeys[0] + "-01");
-                let endDate = new Date();
-                
-                let currDate = new Date(firstDate);
+                let firstDate = new Date(sortedKeys[0] + "-01"); let endDate = new Date(); let currDate = new Date(firstDate);
                 while(currDate <= endDate) {
-                    let y = currDate.getFullYear(); let m = (currDate.getMonth() + 1).toString().padStart(2, '0');
-                    let targetKey = `${y}-${m}`;
-                    
+                    let y = currDate.getFullYear(); let m = (currDate.getMonth() + 1).toString().padStart(2, '0'); let targetKey = `${y}-${m}`;
                     if (monthlyData[targetKey]) { lastAum = monthlyData[targetKey].aum; lastInv = monthlyData[targetKey].inv; }
-                    
-                    labels.push(`${mN[currDate.getMonth()]} ${y}`);
-                    aP.push(lastAum); iP.push(lastInv);
-                    
-                    currDate.setMonth(currDate.getMonth() + 1);
+                    labels.push(`${mN[currDate.getMonth()]} ${y}`); aP.push(lastAum); iP.push(lastInv); currDate.setMonth(currDate.getMonth() + 1);
                 }
             }
         } else {
@@ -608,14 +764,8 @@
             
             keysToCheck.forEach(ym => {
                 let [yyyy, mm] = ym.split('-'); labels.push(`${mN[parseInt(mm)-1]} ${yyyy.slice(-2)}`);
-                if (monthlyData[ym]) { 
-                    aP.push(monthlyData[ym].aum); iP.push(monthlyData[ym].inv); 
-                } else { 
-                    let prevKeys = Object.keys(monthlyData).filter(k => k < ym).sort(); 
-                    if (prevKeys.length > 0) { 
-                        let lK = prevKeys[prevKeys.length - 1]; aP.push(monthlyData[lK].aum); iP.push(monthlyData[lK].inv); 
-                    } else { aP.push(0); iP.push(0); } 
-                }
+                if (monthlyData[ym]) { aP.push(monthlyData[ym].aum); iP.push(monthlyData[ym].inv); } 
+                else { let prevKeys = Object.keys(monthlyData).filter(k => k < ym).sort(); if (prevKeys.length > 0) { let lK = prevKeys[prevKeys.length - 1]; aP.push(monthlyData[lK].aum); iP.push(monthlyData[lK].inv); } else { aP.push(0); iP.push(0); } }
             });
         }
 
