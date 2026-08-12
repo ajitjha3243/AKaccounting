@@ -507,17 +507,75 @@
 
     function parseAmfiDate(dateStr) { const months = { 'Jan':'01','Feb':'02','Mar':'03','Apr':'04','May':'05','Jun':'06','Jul':'07','Aug':'08','Sep':'09','Oct':'10','Nov':'11','Dec':'12' }; let parts = dateStr.split('-'); if (parts.length === 3) { let yyyy = parts[2]; let mm = months[parts[1]]; let dd = parts[0]; if(mm && dd && yyyy) return `${yyyy}-${mm}-${dd}`; } return new Date().toISOString().split('T')[0]; }
     async function fetchAmfiNavs() {
-        if (!currentUser) return alert("Please log in."); const btn = document.getElementById('btn-auto-nav'); const origText = btn.innerText; btn.innerText = "⏳ Fetching..."; btn.disabled = true;
+        if (!currentUser) return alert("Please log in."); 
+        const btn = document.getElementById('btn-auto-nav'); 
+        const origText = btn.innerText; 
+        btn.innerText = "⏳ Fetching securely via Google..."; 
+        btn.disabled = true;
+
         try {
-            const myIsins = new Set(mfdTxs.filter(t => t.isin).map(t => t.isin.trim())); if (myIsins.size === 0) { alert("No ISINs found."); btn.innerText = origText; btn.disabled = false; return; }
-            const amfiUrl = 'https://www.amfiindia.com/spages/NAVAll.txt'; let textData = null; let lastErr = "";
-            const proxies = ['https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(amfiUrl), 'https://api.allorigins.win/raw?url=' + encodeURIComponent(amfiUrl), 'https://corsproxy.io/?' + encodeURIComponent(amfiUrl), 'https://proxy.cors.sh/' + amfiUrl];
-            for (let url of proxies) { try { const res = await fetch(url); if (res.ok) { textData = await res.text(); if (textData.includes('ISIN')) break; } } catch (err) { lastErr = err.message; } }
-            if (!textData) throw new Error(`Browser blocked request. Reason: ${lastErr}. Try "Upload Raw AMFI File" below.`);
-            const lines = textData.split('\n'); let updatedCount = 0; const batch = db.batch(); const todayISO = new Date().toISOString();
-            for (let i = 0; i < lines.length; i++) { let line = lines[i].trim(); if (!line.includes(';')) continue; let parts = line.split(';'); if (parts.length >= 6) { let matchedIsin = myIsins.has(parts[1].trim()) ? parts[1].trim() : (myIsins.has(parts[2].trim()) ? parts[2].trim() : null); if (matchedIsin && parts[4].trim() && !isNaN(parseFloat(parts[4].trim()))) { batch.set(db.collection('mfd_navs').doc(matchedIsin), { nav: parseFloat(parts[4].trim()), date: parseAmfiDate(parts[5].trim()), updated: todayISO }); myIsins.delete(matchedIsin); updatedCount++; } } if (myIsins.size === 0) break; }
-            if (updatedCount > 0) { await batch.commit(); alert(`Updated ${updatedCount} schemes!`); loadMfdData(); } else { alert("Could not find ISINs in AMFI."); }
-        } catch (error) { alert(error.message); } finally { btn.innerText = origText; btn.disabled = false; }
+            const myIsins = new Set(mfdTxs.filter(t => t.isin).map(t => t.isin.trim())); 
+            if (myIsins.size === 0) { 
+                alert("No ISINs found in your transactions."); 
+                btn.innerText = origText; btn.disabled = false; return; 
+            }
+
+            // --- PASTE YOUR GOOGLE SCRIPT URL BELOW ---
+            const googleProxyUrl = https://script.google.com/macros/s/AKfycbziVOxzss0t8T-ufJb53IAsM-yfcPIVxA7ouKymR5r0VwUNC5HPU2ZLnL4cTdkAllB6/exec; 
+            
+            let textData = null;
+
+            try { 
+                // Google Apps Script completely bypasses all CORS and browser shields
+                const res = await fetch(googleProxyUrl); 
+                if (res.ok) { textData = await res.text(); } 
+            } catch (err) { 
+                throw new Error("Could not connect to your Google Script. Please ensure you deployed it as 'Anyone'."); 
+            }
+
+            if (!textData || !textData.includes('ISIN')) {
+                throw new Error("Invalid data received from AMFI. Please use the manual file upload fallback.");
+            }
+
+            const lines = textData.split('\n'); 
+            let updatedCount = 0; 
+            const batch = db.batch(); 
+            const todayISO = new Date().toISOString();
+
+            for (let i = 0; i < lines.length; i++) { 
+                let line = lines[i].trim(); 
+                if (!line.includes(';')) continue; 
+                let parts = line.split(';'); 
+                
+                if (parts.length >= 6) { 
+                    let matchedIsin = myIsins.has(parts[1].trim()) ? parts[1].trim() : (myIsins.has(parts[2].trim()) ? parts[2].trim() : null); 
+                    
+                    if (matchedIsin && parts[4].trim() && !isNaN(parseFloat(parts[4].trim()))) { 
+                        batch.set(db.collection('mfd_navs').doc(matchedIsin), { 
+                            nav: parseFloat(parts[4].trim()), 
+                            date: parseAmfiDate(parts[5].trim()), 
+                            updated: todayISO 
+                        }); 
+                        myIsins.delete(matchedIsin); 
+                        updatedCount++; 
+                    } 
+                } 
+                if (myIsins.size === 0) break; 
+            }
+
+            if (updatedCount > 0) { 
+                await batch.commit(); 
+                alert(`Successfully updated ${updatedCount} schemes directly from AMFI!`); 
+                loadMfdData(); 
+            } else { 
+                alert("Connected to AMFI, but could not find your specific ISINs."); 
+            }
+        } catch (error) { 
+            alert(error.message); 
+        } finally { 
+            btn.innerText = origText; 
+            btn.disabled = false; 
+        }
     }
 
     // Handles direct DD-MM-YYYY conversions safely
