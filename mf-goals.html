@@ -70,7 +70,7 @@
         .goal-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.03); transition: transform 0.2s, box-shadow 0.2s; position: relative; }
         .goal-card:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.06); }
         .goal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-        .goal-title { font-weight: 700; font-size: 1.15rem; color: #0f172a; margin: 0; }
+        .goal-title { font-weight: 700; font-size: 1.15rem; color: #0f172a; margin: 0; display: flex; align-items: center; }
         .goal-tag { font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 12px; background: #e0f2fe; color: var(--info); }
         .goal-tag.ontrack { background: #dcfce7; color: var(--success); }
         .goal-tag.attention { background: #fee2e2; color: var(--danger); }
@@ -124,6 +124,11 @@
         th { background-color: #f8fafc; color: #475569; font-weight: 600; white-space: nowrap; }
         tbody tr:nth-child(even) { background-color: #fcfdfe; }
         tbody tr:hover { background-color: #f1f5f9; }
+        
+        /* Table Column Filters Styling */
+        .table-filters th { padding: 4px 8px; background-color: #f8fafc; border-bottom: 2px solid var(--border); }
+        .table-filters input { width: 100%; box-sizing: border-box; padding: 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.75rem; font-weight: normal; color: var(--text-color); }
+        .table-filters input:focus { outline: none; border-color: var(--primary); background: #fff; }
 
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; }
         .badge.sip { background: #dcfce7; color: #15803d; }
@@ -146,8 +151,8 @@
         /* Print / PDF Engine */
         @media print {
             body { background: white; color: black; padding: 0; }
-            #auth-overlay, .header-actions, .panel-header span, .goal-actions, .btn-primary, #tx-form-content, #goal-form-content, .table-toolbar, .btn-logout, td:last-child, th:last-child { display: none !important; }
-            .collapsible-content { display: block !important; }
+            #auth-overlay, .header-actions, .panel-header span, .goal-actions, .btn-primary, #tx-form-content, #goal-form-content, .table-toolbar, .btn-logout, td:last-child, th:last-child, .table-filters { display: none !important; }
+            .collapsible-content, .goal-details-wrap { display: block !important; }
             .container { max-width: 100%; }
             .card, .goal-card, .panel { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; margin-bottom: 15px; }
             .progress-bar-bg { border: 1px solid #999; }
@@ -319,7 +324,7 @@
         </div>
     </div>
 
-    <!-- SCHEME HOLDINGS & PERFORMANCE (METHOD 2 INTEGRATED) -->
+    <!-- SCHEME HOLDINGS & PERFORMANCE -->
     <div class="panel">
         <div class="panel-header" onclick="togglePanel('holdings-content', 'holdings-icon')">
             <h2>📊 Asset Holdings, Balances & Performance (with XIRR)</h2>
@@ -342,6 +347,20 @@
                             <th>Gain / Return</th>
                             <th style="background:#e0e7ff; color:#3730a3;">XIRR (%)</th>
                         </tr>
+                        <!-- DYNAMIC COLUMN FILTERS -->
+                        <tr class="table-filters">
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('holdings-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('holdings-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('holdings-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('holdings-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('holdings-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('holdings-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('holdings-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('holdings-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('holdings-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('holdings-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('holdings-body')"></th>
+                        </tr>
                     </thead>
                     <tbody id="holdings-body"></tbody>
                 </table>
@@ -357,7 +376,7 @@
         </div>
         <div id="ledger-content" class="collapsible-content">
             <div class="table-toolbar">
-                <input type="text" id="ledger-search" class="search-input" placeholder="🔍 Search by Scheme, Folio, Goal, or Type..." oninput="renderApp()">
+                <input type="text" id="ledger-search" class="search-input" placeholder="🔍 Global Search (Scheme, Folio, Goal, Type)..." oninput="renderApp()">
             </div>
             <div class="table-container">
                 <table>
@@ -373,6 +392,19 @@
                             <th>NAV (₹)</th>
                             <th>Amount (₹)</th>
                             <th>Actions</th>
+                        </tr>
+                        <!-- DYNAMIC COLUMN FILTERS -->
+                        <tr class="table-filters">
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('ledger-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('ledger-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('ledger-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('ledger-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('ledger-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('ledger-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('ledger-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('ledger-body')"></th>
+                            <th><input type="text" placeholder="Filter..." onkeyup="filterTable('ledger-body')"></th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody id="ledger-body"></tbody>
@@ -407,6 +439,7 @@
     let goals = [];
     let transactions = [];
     let manualNavMap = {}; // Scheme -> Latest NAV or Balance
+    let expandedGoals = new Set(); // Track which goal cards are expanded
 
     function togglePanel(contentId, iconId) {
         const content = document.getElementById(contentId);
@@ -414,6 +447,20 @@
         if (content && icon) {
             content.classList.toggle('active');
             icon.innerText = content.classList.contains('active') ? '▲' : '▼';
+        }
+    }
+
+    function toggleGoalDetails(goalId) {
+        const details = document.getElementById('goal-details-' + goalId);
+        const icon = document.getElementById('goal-icon-' + goalId);
+        if (details.style.display === 'none') {
+            details.style.display = 'block';
+            icon.innerText = '▲';
+            expandedGoals.add(goalId);
+        } else {
+            details.style.display = 'none';
+            icon.innerText = '▼';
+            expandedGoals.delete(goalId);
         }
     }
 
@@ -487,6 +534,55 @@
         if (!folio) return;
         const matched = goals.find(g => (g.folios || []).includes(folio));
         if (matched) document.getElementById('tx-goal-select').value = matched.id;
+    }
+
+    // Table Filter Implementation
+    function filterTable(tbodyId) {
+        const tbody = document.getElementById(tbodyId);
+        if(!tbody) return;
+        const table = tbody.parentElement;
+        const filterRow = table.querySelector('.table-filters');
+        if(!filterRow) return;
+        const inputs = filterRow.querySelectorAll('input');
+        const rows = tbody.querySelectorAll('tr');
+        
+        rows.forEach(row => {
+            let display = true;
+            const cells = row.querySelectorAll('td');
+            if (cells.length > 1) { // ignore empty state rows spanning colspans
+                inputs.forEach((input, colIdx) => {
+                    const filterText = input.value.toLowerCase().trim();
+                    if (filterText && cells[colIdx]) {
+                        const cellText = cells[colIdx].textContent || cells[colIdx].innerText;
+                        if (cellText.toLowerCase().indexOf(filterText) === -1) {
+                            display = false;
+                        }
+                    }
+                });
+            }
+            row.style.display = display ? '' : 'none';
+        });
+    }
+
+    function showGoalInvestments(goalId) {
+        const g = goals.find(x => x.id === goalId);
+        if(!g) return;
+        
+        // Populate the ledger global search
+        const searchBox = document.getElementById('ledger-search');
+        if(searchBox) searchBox.value = g.name;
+        
+        // Ensure Ledger panel is expanded
+        const ledgerContent = document.getElementById('ledger-content');
+        if(!ledgerContent.classList.contains('active')) {
+            togglePanel('ledger-content', 'ledger-icon');
+        }
+        
+        // Re-render to apply the global search filter
+        renderApp();
+        
+        // Smooth scroll to the ledger
+        document.getElementById('ledger-content').scrollIntoView({ behavior: 'smooth' });
     }
 
     // ==========================================
@@ -720,7 +816,7 @@
     }
 
     // ==========================================
-    // 6. CSV IMPORT / EXPORT (METHOD 2 AWARE)
+    // 6. CSV IMPORT / EXPORT
     // ==========================================
     function importTransactionsCSV(event) {
         const file = event.target.files[0];
@@ -735,7 +831,6 @@
                 if (!line.trim() || idx === 0 && line.toLowerCase().includes('date')) return;
                 const parts = line.split(',').map(p => p.trim().replace(/^"|"$/g, ''));
                 if (parts.length >= 7) {
-                    // Format: Date,Folio,Scheme,AssetModel,Type,Units,NAV,Total
                     const [date, folio, scheme, modelRaw, type, units, nav, total] = parts;
                     
                     let model = (modelRaw || '').toUpperCase().includes('VAL') ? 'VALUE_ONLY' : 'UNITIZED';
@@ -813,27 +908,23 @@
     }
 
     // ==========================================
-    // 7. RENDER & METHOD 2 VALUATION ENGINE
+    // 7. RENDER ENGINE
     // ==========================================
     function renderApp() {
         const goalSelect = document.getElementById('tx-goal-select');
         goalSelect.innerHTML = goals.map(g => `<option value="${g.id}">${g.name} (Target: ₹${g.targetAmount.toLocaleString()})</option>`).join('');
         
-        // Scheme Autocomplete
         const uniqueSchemes = [...new Set(transactions.map(t => t.scheme))].sort();
         document.getElementById('scheme-datalist').innerHTML = uniqueSchemes.map(s => `<option value="${s}">`).join('');
 
-        // Chronological sort
         const chronTxs = [...transactions].sort((a,b) => new Date(a.date) - new Date(b.date));
         
-        // Discover latest logged NAVs
         const latestTxNavMap = {};
         chronTxs.forEach(t => {
             if (t.currentNav) latestTxNavMap[t.scheme] = t.currentNav;
             else if (t.nav) latestTxNavMap[t.scheme] = t.nav;
         });
 
-        // Initialize Holding structures
         let holdings = {};
         let goalValuations = {};
         let goalCashFlows = {};
@@ -844,7 +935,6 @@
             goalCashFlows[g.id] = [];
         });
 
-        // === METHOD 2 VALUATION LOGIC ===
         chronTxs.forEach(tx => {
             let model = tx.schemeType || 'UNITIZED';
             let key = `${tx.scheme}::${tx.folio || 'NA'}::${tx.goalId}`;
@@ -866,7 +956,6 @@
             let txDate = new Date(tx.date);
 
             if (model === 'VALUE_ONLY') {
-                // Non-Unitized Balance Account (PPF/EPF/FD)
                 if (tx.type === 'Deposit' || tx.type === 'Lumpsum' || tx.type === 'SIP') {
                     holdings[key].cost += tx.total;
                     holdings[key].currentVal += tx.total;
@@ -878,18 +967,13 @@
                     schemeCashFlows[key].push({ date: txDate, amount: Math.abs(tx.total) });
                     if (goalCashFlows[tx.goalId]) goalCashFlows[tx.goalId].push({ date: txDate, amount: Math.abs(tx.total) });
                 } else if (tx.type === 'Valuation Update') {
-                    // Overrides balance to latest statement value without increasing cost
                     holdings[key].currentVal = tx.total;
                 }
 
-                // If manual CSV update provided, override value
-                if (manualNavMap[tx.scheme]) {
-                    holdings[key].currentVal = manualNavMap[tx.scheme];
-                }
+                if (manualNavMap[tx.scheme]) holdings[key].currentVal = manualNavMap[tx.scheme];
                 holdings[key].latestValOrNav = holdings[key].currentVal;
 
             } else {
-                // Unitized Scheme (Mutual Funds, ETFs, Stocks)
                 let effectiveNav = manualNavMap[tx.scheme] || latestTxNavMap[tx.scheme] || tx.nav;
                 holdings[key].latestValOrNav = effectiveNav;
 
@@ -909,16 +993,8 @@
             }
         });
 
-        let totalFutureTarget = goals.reduce((s, g) => s + g.targetAmount, 0);
-        let totalDiscountedTarget = 0;
-        let totalInvested = 0;
-        let totalCurrentVal = 0;
-        let totalShortfall = 0;
-
-        const currentYear = new Date().getFullYear();
-        const today = new Date();
-
-        // Populate Holdings Table
+        let totalFutureTarget = 0, totalDiscountedTarget = 0, totalInvested = 0, totalCurrentVal = 0, totalShortfall = 0;
+        const currentYear = new Date().getFullYear(), today = new Date();
         const holdingsBody = document.getElementById('holdings-body');
         holdingsBody.innerHTML = '';
 
@@ -927,17 +1003,14 @@
             let isValOnly = h.schemeType === 'VALUE_ONLY';
 
             if (h.currentVal > 0.01 || h.cost > 0.01) {
-                let curVal = h.currentVal;
-                let gain = curVal - h.cost;
-                totalInvested += h.cost;
-                totalCurrentVal += curVal;
+                let curVal = h.currentVal, gain = curVal - h.cost;
+                totalInvested += h.cost; totalCurrentVal += curVal;
 
                 if (goalValuations[h.goalId]) {
                     goalValuations[h.goalId].invested += h.cost;
                     goalValuations[h.goalId].current += curVal;
                 }
 
-                // Scheme XIRR
                 let flows = [...(schemeCashFlows[k] || []), { date: today, amount: curVal }];
                 let schemeXIRR = calculateXIRR(flows);
 
@@ -965,31 +1038,25 @@
             holdingsBody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding: 20px; color:var(--muted);">No active scheme holdings found.</td></tr>`;
         }
 
-        // Render Goals with Discounted Value & XIRR
         const goalsContainer = document.getElementById('goals-container');
         goalsContainer.innerHTML = '';
 
         goals.forEach(g => {
+            totalFutureTarget += g.targetAmount;
             let curVal = goalValuations[g.id] ? goalValuations[g.id].current : 0;
             let yearsRemaining = Math.max(0.5, g.targetYear - currentYear);
             let r = (g.expectedReturn || 12.0) / 100;
             
-            // Present Discounted Target: PV = FV / (1 + r)^t
             let discountedTarget = g.targetAmount / Math.pow(1 + r, yearsRemaining);
             totalDiscountedTarget += discountedTarget;
-
-            // Shortfall
             let pvShortfall = Math.max(0, discountedTarget - curVal);
             totalShortfall += pvShortfall;
 
-            // Recommended Monthly SIP
-            let monthsRemaining = yearsRemaining * 12;
-            let monthlyRate = r / 12;
+            let monthsRemaining = yearsRemaining * 12, monthlyRate = r / 12;
             let futureValueOfCurrent = curVal * Math.pow(1 + monthlyRate, monthsRemaining);
             let fvShortfall = Math.max(0, g.targetAmount - futureValueOfCurrent);
             let requiredSip = fvShortfall > 0 ? (fvShortfall * monthlyRate) / (Math.pow(1 + monthlyRate, monthsRemaining) - 1) : 0;
 
-            // Goal XIRR
             let gFlows = [...(goalCashFlows[g.id] || []), { date: today, amount: curVal }];
             let goalXIRR = calculateXIRR(gFlows);
 
@@ -998,41 +1065,48 @@
                            (pctDiscountedAchieved >= 70 ? '<span class="goal-tag ontrack">On Track</span>' : '<span class="goal-tag attention">Shortfall Alert</span>');
             let barColor = pctDiscountedAchieved >= 100 ? 'var(--success)' : (pctDiscountedAchieved >= 70 ? 'var(--primary)' : 'var(--danger)');
 
-            let foliosHtml = (g.folios && g.folios.length > 0) 
-                ? g.folios.map(f => `<span class="folio-pill">${f}</span>`).join(' ') 
-                : '<span style="font-size:0.75rem; color:var(--muted);">No folios mapped</span>';
+            let foliosHtml = (g.folios && g.folios.length > 0) ? g.folios.map(f => `<span class="folio-pill">${f}</span>`).join(' ') : '<span style="font-size:0.75rem; color:var(--muted);">No folios mapped</span>';
+            
+            let isExpanded = expandedGoals.has(g.id);
+            let displayStyle = isExpanded ? 'block' : 'none';
+            let iconText = isExpanded ? '▲' : '▼';
 
             goalsContainer.innerHTML += `
                 <div class="goal-card">
-                    <div class="goal-header">
+                    <div class="goal-header" style="cursor: pointer;" onclick="toggleGoalDetails('${g.id}')">
                         <div>
-                            <h3 class="goal-title">${g.name}</h3>
+                            <h3 class="goal-title">${g.name} <span id="goal-icon-${g.id}" style="font-size:0.8rem; margin-left: 8px; color: var(--muted);">${iconText}</span></h3>
                             <span style="font-size:0.8rem; color:var(--muted); font-weight:600;">Target: ${g.targetYear} (${yearsRemaining.toFixed(1)} yrs left)</span>
                         </div>
                         ${statusTag}
                     </div>
 
-                    <div class="folios-tag-container">
-                        ${foliosHtml}
-                    </div>
+                    <div id="goal-details-${g.id}" class="goal-details-wrap" style="display: ${displayStyle};">
+                        <div class="folios-tag-container">
+                            ${foliosHtml}
+                        </div>
 
-                    <div class="progress-bar-bg">
-                        <div class="progress-bar-fill" style="width: ${pctDiscountedAchieved.toFixed(1)}%; background: ${barColor};"></div>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:700; margin-bottom: 10px;">
-                        <span>Funded: ${pctDiscountedAchieved.toFixed(1)}%</span>
-                        <span style="color:#4338ca;">Goal XIRR: ${goalXIRR !== 0 ? goalXIRR.toFixed(2) + '%' : '-'}</span>
-                    </div>
-                    
-                    <div class="goal-metric-row"><span>Future Target (FV):</span> <strong>₹${g.targetAmount.toLocaleString()}</strong></div>
-                    <div class="goal-metric-row"><span>Discounted Target (PV @ ${g.expectedReturn}%):</span> <strong>₹${discountedTarget.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong></div>
-                    <div class="goal-metric-row"><span>Current Portfolio Value:</span> <strong style="color:var(--primary);">₹${curVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></div>
-                    <div class="goal-metric-row"><span>PV Shortfall (Deficit):</span> <strong style="color:var(--danger);">₹${pvShortfall.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong></div>
-                    <div class="goal-metric-row"><span>Recommended Monthly SIP:</span> <strong style="color:var(--purple);">₹${Math.round(requiredSip).toLocaleString()}/mo</strong></div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: ${pctDiscountedAchieved.toFixed(1)}%; background: ${barColor};"></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:700; margin-bottom: 10px;">
+                            <span>Funded: ${pctDiscountedAchieved.toFixed(1)}%</span>
+                            <span style="color:#4338ca;">Goal XIRR: ${goalXIRR !== 0 ? goalXIRR.toFixed(2) + '%' : '-'}</span>
+                        </div>
+                        
+                        <div class="goal-metric-row"><span>Future Target (FV):</span> <strong>₹${g.targetAmount.toLocaleString()}</strong></div>
+                        <div class="goal-metric-row"><span>Discounted Target (PV @ ${g.expectedReturn}%):</span> <strong>₹${discountedTarget.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong></div>
+                        <div class="goal-metric-row"><span>Current Portfolio Value:</span> <strong style="color:var(--primary);">₹${curVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></div>
+                        <div class="goal-metric-row"><span>PV Shortfall (Deficit):</span> <strong style="color:var(--danger);">₹${pvShortfall.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong></div>
+                        <div class="goal-metric-row"><span>Recommended Monthly SIP:</span> <strong style="color:var(--purple);">₹${Math.round(requiredSip).toLocaleString()}/mo</strong></div>
 
-                    <div class="goal-actions">
-                        <button class="btn-goal-sm" onclick="editGoal('${g.id}')">Edit Goal</button>
-                        <button class="btn-goal-sm" style="color:var(--danger);" onclick="deleteGoal('${g.id}')">Delete</button>
+                        <div class="goal-actions" style="justify-content: space-between; align-items: center; border-top: 1px dashed var(--border); padding-top: 15px; margin-top: 15px;">
+                            <a href="#" onclick="showGoalInvestments('${g.id}'); return false;" style="font-size: 0.82rem; color: var(--primary); text-decoration: none; font-weight: 700; background: #e0f2fe; padding: 6px 12px; border-radius: 6px;">🔍 View Mapped Investments</a>
+                            <div>
+                                <button class="btn-goal-sm" onclick="editGoal('${g.id}')">Edit</button>
+                                <button class="btn-goal-sm" style="color:var(--danger);" onclick="deleteGoal('${g.id}')">Delete</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -1042,7 +1116,6 @@
             goalsContainer.innerHTML = `<div style="grid-column: 1 / -1; padding: 25px; text-align: center; color: var(--muted); background: white; border-radius: 8px; border: 1px dashed var(--border);">No financial goals defined yet. Configure your first goal above.</div>`;
         }
 
-        // Summary Cards
         document.getElementById('sum-future-target').innerText = `₹${totalFutureTarget.toLocaleString()}`;
         document.getElementById('sum-discounted-target').innerText = `₹${totalDiscountedTarget.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
         document.getElementById('sum-invested').innerText = `₹${totalInvested.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
@@ -1054,7 +1127,6 @@
         profitEl.innerText = `${netProfit >= 0 ? '+' : ''}₹${netProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         profitEl.className = netProfit >= 0 ? 'pnl-positive' : 'pnl-negative';
 
-        // Ledger with Filter
         const searchQ = (document.getElementById('ledger-search')?.value || '').toLowerCase();
         const ledgerBody = document.getElementById('ledger-body');
         ledgerBody.innerHTML = '';
@@ -1092,6 +1164,10 @@
         if (filteredTxs.length === 0) {
             ledgerBody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 20px; color:var(--muted);">No matching transactions found.</td></tr>`;
         }
+
+        // Apply dynamically typed filters to re-rendered tables
+        filterTable('holdings-body');
+        filterTable('ledger-body');
     }
 
     // ==========================================
