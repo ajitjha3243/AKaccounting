@@ -580,6 +580,7 @@
     }
     async function handleManualNav(e) { e.preventDefault(); const isin = document.getElementById('mfd-manual-nav-isin').value.trim(); const navVal = parseFloat(document.getElementById('mfd-manual-nav-val').value); const dateVal = document.getElementById('mfd-manual-nav-date').value; if(!isin || !navVal || !dateVal) return alert("Fill all fields."); try { await db.collection('mfd_navs').doc(isin).set({ nav: navVal, date: dateVal, updated: new Date().toISOString() }); alert(`Updated NAV`); document.getElementById('mfd-nav-form').reset(); document.getElementById('mfd-manual-nav-date').valueAsDate = new Date(); loadMfdData(); } catch(error) { alert("Error: " + error.message); } }
     
+    // UPDATED TX UPLOAD (Auto-Client Creation + Group Fetching)
     function uploadMfdTxCSV(e) { 
         const file = e.target.files[0]; if (!file || !currentUser) return; const reader = new FileReader(); 
         reader.onload = async function(ev) { 
@@ -661,16 +662,31 @@
             return parseD(a.date) - parseD(b.date);
         });
 
-        mfdClients.forEach(c => { let k = c.pan || c.ucc || c.name; cMap[k] = { id: k, name: c.name, grp: c.group||'', lots: [], realizedPnl: 0, cf: [] }; });
+        mfdClients.forEach(c => { let k = c.pan || c.ucc || c.name; cMap[k] = { id: k, name: c.name, grp: c.group||'', lots: [], realizedPnl: 0, cf: [], grossIn: 0, grossRed: 0 }; });
 
         // 2. Process FIFO Queue
         chronTxs.forEach(tx => {
-            let amt = Math.abs(parseFloat(tx.amount))||0; let u = Math.abs(parseFloat(tx.unit))||0; let txNav = Math.abs(parseFloat(tx.nav))||0; if (u === 0 && amt > 0 && txNav > 0) u = amt / txNav;
-            let ck = tx.pan_ucc || tx.clientName; let sk = tx.isin || tx.scheme || 'Uncategorized'; let tp = (tx.type||'').toLowerCase(); let isR = tp.includes('red') || tp.includes('sale'); let isI = tp.includes('sip') || tp.includes('lump') || tp.includes('pur');
-            let d; if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) { let parts = tx.date.split('-'); d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`); } else { d = new Date(tx.date); }
+            let amt = Math.abs(parseFloat(tx.amount))||0; 
+            let u = Math.abs(parseFloat(tx.unit))||0; 
+            let txNav = Math.abs(parseFloat(tx.nav))||0; 
+            if (u === 0 && amt > 0 && txNav > 0) u = amt / txNav;
+            
+            let ck = tx.pan_ucc || tx.clientName; 
+            let sk = tx.isin || tx.scheme || 'Uncategorized'; 
+            let tp = (tx.type||'').toLowerCase(); 
+            let isR = tp.includes('red') || tp.includes('sale'); 
+            let isI = tp.includes('sip') || tp.includes('lump') || tp.includes('pur');
+            
+            let d; 
+            if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) { 
+                let parts = tx.date.split('-'); 
+                d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`); 
+            } else { 
+                d = new Date(tx.date); 
+            }
 
-            if (!cMap[ck]) cMap[ck] = { id: ck, name: tx.clientName, grp: tx.group||'', lots: [], realizedPnl: 0, cf: [] };
-            if (!sMap[sk]) sMap[sk] = { isin: tx.isin, scheme: tx.scheme, lots: [], realizedPnl: 0, cf: [] };
+            if (!cMap[ck]) cMap[ck] = { id: ck, name: tx.clientName, grp: tx.group||'', lots: [], realizedPnl: 0, cf: [], grossIn: 0, grossRed: 0 };
+            if (!sMap[sk]) sMap[sk] = { isin: tx.isin, scheme: tx.scheme, lots: [], realizedPnl: 0, cf: [], grossIn: 0, grossRed: 0 };
 
             let inG = (gVal === 'ALL' || cMap[ck].grp === gVal); let inC = (filterVal === 'ALL' || ck === filterVal);
 
@@ -682,21 +698,27 @@
             let costPerUnit = txNav > 0 ? txNav : (u > 0 ? amt / u : 0);
 
             if (isI) {
+                cMap[ck].grossIn += amt;
+                sMap[sk].grossIn += amt;
                 if (inG) {
                     totalGrossIn += amt;
                     cMap[ck].lots.push({ isin: tx.isin, scheme: tx.scheme, folio: tx.folio, u: u, remainingU: u, costPerUnit: costPerUnit, date: d });
                     if(inC) sMap[sk].lots.push({ ck: ck, isin: tx.isin, u: u, remainingU: u, costPerUnit: costPerUnit, date: d });
                 }
             } else if (isR) {
-                if(inG) totalGrossRed += amt;
-                let remC = u; let costRetC = 0; let cLots = cMap[ck].lots.filter(l => l.isin === tx.isin && l.remainingU > 0);
-                for (let lot of cLots) { let take = Math.min(lot.remainingU, remC); lot.remainingU -= take; remC -= take; costRetC += (take * lot.costPerUnit); if (remC <= 0.0001) break; }
-                cMap[ck].realizedPnl += (amt - costRetC);
+                cMap[ck].grossRed += amt;
+                sMap[sk].grossRed += amt;
+                if(inG) {
+                    totalGrossRed += amt;
+                    let remC = u; let costRetC = 0; let cLots = cMap[ck].lots.filter(l => l.isin === tx.isin && l.remainingU > 0);
+                    for (let lot of cLots) { let take = Math.min(lot.remainingU, remC); lot.remainingU -= take; remC -= take; costRetC += (take * lot.costPerUnit); if (remC <= 0.0001) break; }
+                    cMap[ck].realizedPnl += (amt - costRetC);
 
-                if (inC) {
-                    let remS = u; let costRetS = 0; let sLots = sMap[sk].lots.filter(l => l.ck === ck && l.remainingU > 0);
-                    for (let lot of sLots) { let take = Math.min(lot.remainingU, remS); lot.remainingU -= take; remS -= take; costRetS += (take * lot.costPerUnit); if (remS <= 0.0001) break; }
-                    sMap[sk].realizedPnl += (amt - costRetS);
+                    if (inC) {
+                        let remS = u; let costRetS = 0; let sLots = sMap[sk].lots.filter(l => l.ck === ck && l.remainingU > 0);
+                        for (let lot of sLots) { let take = Math.min(lot.remainingU, remS); lot.remainingU -= take; remS -= take; costRetS += (take * lot.costPerUnit); if (remS <= 0.0001) break; }
+                        sMap[sk].realizedPnl += (amt - costRetS);
+                    }
                 }
             }
 
@@ -762,7 +784,7 @@
             map.folios.forEach(f => {
                 let nObj = mfdNavs[f.isin]; let rN = nObj ? nObj.nav : 0;
                 let cx = mfdTxs.filter(t => (t.pan_ucc || t.clientName) === map.clientId && t.isin === f.isin && (t.folio || '') === f.folio);
-                let u = 0; cx.forEach(t => { let iR = (t.type||'').toLowerCase().includes('red'); let tu = Math.abs(parseFloat(t.unit))||0; let amt = Math.abs(parseFloat(t.amount))||0; let tNav = Math.abs(parseFloat(t.nav))||0; if(tu===0 && amt>0 && tNav>0) tu=amt/tNav; u += iR ? -tu : tu; });
+                let u = 0; cx.forEach(t => { let iR = (t.type||'').toLowerCase().includes('red') || (t.type||'').toLowerCase().includes('sale'); let tu = Math.abs(parseFloat(t.unit))||0; let amt = Math.abs(parseFloat(t.amount))||0; let tNav = Math.abs(parseFloat(t.nav))||0; if(tu===0 && amt>0 && tNav>0) tu=amt/tNav; u += iR ? -tu : tu; });
                 if(u>0) mappedCv += (u * rN); fHtml += `<span class="badge neutral">${f.isin} (${f.folio||'N/A'})</span> `;
             });
 
@@ -778,6 +800,7 @@
             let tHtml = ''; const mn = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
             Object.keys(mTree).sort().reverse().forEach(fy => {
                 let yd = mTree[fy]; tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${fy}</span><span class="${yd.n >= 0 ? 'pnl-positive' : 'pnl-negative'}">${yd.n>0?'+':''}${yd.n.toFixed(2)}</span></div><div class="tree-children">`;
+                
                 Object.keys(yd.m).sort((a,b) => { let m1 = parseInt(a), m2 = parseInt(b); let shift1 = m1 >= 4 ? m1 - 3 : m1 + 9; let shift2 = m2 >= 4 ? m2 - 3 : m2 + 9; return shift2 - shift1; }).forEach(ms => {
                     let md = yd.m[ms]; tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${mn[parseInt(ms)]}</span><span class="${md.n >= 0 ? 'pnl-positive' : 'pnl-negative'}">${md.n>0?'+':''}${md.n.toFixed(2)}</span></div><div class="tree-children">`;
                     Object.keys(md.c).sort().forEach(cn => { let cv = md.c[cn]; if (cv !== 0) { tHtml += `<div class="tree-leaf"><span>${cn}</span><span class="${cv > 0 ? 'pnl-positive' : 'pnl-negative'}">${cv>0?'+':''}${cv.toFixed(2)}</span></div>`; } }); tHtml += `</div></div>`;
@@ -814,7 +837,7 @@
             
             let curAum = 0; let curCost = 0;
             Object.keys(rLots).forEach(i => { let aU = 0; let aC = 0; rLots[i].forEach(l => { if(l.rem > 0){ aU += l.rem; aC += (l.rem * l.cost); } }); let nObj = mfdNavs[i]; curAum += (aU * (nObj ? nObj.nav : 0)); curCost += aC; }); 
-            monthlyData[ymKey] = { aum: curAum, inv: curCost }; // Strictly FIFO charted
+            monthlyData[ymKey] = { aum: curAum, inv: curCost }; 
         });
 
         const yS = document.getElementById('mfd-chart-year-filter'); if (yS && yS.options.length === 1 && years.size > 0) { [...years].sort().reverse().forEach(y => { yS.innerHTML += `<option value="${y}">${y}</option>`; }); }
