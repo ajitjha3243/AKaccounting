@@ -101,9 +101,9 @@
         <div class="card mf"><h3>Total Redemptions</h3><p id="mfd-total-redemption" class="pnl-negative">0.00</p></div>
     </div>
 
-    <!-- GLOBAL FILTERS -->
+    <!-- GLOBAL FILTERS WITH ZERO BALANCE TOGGLE -->
     <div class="panel" style="padding: 15px;">
-        <div class="controls-row" style="margin-bottom: 0;">
+        <div class="controls-row" style="margin-bottom: 0; align-items: flex-end;">
             <div class="form-group" style="flex: 1;"><label>Filter Dashboard by Group:</label><select id="mfd-report-group-filter" onchange="renderMfdApp()"><option value="ALL">All Groups</option></select></div>
             <div class="form-group" style="flex: 2;">
                 <label>Filter Analytics by Specific Investor:</label>
@@ -111,6 +111,12 @@
                     <select id="mfd-report-client-filter" onchange="renderMfdReportsOnly()" style="flex: 1;"><option value="ALL">All Investors</option></select>
                     <button class="btn-primary" style="width: auto; background: #8b5cf6;" onclick="downloadClientPDF()">📄 Download PDF</button>
                 </div>
+            </div>
+            <div class="form-group" style="flex: 0; min-width: 170px; padding-bottom: 8px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0; font-weight: 600; color: var(--primary);">
+                    <input type="checkbox" id="mfd-hide-zero-bal" onchange="renderMfdReportsOnly()" checked style="width: 18px; height: 18px; margin: 0; cursor: pointer;">
+                    Hide Zero Balance
+                </label>
             </div>
         </div>
     </div>
@@ -156,6 +162,7 @@
             </div>
         </div>
         
+        <!-- GOAL PROGRESS REPORT -->
         <div class="panel">
             <div class="stylish-header teal active-header" onclick="togglePanel('goal-report-content', this)"><span>🎯 Goal Progress Report</span><span class="chevron">▼</span></div>
             <div id="goal-report-content" class="collapsible-table-content active" style="padding-top: 15px; overflow-x: auto;">
@@ -383,7 +390,7 @@
                 }
             }
         });
-        if(upcoming.length > 0) alert("🎂 UPCOMING CLIENT BIRTHDAYS:\\n\\n" + upcoming.join("\\n"));
+        if(upcoming.length > 0) alert("🎂 UPCOMING CLIENT BIRTHDAYS:\n\n" + upcoming.join("\n"));
         sessionStorage.setItem('dobReminderShown', 'true');
     }
 
@@ -599,7 +606,7 @@
                     await db.collection('mfd_transactions').add(txData); sCount++; 
                 } 
             } 
-            alert(`Import Complete!\\nSuccess: ${sCount}\\nNew Clients Auto-Created: ${newClients}`); e.target.value = ''; loadMfdData(); 
+            alert(`Import Complete!\nSuccess: ${sCount}\nNew Clients Auto-Created: ${newClients}`); e.target.value = ''; loadMfdData(); 
         }; reader.readAsText(file); 
     }
     
@@ -645,6 +652,8 @@
 
     function renderMfdReportsOnly() {
         updateSortIcons(); const filterVal = document.getElementById('mfd-report-client-filter') ? document.getElementById('mfd-report-client-filter').value : 'ALL'; const gVal = document.getElementById('mfd-report-group-filter') ? document.getElementById('mfd-report-group-filter').value : 'ALL';
+        const hideZero = document.getElementById('mfd-hide-zero-bal') ? document.getElementById('mfd-hide-zero-bal').checked : false;
+
         let tIn = 0, tRed = 0, currentValAum = 0, cMap = {}, sMap = {}, mTree = {};
         mfdClients.forEach(c => { let k = c.pan || c.ucc || c.name; cMap[k] = { id: k, name: c.name, grp: c.group||'', in: 0, red: 0, u: 0, cv: 0, cf: [] }; });
         mfdTxs.forEach(tx => {
@@ -689,7 +698,10 @@
 
         const cb = document.getElementById('mfd-client-aum-body'); pdfClientCache = [];
         if(cb) {
-            cb.innerHTML = ''; let arr = Object.keys(cMap).map(k => { let i = cMap[k]; i.xirr = computeXIRR(i.cf); i.pct = currentValAum > 0 ? ((i.cv / currentValAum) * 100) : 0; i.netIn = i.in - i.red; i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0; return i; }).filter(i => (i.in > 0 || i.red > 0) && (gVal === 'ALL' || i.grp === gVal) && (filterVal === 'ALL' || i.id === filterVal));
+            cb.innerHTML = ''; let arr = Object.keys(cMap).map(k => { let i = cMap[k]; i.xirr = computeXIRR(i.cf); i.pct = currentValAum > 0 ? ((i.cv / currentValAum) * 100) : 0; i.netIn = i.in - i.red; i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0; return i; }).filter(i => {
+                let pass = (i.in > 0 || i.red > 0) && (gVal === 'ALL' || i.grp === gVal) && (filterVal === 'ALL' || i.id === filterVal);
+                if(pass && hideZero && i.cv < 1) return false; return pass;
+            });
             arr.sort((a, b) => { let v1 = a[clientSortCol] !== undefined ? a[clientSortCol] : ''; let v2 = b[clientSortCol] !== undefined ? b[clientSortCol] : ''; if(typeof v1 === 'string') v1 = v1.toLowerCase(); if(typeof v2 === 'string') v2 = v2.toLowerCase(); if (v1 < v2) return clientSortDesc ? 1 : -1; if (v1 > v2) return clientSortDesc ? -1 : 1; return 0; });
             pdfClientCache = arr;
             if (arr.length === 0) { cb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } else { arr.forEach(i => { cb.innerHTML += `<tr><td>${i.grp || '-'}</td><td><strong>${i.id}</strong></td><td><strong>${i.name}</strong></td><td class="${i.netIn >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.netIn >= 0 ? '+' : ''}${i.netIn.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.xirr.toFixed(2)}%</td><td class="${i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.absRet.toFixed(2)}%</td><td><span class="badge" style="background:var(--border); color:var(--text-color);">${i.pct.toFixed(2)}%</span></td></tr>`; }); }
@@ -697,7 +709,10 @@
 
         const sb = document.getElementById('mfd-scheme-aum-body'); pdfSchemeCache = [];
         if(sb) {
-            sb.innerHTML = ''; let arr = Object.keys(sMap).map(s => { let i = sMap[s]; let nObj = mfdNavs[i.isin]; i.rN = nObj ? nObj.nav : 0; i.xirr = computeXIRR(i.cf); i.pct = sAumTotal > 0 ? ((i.cv / sAumTotal) * 100) : 0; i.netIn = i.in - i.red; i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0; return i; }).filter(i => i.u > 0.001 || i.red > 0);
+            sb.innerHTML = ''; let arr = Object.keys(sMap).map(s => { let i = sMap[s]; let nObj = mfdNavs[i.isin]; i.rN = nObj ? nObj.nav : 0; i.xirr = computeXIRR(i.cf); i.pct = sAumTotal > 0 ? ((i.cv / sAumTotal) * 100) : 0; i.netIn = i.in - i.red; i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0; return i; }).filter(i => {
+                let pass = i.u > 0.001 || i.red > 0;
+                if(pass && hideZero && i.u <= 0.0001) return false; return pass;
+            });
             arr.sort((a, b) => { let v1 = a[schemeSortCol] !== undefined ? a[schemeSortCol] : ''; let v2 = b[schemeSortCol] !== undefined ? b[schemeSortCol] : ''; if(typeof v1 === 'string') v1 = v1.toLowerCase(); if(typeof v2 === 'string') v2 = v2.toLowerCase(); if (v1 < v2) return schemeSortDesc ? 1 : -1; if (v1 > v2) return schemeSortDesc ? -1 : 1; return 0; });
             pdfSchemeCache = arr;
             if (arr.length === 0) { sb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } else { arr.forEach(i => { sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.u.toFixed(4)}</td><td>${i.rN.toFixed(4)}</td><td class="${i.netIn >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.netIn >= 0 ? '+' : ''}${i.netIn.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.xirr.toFixed(2)}%</td><td class="${i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.absRet.toFixed(2)}%</td><td><span class="badge" style="background:var(--border); color:var(--text-color);">${i.pct.toFixed(2)}%</span></td></tr>`; }); }
@@ -710,7 +725,7 @@
         const gb = document.getElementById('mfd-goal-report-body'); const mapBody = document.getElementById('mfd-goal-maps-list-body');
         if(gb) gb.innerHTML = ''; if(mapBody) mapBody.innerHTML = '';
         mfdGoalMappings.forEach(map => {
-            if(filterVal !== 'ALL' && map.clientId !== filterVal) return; // GOAL FILTERING ADDED HERE
+            if(filterVal !== 'ALL' && map.clientId !== filterVal) return; 
             let gObj = mfdGoals.find(g => g.id === map.goalId); let gName = gObj ? gObj.name : 'Unknown Goal';
             let cObj = mfdClients.find(c => c.pan===map.clientId || c.ucc===map.clientId || c.name===map.clientId); let cName = cObj ? cObj.name : map.clientId;
             
