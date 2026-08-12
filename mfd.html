@@ -95,10 +95,10 @@
     <!-- SUMMARY CARDS -->
     <div class="summary-container">
         <div class="card equity"><h3>Total Clients</h3><p id="mfd-total-clients">0</p></div>
-        <div class="card pnl"><h3>Net Investment</h3><p id="mfd-net-inv">0.00</p></div>
+        <div class="card pnl"><h3>FIFO Cost Basis (Active)</h3><p id="mfd-net-inv">0.00</p></div>
         <div class="card purple"><h3>Current Value (AUM)</h3><p id="mfd-current-val">0.00</p></div>
-        <div class="card cash"><h3>Gross Inflows</h3><p id="mfd-gross-inflow" class="pnl-positive">0.00</p></div>
-        <div class="card mf"><h3>Total Redemptions</h3><p id="mfd-total-redemption" class="pnl-negative">0.00</p></div>
+        <div class="card cash"><h3>Gross Inflows (All-Time)</h3><p id="mfd-gross-inflow" class="pnl-positive">0.00</p></div>
+        <div class="card mf"><h3>Gross Redemptions</h3><p id="mfd-total-redemption" class="pnl-negative">0.00</p></div>
     </div>
 
     <!-- GLOBAL FILTERS WITH ZERO BALANCE TOGGLE -->
@@ -132,10 +132,11 @@
                         <th class="sortable" onclick="setClientSort('grp')">Group <span class="sort-icon" id="client-sort-grp"></span></th>
                         <th class="sortable" onclick="setClientSort('id')">PAN/UCC <span class="sort-icon" id="client-sort-id"></span></th>
                         <th class="sortable" onclick="setClientSort('name')">Client Name <span class="sort-icon" id="client-sort-name"></span></th>
-                        <th class="sortable" onclick="setClientSort('netIn')">Net Invested <span class="sort-icon" id="client-sort-netIn"></span></th>
+                        <th class="sortable" onclick="setClientSort('costBasis')">Cost Basis (Net) <span class="sort-icon" id="client-sort-costBasis"></span></th>
                         <th class="sortable" onclick="setClientSort('cv')">Current Val <span class="sort-icon" id="client-sort-cv">▼</span></th>
+                        <th class="sortable" onclick="setClientSort('unrealized')">Unrealized P&L <span class="sort-icon" id="client-sort-unrealized"></span></th>
+                        <th class="sortable" onclick="setClientSort('realizedPnl')">Realized P&L <span class="sort-icon" id="client-sort-realizedPnl"></span></th>
                         <th class="sortable" onclick="setClientSort('xirr')">XIRR <span class="sort-icon" id="client-sort-xirr"></span></th>
-                        <th class="sortable" onclick="setClientSort('absRet')">Abs Return <span class="sort-icon" id="client-sort-absRet"></span></th>
                         <th>% Wgt</th>
                     </tr></thead>
                     <tbody id="mfd-client-aum-body"></tbody>
@@ -151,10 +152,11 @@
                         <th class="sortable" onclick="setSchemeSort('scheme')">Scheme / ISIN <span class="sort-icon" id="scheme-sort-scheme"></span></th>
                         <th class="sortable" onclick="setSchemeSort('u')">Units <span class="sort-icon" id="scheme-sort-u"></span></th>
                         <th class="sortable" onclick="setSchemeSort('rN')">NAV <span class="sort-icon" id="scheme-sort-rN"></span></th>
-                        <th class="sortable" onclick="setSchemeSort('netIn')">Net Invested <span class="sort-icon" id="scheme-sort-netIn"></span></th>
+                        <th class="sortable" onclick="setSchemeSort('costBasis')">Cost Basis (Net) <span class="sort-icon" id="scheme-sort-costBasis"></span></th>
                         <th class="sortable" onclick="setSchemeSort('cv')">Current Val <span class="sort-icon" id="scheme-sort-cv">▼</span></th>
+                        <th class="sortable" onclick="setSchemeSort('unrealized')">Unrealized P&L <span class="sort-icon" id="scheme-sort-unrealized"></span></th>
+                        <th class="sortable" onclick="setSchemeSort('realizedPnl')">Realized P&L <span class="sort-icon" id="scheme-sort-realizedPnl"></span></th>
                         <th class="sortable" onclick="setSchemeSort('xirr')">XIRR <span class="sort-icon" id="scheme-sort-xirr"></span></th>
-                        <th class="sortable" onclick="setSchemeSort('absRet')">Abs Return <span class="sort-icon" id="scheme-sort-absRet"></span></th>
                         <th>% Wgt</th>
                     </tr></thead>
                     <tbody id="mfd-scheme-aum-body"></tbody>
@@ -181,7 +183,7 @@
         </div>
 
         <div class="panel">
-            <div class="stylish-header slate active-header" onclick="togglePanel('chart-content', this)"><span>📉 AUM Growth Trend</span><span class="chevron">▼</span></div>
+            <div class="stylish-header slate active-header" onclick="togglePanel('chart-content', this)"><span>📉 AUM vs Cost Basis Growth Trend</span><span class="chevron">▼</span></div>
             <div id="chart-content" class="collapsible-table-content active" style="padding-top: 15px;">
                 <div class="form-group" style="max-width: 250px;"><label>Select Financial Year:</label><select id="mfd-chart-year-filter" onchange="updateAumChart()"><option value="ALL">All Time</option></select></div>
                 <div style="position: relative; height: 350px; width: 100%;"><canvas id="aumGrowthChart"></canvas></div>
@@ -189,7 +191,7 @@
         </div>
 
         <div class="panel">
-            <div class="stylish-header blue" onclick="togglePanel('drilldown-content', this)"><span>📅 Monthly Business Flow Drilldown</span><span class="chevron">▼</span></div>
+            <div class="stylish-header blue" onclick="togglePanel('drilldown-content', this)"><span>📅 Monthly Business Flow Drilldown (Net Cashflow)</span><span class="chevron">▼</span></div>
             <div id="drilldown-content" class="collapsible-table-content" style="padding-top: 15px;"><div id="mfd-drilldown-tree" class="tree-container" style="max-width: 800px;"></div></div>
         </div>
 
@@ -415,23 +417,22 @@
 
             <h3 style="margin-bottom:10px; color:#222; font-size: 16px;">1. Overall Portfolio Summary</h3>
             <table style="width:100%; border-collapse:collapse; text-align:left; font-size:14px; margin-bottom: 30px; border: 1px solid #ddd; background: rgba(255,255,255,0.9);">
-                <thead><tr style="background-color:#f4f6f9;"><th style="padding:10px; border-bottom:1px solid #ddd;">Group</th><th style="padding:10px; border-bottom:1px solid #ddd;">Net Invested</th><th style="padding:10px; border-bottom:1px solid #ddd;">Current Val</th><th style="padding:10px; border-bottom:1px solid #ddd;">XIRR</th><th style="padding:10px; border-bottom:1px solid #ddd;">Abs Return</th></tr></thead>
-                <tbody><tr><td style="padding:10px; border-bottom:1px solid #eee;">${clientData.grp || '-'}</td><td style="padding:10px; border-bottom:1px solid #eee; color:${clientData.netIn>=0?'#16a34a':'#dc2626'}">₹${clientData.netIn.toFixed(2)}</td><td style="padding:10px; border-bottom:1px solid #eee; font-weight:bold; font-size:16px;">₹${clientData.cv.toFixed(2)}</td><td style="padding:10px; border-bottom:1px solid #eee; color:${clientData.xirr>=0?'#16a34a':'#dc2626'}">${clientData.xirr.toFixed(2)}%</td><td style="padding:10px; border-bottom:1px solid #eee; color:${clientData.absRet>=0?'#16a34a':'#dc2626'}">${clientData.absRet.toFixed(2)}%</td></tr></tbody>
+                <thead><tr style="background-color:#f4f6f9;"><th style="padding:10px; border-bottom:1px solid #ddd;">Group</th><th style="padding:10px; border-bottom:1px solid #ddd;">Cost Basis (Net)</th><th style="padding:10px; border-bottom:1px solid #ddd;">Current Val</th><th style="padding:10px; border-bottom:1px solid #ddd;">Unrealized P&L</th><th style="padding:10px; border-bottom:1px solid #ddd;">Realized P&L</th><th style="padding:10px; border-bottom:1px solid #ddd;">XIRR</th></tr></thead>
+                <tbody><tr><td style="padding:10px; border-bottom:1px solid #eee;">${clientData.grp || '-'}</td><td style="padding:10px; border-bottom:1px solid #eee;">₹${clientData.costBasis.toFixed(2)}</td><td style="padding:10px; border-bottom:1px solid #eee; font-weight:bold; font-size:16px;">₹${clientData.cv.toFixed(2)}</td><td style="padding:10px; border-bottom:1px solid #eee; color:${clientData.unrealized>=0?'#16a34a':'#dc2626'}">₹${clientData.unrealized.toFixed(2)} (${clientData.absRet.toFixed(2)}%)</td><td style="padding:10px; border-bottom:1px solid #eee; color:${clientData.realizedPnl>=0?'#16a34a':'#dc2626'}">₹${clientData.realizedPnl.toFixed(2)}</td><td style="padding:10px; border-bottom:1px solid #eee; color:${clientData.xirr>=0?'#16a34a':'#dc2626'}">${clientData.xirr.toFixed(2)}%</td></tr></tbody>
             </table>
 
-            <h3 style="margin-bottom:10px; color:#222; font-size: 16px;">2. Scheme-wise Holdings</h3>
+            <h3 style="margin-bottom:10px; color:#222; font-size: 16px;">2. Scheme-wise Holdings (FIFO Cost)</h3>
             <table style="width:100%; border-collapse:collapse; text-align:left; font-size:13px; margin-bottom: 30px; border: 1px solid #ddd; background: rgba(255,255,255,0.9);">
-                <thead><tr style="background-color:#f4f6f9;"><th style="padding:10px; border-bottom:1px solid #ddd;">Scheme / ISIN</th><th style="padding:10px; border-bottom:1px solid #ddd;">Units</th><th style="padding:10px; border-bottom:1px solid #ddd;">NAV</th><th style="padding:10px; border-bottom:1px solid #ddd;">Invested</th><th style="padding:10px; border-bottom:1px solid #ddd;">Current Val</th><th style="padding:10px; border-bottom:1px solid #ddd;">XIRR</th><th style="padding:10px; border-bottom:1px solid #ddd;">Abs Return</th><th style="padding:10px; border-bottom:1px solid #ddd;">% Wgt</th></tr></thead>
+                <thead><tr style="background-color:#f4f6f9;"><th style="padding:10px; border-bottom:1px solid #ddd;">Scheme / ISIN</th><th style="padding:10px; border-bottom:1px solid #ddd;">Units</th><th style="padding:10px; border-bottom:1px solid #ddd;">NAV</th><th style="padding:10px; border-bottom:1px solid #ddd;">Cost Basis</th><th style="padding:10px; border-bottom:1px solid #ddd;">Current Val</th><th style="padding:10px; border-bottom:1px solid #ddd;">Unrealized P&L</th><th style="padding:10px; border-bottom:1px solid #ddd;">Realized P&L</th><th style="padding:10px; border-bottom:1px solid #ddd;">XIRR</th></tr></thead>
                 <tbody>`;
         
-        let tIn = 0, tCv = 0;
+        let tCb = 0, tCv = 0, tReal = 0, tUnrl = 0;
         pdfSchemeCache.forEach(i => {
-            html += `<tr><td style="padding:10px; border-bottom:1px solid #eee;"><strong>${i.scheme}</strong><br><span style="color:#777; font-size:11px;">${i.isin}</span></td><td style="padding:10px; border-bottom:1px solid #eee;">${i.u.toFixed(4)}</td><td style="padding:10px; border-bottom:1px solid #eee;">₹${i.rN.toFixed(4)}</td><td style="padding:10px; border-bottom:1px solid #eee; color:${i.netIn>=0?'#16a34a':'#dc2626'}">₹${i.netIn.toFixed(2)}</td><td style="padding:10px; border-bottom:1px solid #eee;"><strong>₹${i.cv.toFixed(2)}</strong></td><td style="padding:10px; border-bottom:1px solid #eee; color:${i.xirr>=0?'#16a34a':'#dc2626'}">${i.xirr.toFixed(2)}%</td><td style="padding:10px; border-bottom:1px solid #eee; color:${i.absRet>=0?'#16a34a':'#dc2626'}">${i.absRet.toFixed(2)}%</td><td style="padding:10px; border-bottom:1px solid #eee;">${i.pct.toFixed(2)}%</td></tr>`;
-            tIn += i.netIn; tCv += i.cv;
+            html += `<tr><td style="padding:10px; border-bottom:1px solid #eee;"><strong>${i.scheme}</strong><br><span style="color:#777; font-size:11px;">${i.isin}</span></td><td style="padding:10px; border-bottom:1px solid #eee;">${i.u.toFixed(4)}</td><td style="padding:10px; border-bottom:1px solid #eee;">₹${i.rN.toFixed(4)}</td><td style="padding:10px; border-bottom:1px solid #eee;">₹${i.costBasis.toFixed(2)}</td><td style="padding:10px; border-bottom:1px solid #eee;"><strong>₹${i.cv.toFixed(2)}</strong></td><td style="padding:10px; border-bottom:1px solid #eee; color:${i.unrealized>=0?'#16a34a':'#dc2626'}">₹${i.unrealized.toFixed(2)} (${i.absRet.toFixed(2)}%)</td><td style="padding:10px; border-bottom:1px solid #eee; color:${i.realizedPnl>=0?'#16a34a':'#dc2626'}">₹${i.realizedPnl.toFixed(2)}</td><td style="padding:10px; border-bottom:1px solid #eee; color:${i.xirr>=0?'#16a34a':'#dc2626'}">${i.xirr.toFixed(2)}%</td></tr>`;
+            tCb += i.costBasis; tCv += i.cv; tReal += i.realizedPnl; tUnrl += i.unrealized;
         });
 
-        let tRet = tIn > 0 ? ((tCv - tIn)/tIn)*100 : 0;
-        html += `<tr style="background-color:#f8fafc; font-weight:bold;"><td colspan="3" style="padding:10px; text-align:right;">GRAND TOTAL:</td><td style="padding:10px;">₹${tIn.toFixed(2)}</td><td style="padding:10px; font-size: 15px;">₹${tCv.toFixed(2)}</td><td>-</td><td style="padding:10px; color:${tRet>=0?'#16a34a':'#dc2626'}">${tRet.toFixed(2)}%</td><td style="padding:10px;">100%</td></tr></tbody></table>`;
+        html += `<tr style="background-color:#f8fafc; font-weight:bold;"><td colspan="3" style="padding:10px; text-align:right;">GRAND TOTAL:</td><td style="padding:10px;">₹${tCb.toFixed(2)}</td><td style="padding:10px; font-size: 15px;">₹${tCv.toFixed(2)}</td><td style="padding:10px; color:${tUnrl>=0?'#16a34a':'#dc2626'}">₹${tUnrl.toFixed(2)}</td><td style="padding:10px; color:${tReal>=0?'#16a34a':'#dc2626'}">₹${tReal.toFixed(2)}</td><td>-</td></tr></tbody></table>`;
 
         if(chartImg) { html += `<div style="page-break-inside: avoid;"><h3 style="margin-bottom:10px; color:#222; font-size: 16px;">3. AUM Growth Trend</h3><div style="text-align:center; padding: 15px; border: 1px solid #ddd; background: rgba(255,255,255,0.9); border-radius: 6px;"><img src="${chartImg}" style="width: 100%; max-height: 350px; object-fit: contain;"></div></div>`; }
         html += `<p style="text-align:center; font-size:12px; color:#999; margin-top:40px;">This is a system generated report. Mutual fund investments are subject to market risks.</p></div>`;
@@ -482,13 +483,11 @@
         setTimeout(checkBirthdays, 1500);
     }
 
-    // CRM Actions
     if(document.getElementById('mfd-client-form')) { document.getElementById('mfd-client-form').addEventListener('submit', async function(e) { e.preventDefault(); const cid = document.getElementById('mfd-client-id').value; const cData = { userId: currentUser.uid, name: document.getElementById('mfd-client-name').value.trim(), group: document.getElementById('mfd-client-group').value.trim(), pan: document.getElementById('mfd-client-pan').value.trim().toUpperCase(), ucc: document.getElementById('mfd-client-ucc').value.trim(), phone: document.getElementById('mfd-client-phone').value.trim(), folio: document.getElementById('mfd-client-folio').value.trim(), address: document.getElementById('mfd-client-address').value.trim(), area: document.getElementById('mfd-client-area').value.trim(), city: document.getElementById('mfd-client-city').value.trim(), state: document.getElementById('mfd-client-state').value.trim(), pincode: document.getElementById('mfd-client-pincode').value.trim(), nomineeName: document.getElementById('mfd-client-nominee-name').value.trim(), nomineePhone: document.getElementById('mfd-client-nominee-phone').value.trim(), dob: document.getElementById('mfd-client-dob').value }; if (cid) { await db.collection('mfd_clients').doc(cid).update(cData); cancelMfdClientEdit(); } else { await db.collection('mfd_clients').add(cData); document.getElementById('mfd-client-form').reset(); } loadMfdData(); }); }
     async function editMfdClient(id) { const d = await db.collection('mfd_clients').doc(id).get(); if (!d.exists) return; const c = d.data(); document.getElementById('mfd-client-id').value = id; document.getElementById('mfd-client-name').value = c.name || ''; document.getElementById('mfd-client-group').value = c.group || ''; document.getElementById('mfd-client-pan').value = c.pan || ''; document.getElementById('mfd-client-ucc').value = c.ucc || ''; document.getElementById('mfd-client-phone').value = c.phone || ''; document.getElementById('mfd-client-folio').value = c.folio || ''; document.getElementById('mfd-client-address').value = c.address || ''; document.getElementById('mfd-client-area').value = c.area || ''; document.getElementById('mfd-client-city').value = c.city || ''; document.getElementById('mfd-client-state').value = c.state || ''; document.getElementById('mfd-client-pincode').value = c.pincode || ''; document.getElementById('mfd-client-nominee-name').value = c.nomineeName || ''; document.getElementById('mfd-client-nominee-phone').value = c.nomineePhone || ''; document.getElementById('mfd-client-dob').value = c.dob || ''; document.getElementById('mfd-client-btn').innerText = `Update Client`; document.getElementById('mfd-client-cancel-btn').style.display = 'inline-block'; let crmContent = document.getElementById('mfd-crm'); if(crmContent && !crmContent.classList.contains('active')) togglePanel('mfd-crm', crmContent.previousElementSibling); window.scrollTo({ top: 0, behavior: 'smooth' }); }
     function cancelMfdClientEdit() { document.getElementById('mfd-client-id').value = ''; document.getElementById('mfd-client-btn').innerText = 'Save Client'; document.getElementById('mfd-client-cancel-btn').style.display = 'none'; document.getElementById('mfd-client-form').reset(); }
     async function deleteMfdClient(id) { if(confirm("Delete this client? This will NOT delete their transactions.")) { await db.collection('mfd_clients').doc(id).delete(); loadMfdData(); } }
 
-    // Goal Master Actions
     if(document.getElementById('mfd-goal-form')) {
         document.getElementById('mfd-goal-form').addEventListener('submit', async function(e) {
             e.preventDefault(); const gid = document.getElementById('mfd-goal-id').value; const name = document.getElementById('mfd-goal-name').value.trim();
@@ -500,7 +499,6 @@
     function cancelMfdGoalEdit() { document.getElementById('mfd-goal-id').value = ''; document.getElementById('mfd-goal-name').value = ''; document.getElementById('mfd-goal-btn').innerText = 'Save Goal'; document.getElementById('mfd-goal-cancel-btn').style.display = 'none'; }
     async function deleteMfdGoal(id) { if(confirm("Delete this goal?")) { await db.collection('mfd_goals').doc(id).delete(); loadMfdData(); } }
 
-    // Goal Mapping Actions
     function renderClientFoliosForMapping() {
         const clientId = document.getElementById('map-client-select').value; const container = document.getElementById('map-folios-container'); const list = document.getElementById('map-folios-list'); list.innerHTML = '';
         if(!clientId) { container.style.display = 'none'; return; }
@@ -582,7 +580,6 @@
     }
     async function handleManualNav(e) { e.preventDefault(); const isin = document.getElementById('mfd-manual-nav-isin').value.trim(); const navVal = parseFloat(document.getElementById('mfd-manual-nav-val').value); const dateVal = document.getElementById('mfd-manual-nav-date').value; if(!isin || !navVal || !dateVal) return alert("Fill all fields."); try { await db.collection('mfd_navs').doc(isin).set({ nav: navVal, date: dateVal, updated: new Date().toISOString() }); alert(`Updated NAV`); document.getElementById('mfd-nav-form').reset(); document.getElementById('mfd-manual-nav-date').valueAsDate = new Date(); loadMfdData(); } catch(error) { alert("Error: " + error.message); } }
     
-    // UPDATED TX UPLOAD (Auto-Client Creation + Group Fetching)
     function uploadMfdTxCSV(e) { 
         const file = e.target.files[0]; if (!file || !currentUser) return; const reader = new FileReader(); 
         reader.onload = async function(ev) { 
@@ -650,78 +647,110 @@
         if(document.getElementById('mfd-page-indicator')) document.getElementById('mfd-page-indicator').innerText = `Page ${mfdPage} of ${tp}`; if(document.getElementById('mfd-btn-prev')) document.getElementById('mfd-btn-prev').disabled = mfdPage === 1; if(document.getElementById('mfd-btn-next')) document.getElementById('mfd-btn-next').disabled = mfdPage === tp;
     }
 
+    // THE FIFO ENGINE
     function renderMfdReportsOnly() {
         updateSortIcons(); const filterVal = document.getElementById('mfd-report-client-filter') ? document.getElementById('mfd-report-client-filter').value : 'ALL'; const gVal = document.getElementById('mfd-report-group-filter') ? document.getElementById('mfd-report-group-filter').value : 'ALL';
         const hideZero = document.getElementById('mfd-hide-zero-bal') ? document.getElementById('mfd-hide-zero-bal').checked : false;
 
-        let tIn = 0, tRed = 0, currentValAum = 0, cMap = {}, sMap = {}, mTree = {};
-        mfdClients.forEach(c => { let k = c.pan || c.ucc || c.name; cMap[k] = { id: k, name: c.name, grp: c.group||'', in: 0, red: 0, u: 0, cv: 0, cf: [] }; });
-        mfdTxs.forEach(tx => {
+        let totalGrossIn = 0, totalGrossRed = 0, globalCostBasis = 0, currentValAum = 0;
+        let cMap = {}, sMap = {}, mTree = {};
+
+        // 1. Sort Txs Chronologically for strict FIFO
+        let chronTxs = [...mfdTxs].sort((a,b) => {
+            let parseD = (str) => str.includes('-') && str.split('-')[0].length === 2 ? new Date(`${str.split('-')[2]}-${str.split('-')[1]}-${str.split('-')[0]}T00:00:00`) : new Date(str);
+            return parseD(a.date) - parseD(b.date);
+        });
+
+        mfdClients.forEach(c => { let k = c.pan || c.ucc || c.name; cMap[k] = { id: k, name: c.name, grp: c.group||'', lots: [], realizedPnl: 0, cf: [] }; });
+
+        // 2. Process FIFO Queue
+        chronTxs.forEach(tx => {
             let amt = Math.abs(parseFloat(tx.amount))||0; let u = Math.abs(parseFloat(tx.unit))||0; let txNav = Math.abs(parseFloat(tx.nav))||0; if (u === 0 && amt > 0 && txNav > 0) u = amt / txNav;
             let ck = tx.pan_ucc || tx.clientName; let sk = tx.isin || tx.scheme || 'Uncategorized'; let tp = (tx.type||'').toLowerCase(); let isR = tp.includes('red') || tp.includes('sale'); let isI = tp.includes('sip') || tp.includes('lump') || tp.includes('pur');
             let d; if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) { let parts = tx.date.split('-'); d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`); } else { d = new Date(tx.date); }
-            if (!cMap[ck]) cMap[ck] = { id: ck, name: tx.clientName, grp: tx.group||'', in: 0, red: 0, u: 0, cv: 0, cf: [] }; if (!sMap[sk]) sMap[sk] = { isin: tx.isin, scheme: tx.scheme, in: 0, red: 0, u: 0, cv: 0, cf: [] };
-            if (!(gVal === 'ALL' || cMap[ck].grp === gVal)) return; let inC = (filterVal === 'ALL' || ck === filterVal);
-            if (isI) { tIn += amt; cMap[ck].in += amt; cMap[ck].cf.push({amt: -amt, date: d}); if (inC) { sMap[sk].in += amt; sMap[sk].cf.push({amt: -amt, date: d}); } } 
-            else if (isR) { tRed += amt; cMap[ck].red += amt; cMap[ck].cf.push({amt: amt, date: d}); if (inC) { sMap[sk].red += amt; sMap[sk].cf.push({amt: amt, date: d}); } }
-            
-            let fy = getFY(d); let m = (d.getMonth() + 1).toString().padStart(2, '0'); if (!mTree[fy]) mTree[fy] = { n: 0, m: {} }; if (!mTree[fy].m[m]) mTree[fy].m[m] = { n: 0, c: {} }; if (!mTree[fy].m[m].c[tx.clientName]) mTree[fy].m[m].c[tx.clientName] = 0; let pnlImp = isI ? amt : (isR ? -amt : 0); mTree[fy].n += pnlImp; mTree[fy].m[m].n += pnlImp; mTree[fy].m[m].c[tx.clientName] += pnlImp;
-        });
 
-        let lNavDate = new Date(0);
-        Object.keys(cMap).forEach(k => {
-            let i = cMap[k]; let cv = 0; let cx = mfdTxs.filter(t => (t.pan_ucc || t.clientName) === k); let sb = {}; let lCNavDate = new Date(0);
-            cx.forEach(t => { 
-                let sKey = t.isin || t.scheme; if(!sb[sKey]) sb[sKey] = { u: 0, i: t.isin, fn: 0 }; 
-                let iR = (t.type||'').toLowerCase().includes('red') || (t.type||'').toLowerCase().includes('sale'); 
-                let u = Math.abs(parseFloat(t.unit))||0; let amt = Math.abs(parseFloat(t.amount))||0; let tNav = Math.abs(parseFloat(t.nav))||0;
-                if (u === 0 && amt > 0 && tNav > 0) u = amt / tNav; sb[sKey].u += iR ? -u : u; if(tNav > 0) sb[sKey].fn = tNav; 
-            });
-            Object.keys(sb).forEach(sKey => { if (sb[sKey].u > 0) { let navObj = mfdNavs[sb[sKey].i]; let rN = navObj ? navObj.nav : (sb[sKey].fn || 0); let nDate = navObj && navObj.date ? new Date(navObj.date) : new Date(); if (nDate > lCNavDate) lCNavDate = nDate; if (nDate > lNavDate) lNavDate = nDate; cv += (sb[sKey].u * rN); } });
-            i.cv = cv; if (cv > 0) { i.cf.push({ amt: cv, date: lCNavDate.getTime() > 0 ? lCNavDate : new Date() }); }
-            if (gVal === 'ALL' || i.grp === gVal) { if (filterVal === 'ALL' || i.id === filterVal) currentValAum += cv; }
-        });
+            if (!cMap[ck]) cMap[ck] = { id: ck, name: tx.clientName, grp: tx.group||'', lots: [], realizedPnl: 0, cf: [] };
+            if (!sMap[sk]) sMap[sk] = { isin: tx.isin, scheme: tx.scheme, lots: [], realizedPnl: 0, cf: [] };
 
-        let sAumTotal = 0; let globalSchemeU = {};
-        Object.keys(sMap).forEach(k => { 
-            let i = sMap[k]; 
-            if (i.in > 0 || i.red > 0) { 
-                let cx = mfdTxs.filter(t => { let ck = t.pan_ucc || t.clientName; return ((t.isin || t.scheme || 'Uncategorized') === k) && (gVal === 'ALL' || (t.group || '') === gVal) && (filterVal === 'ALL' || ck === filterVal); }); 
-                let sbU = 0; let sbfn = 0;
-                cx.forEach(t => { let iR = (t.type||'').toLowerCase().includes('red') || (t.type||'').toLowerCase().includes('sale'); let u = Math.abs(parseFloat(t.unit))||0; let amt = Math.abs(parseFloat(t.amount))||0; let tNav = Math.abs(parseFloat(t.nav))||0; if (u === 0 && amt > 0 && tNav > 0) u = amt / tNav; sbU += iR ? -u : u; if(tNav > 0) sbfn = tNav; });
-                i.u = sbU; globalSchemeU[i.isin] = sbU;
-                if (i.u > 0) { let nObj = mfdNavs[i.isin]; let rN = nObj ? nObj.nav : sbfn; i.cv = i.u * rN; i.cf.push({ amt: i.cv, date: nObj && nObj.date ? new Date(nObj.date) : new Date() }); sAumTotal += i.cv; } else { i.cv = 0; }
+            let inG = (gVal === 'ALL' || cMap[ck].grp === gVal); let inC = (filterVal === 'ALL' || ck === filterVal);
+
+            if (inG) {
+                if (isI) { cMap[ck].cf.push({amt: -amt, date: d}); if (inC) sMap[sk].cf.push({amt: -amt, date: d}); } 
+                else if (isR) { cMap[ck].cf.push({amt: amt, date: d}); if (inC) sMap[sk].cf.push({amt: amt, date: d}); }
+            }
+
+            let costPerUnit = txNav > 0 ? txNav : (u > 0 ? amt / u : 0);
+
+            if (isI) {
+                if (inG) {
+                    totalGrossIn += amt;
+                    cMap[ck].lots.push({ isin: tx.isin, scheme: tx.scheme, folio: tx.folio, u: u, remainingU: u, costPerUnit: costPerUnit, date: d });
+                    if(inC) sMap[sk].lots.push({ ck: ck, isin: tx.isin, u: u, remainingU: u, costPerUnit: costPerUnit, date: d });
+                }
+            } else if (isR) {
+                if(inG) totalGrossRed += amt;
+                let remC = u; let costRetC = 0; let cLots = cMap[ck].lots.filter(l => l.isin === tx.isin && l.remainingU > 0);
+                for (let lot of cLots) { let take = Math.min(lot.remainingU, remC); lot.remainingU -= take; remC -= take; costRetC += (take * lot.costPerUnit); if (remC <= 0.0001) break; }
+                cMap[ck].realizedPnl += (amt - costRetC);
+
+                if (inC) {
+                    let remS = u; let costRetS = 0; let sLots = sMap[sk].lots.filter(l => l.ck === ck && l.remainingU > 0);
+                    for (let lot of sLots) { let take = Math.min(lot.remainingU, remS); lot.remainingU -= take; remS -= take; costRetS += (take * lot.costPerUnit); if (remS <= 0.0001) break; }
+                    sMap[sk].realizedPnl += (amt - costRetS);
+                }
+            }
+
+            if (inG && inC) {
+                let fy = getFY(d); let m = (d.getMonth() + 1).toString().padStart(2, '0');
+                if (!mTree[fy]) mTree[fy] = { n: 0, m: {} }; if (!mTree[fy].m[m]) mTree[fy].m[m] = { n: 0, c: {} }; if (!mTree[fy].m[m].c[tx.clientName]) mTree[fy].m[m].c[tx.clientName] = 0;
+                let pnlImp = isI ? amt : (isR ? -amt : 0); mTree[fy].n += pnlImp; mTree[fy].m[m].n += pnlImp; mTree[fy].m[m].c[tx.clientName] += pnlImp;
             }
         });
 
-        if(document.getElementById('mfd-current-val')) document.getElementById('mfd-current-val').innerText = currentValAum.toFixed(2); if(document.getElementById('mfd-net-inv')) document.getElementById('mfd-net-inv').innerText = (tIn - tRed).toFixed(2); if(document.getElementById('mfd-gross-inflow')) document.getElementById('mfd-gross-inflow').innerText = tIn.toFixed(2); if(document.getElementById('mfd-total-redemption')) document.getElementById('mfd-total-redemption').innerText = tRed.toFixed(2); if(document.getElementById('mfd-total-clients')) document.getElementById('mfd-total-clients').innerText = Object.keys(cMap).filter(k => cMap[k].in > 0 || cMap[k].red > 0).length;
+        // 3. Roll up remaining units to calc CV & True Cost Basis
+        Object.keys(cMap).forEach(k => {
+            let i = cMap[k]; i.cv = 0; i.costBasis = 0; let latestNavDate = new Date(0); let holds = {};
+            i.lots.forEach(lot => { if (lot.remainingU > 0.0001) { if(!holds[lot.isin]) holds[lot.isin] = { u: 0, cost: 0, fallback: lot.costPerUnit }; holds[lot.isin].u += lot.remainingU; holds[lot.isin].cost += (lot.remainingU * lot.costPerUnit); } });
+            Object.keys(holds).forEach(isin => {
+                let h = holds[isin]; let nObj = mfdNavs[isin]; let rN = nObj ? nObj.nav : h.fallback; let nDate = nObj && nObj.date ? new Date(nObj.date) : new Date(); if (nDate > latestNavDate) latestNavDate = nDate;
+                i.cv += (h.u * rN); i.costBasis += h.cost;
+            });
+            if (i.cv > 0) i.cf.push({ amt: i.cv, date: latestNavDate.getTime() > 0 ? latestNavDate : new Date() });
+            if ((gVal === 'ALL' || i.grp === gVal) && (filterVal === 'ALL' || i.id === filterVal)) { currentValAum += i.cv; globalCostBasis += i.costBasis; }
+        });
+
+        let sAumTotal = 0;
+        Object.keys(sMap).forEach(k => {
+            let i = sMap[k]; i.cv = 0; i.costBasis = 0; i.u = 0; let holds = {};
+            i.lots.forEach(lot => { if (lot.remainingU > 0.0001) { if(!holds[lot.isin]) holds[lot.isin] = { u: 0, cost: 0, fallback: lot.costPerUnit }; holds[lot.isin].u += lot.remainingU; holds[lot.isin].cost += (lot.remainingU * lot.costPerUnit); } });
+            Object.keys(holds).forEach(isin => {
+                let h = holds[isin]; i.u += h.u; let nObj = mfdNavs[isin]; let rN = nObj ? nObj.nav : h.fallback;
+                i.cv += (h.u * rN); i.costBasis += h.cost; i.cf.push({ amt: h.u * rN, date: nObj && nObj.date ? new Date(nObj.date) : new Date() });
+            });
+            sAumTotal += i.cv; let nObj = mfdNavs[i.isin]; i.rN = nObj ? nObj.nav : (i.u > 0 ? i.cv/i.u : 0);
+        });
+
+        if(document.getElementById('mfd-current-val')) document.getElementById('mfd-current-val').innerText = currentValAum.toFixed(2); if(document.getElementById('mfd-net-inv')) document.getElementById('mfd-net-inv').innerText = globalCostBasis.toFixed(2); if(document.getElementById('mfd-gross-inflow')) document.getElementById('mfd-gross-inflow').innerText = totalGrossIn.toFixed(2); if(document.getElementById('mfd-total-redemption')) document.getElementById('mfd-total-redemption').innerText = totalGrossRed.toFixed(2); if(document.getElementById('mfd-total-clients')) document.getElementById('mfd-total-clients').innerText = Object.keys(cMap).filter(k => cMap[k].grossIn > 0 || cMap[k].grossRed > 0).length;
 
         const cb = document.getElementById('mfd-client-aum-body'); pdfClientCache = [];
         if(cb) {
-            cb.innerHTML = ''; let arr = Object.keys(cMap).map(k => { let i = cMap[k]; i.xirr = computeXIRR(i.cf); i.pct = currentValAum > 0 ? ((i.cv / currentValAum) * 100) : 0; i.netIn = i.in - i.red; i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0; return i; }).filter(i => {
-                let pass = (i.in > 0 || i.red > 0) && (gVal === 'ALL' || i.grp === gVal) && (filterVal === 'ALL' || i.id === filterVal);
-                if(pass && hideZero && i.cv < 1) return false; return pass;
-            });
+            cb.innerHTML = ''; let arr = Object.keys(cMap).map(k => { let i = cMap[k]; i.xirr = computeXIRR(i.cf); i.pct = currentValAum > 0 ? ((i.cv / currentValAum) * 100) : 0; i.unrealized = i.cv - i.costBasis; i.absRet = i.costBasis > 0 ? (i.unrealized / i.costBasis) * 100 : 0; return i; }).filter(i => { let pass = (i.grossIn > 0 || i.grossRed > 0) && (gVal === 'ALL' || i.grp === gVal) && (filterVal === 'ALL' || i.id === filterVal); if(pass && hideZero && i.cv < 1) return false; return pass; });
             arr.sort((a, b) => { let v1 = a[clientSortCol] !== undefined ? a[clientSortCol] : ''; let v2 = b[clientSortCol] !== undefined ? b[clientSortCol] : ''; if(typeof v1 === 'string') v1 = v1.toLowerCase(); if(typeof v2 === 'string') v2 = v2.toLowerCase(); if (v1 < v2) return clientSortDesc ? 1 : -1; if (v1 > v2) return clientSortDesc ? -1 : 1; return 0; });
             pdfClientCache = arr;
-            if (arr.length === 0) { cb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } else { arr.forEach(i => { cb.innerHTML += `<tr><td>${i.grp || '-'}</td><td><strong>${i.id}</strong></td><td><strong>${i.name}</strong></td><td class="${i.netIn >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.netIn >= 0 ? '+' : ''}${i.netIn.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.xirr.toFixed(2)}%</td><td class="${i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.absRet.toFixed(2)}%</td><td><span class="badge" style="background:var(--border); color:var(--text-color);">${i.pct.toFixed(2)}%</span></td></tr>`; }); }
+            if (arr.length === 0) { cb.innerHTML = `<tr><td colspan="9" style="text-align:center;">No data.</td></tr>`; } else { arr.forEach(i => { cb.innerHTML += `<tr><td>${i.grp || '-'}</td><td><strong>${i.id}</strong></td><td><strong>${i.name}</strong></td><td>₹${i.costBasis.toFixed(2)}</td><td><strong>₹${i.cv.toFixed(2)}</strong></td><td class="${i.unrealized >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.unrealized >= 0 ? '+' : ''}${i.unrealized.toFixed(2)} <br><small style="color:#64748b;">(${i.absRet.toFixed(2)}%)</small></td><td class="${i.realizedPnl >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.realizedPnl >= 0 ? '+' : ''}${i.realizedPnl.toFixed(2)}</td><td class="${i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.xirr.toFixed(2)}%</td><td><span class="badge neutral">${i.pct.toFixed(2)}%</span></td></tr>`; }); }
         }
 
         const sb = document.getElementById('mfd-scheme-aum-body'); pdfSchemeCache = [];
         if(sb) {
-            sb.innerHTML = ''; let arr = Object.keys(sMap).map(s => { let i = sMap[s]; let nObj = mfdNavs[i.isin]; i.rN = nObj ? nObj.nav : 0; i.xirr = computeXIRR(i.cf); i.pct = sAumTotal > 0 ? ((i.cv / sAumTotal) * 100) : 0; i.netIn = i.in - i.red; i.absRet = i.in > 0 ? (((i.cv + i.red) - i.in) / i.in) * 100 : 0; return i; }).filter(i => {
-                let pass = i.u > 0.001 || i.red > 0;
-                if(pass && hideZero && i.u <= 0.0001) return false; return pass;
-            });
+            sb.innerHTML = ''; let arr = Object.keys(sMap).map(s => { let i = sMap[s]; i.xirr = computeXIRR(i.cf); i.pct = sAumTotal > 0 ? ((i.cv / sAumTotal) * 100) : 0; i.unrealized = i.cv - i.costBasis; i.absRet = i.costBasis > 0 ? (i.unrealized / i.costBasis) * 100 : 0; return i; }).filter(i => { let pass = i.grossIn > 0 || i.grossRed > 0; if(pass && hideZero && i.u <= 0.0001) return false; return pass; });
             arr.sort((a, b) => { let v1 = a[schemeSortCol] !== undefined ? a[schemeSortCol] : ''; let v2 = b[schemeSortCol] !== undefined ? b[schemeSortCol] : ''; if(typeof v1 === 'string') v1 = v1.toLowerCase(); if(typeof v2 === 'string') v2 = v2.toLowerCase(); if (v1 < v2) return schemeSortDesc ? 1 : -1; if (v1 > v2) return schemeSortDesc ? -1 : 1; return 0; });
             pdfSchemeCache = arr;
-            if (arr.length === 0) { sb.innerHTML = `<tr><td colspan="8" style="text-align:center;">No data.</td></tr>`; } else { arr.forEach(i => { sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.u.toFixed(4)}</td><td>${i.rN.toFixed(4)}</td><td class="${i.netIn >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.netIn >= 0 ? '+' : ''}${i.netIn.toFixed(2)}</td><td><strong>${i.cv.toFixed(2)}</strong></td><td class="${i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.xirr.toFixed(2)}%</td><td class="${i.absRet >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.absRet.toFixed(2)}%</td><td><span class="badge" style="background:var(--border); color:var(--text-color);">${i.pct.toFixed(2)}%</span></td></tr>`; }); }
+            if (arr.length === 0) { sb.innerHTML = `<tr><td colspan="9" style="text-align:center;">No data.</td></tr>`; } else { arr.forEach(i => { sb.innerHTML += `<tr><td><strong>${i.scheme}</strong><br><small style="color:#64748b;">${i.isin}</small></td><td>${i.u.toFixed(4)}</td><td>${i.rN.toFixed(4)}</td><td>₹${i.costBasis.toFixed(2)}</td><td><strong>₹${i.cv.toFixed(2)}</strong></td><td class="${i.unrealized >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.unrealized >= 0 ? '+' : ''}${i.unrealized.toFixed(2)} <br><small style="color:#64748b;">(${i.absRet.toFixed(2)}%)</small></td><td class="${i.realizedPnl >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.realizedPnl >= 0 ? '+' : ''}${i.realizedPnl.toFixed(2)}</td><td class="${i.xirr >= 0 ? 'pnl-positive' : 'pnl-negative'}">${i.xirr.toFixed(2)}%</td><td><span class="badge neutral">${i.pct.toFixed(2)}%</span></td></tr>`; }); }
         }
 
         const cd = document.getElementById('mfd-client-details-body'); 
         if(cd) { cd.innerHTML = ''; mfdClients.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => { let key = c.pan || c.ucc || c.name; if (gVal !== 'ALL' && c.group !== gVal) return; if (filterVal !== 'ALL' && key !== filterVal) return; let pd = c.dob||''; if(pd.includes('-') && pd.split('-')[0].length===4) pd = `${pd.split('-')[2]}-${pd.split('-')[1]}-${pd.split('-')[0]}`; cd.innerHTML += `<tr><td><strong>${c.pan||'-'}</strong></td><td><strong>${c.ucc||'-'}</strong></td><td>${c.group || '-'}</td><td><strong>${c.name}</strong></td><td>${pd}</td><td>${c.phone || '-'}</td><td>${c.city || '-'}${c.state ? ', ' + c.state : ''}</td><td>${c.nomineeName || '-'}</td></tr>`; }); }
 
-        // Render Goals Report
         const gb = document.getElementById('mfd-goal-report-body'); const mapBody = document.getElementById('mfd-goal-maps-list-body');
         if(gb) gb.innerHTML = ''; if(mapBody) mapBody.innerHTML = '';
         mfdGoalMappings.forEach(map => {
@@ -734,8 +763,7 @@
                 let nObj = mfdNavs[f.isin]; let rN = nObj ? nObj.nav : 0;
                 let cx = mfdTxs.filter(t => (t.pan_ucc || t.clientName) === map.clientId && t.isin === f.isin && (t.folio || '') === f.folio);
                 let u = 0; cx.forEach(t => { let iR = (t.type||'').toLowerCase().includes('red'); let tu = Math.abs(parseFloat(t.unit))||0; let amt = Math.abs(parseFloat(t.amount))||0; let tNav = Math.abs(parseFloat(t.nav))||0; if(tu===0 && amt>0 && tNav>0) tu=amt/tNav; u += iR ? -tu : tu; });
-                if(u>0) mappedCv += (u * rN);
-                fHtml += `<span class="badge neutral">${f.isin} (${f.folio||'N/A'})</span> `;
+                if(u>0) mappedCv += (u * rN); fHtml += `<span class="badge neutral">${f.isin} (${f.folio||'N/A'})</span> `;
             });
 
             let prog = map.target > 0 ? (mappedCv / map.target) * 100 : 0; let progC = prog >= 100 ? 'pnl-positive' : '';
@@ -750,7 +778,6 @@
             let tHtml = ''; const mn = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
             Object.keys(mTree).sort().reverse().forEach(fy => {
                 let yd = mTree[fy]; tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${fy}</span><span class="${yd.n >= 0 ? 'pnl-positive' : 'pnl-negative'}">${yd.n>0?'+':''}${yd.n.toFixed(2)}</span></div><div class="tree-children">`;
-                
                 Object.keys(yd.m).sort((a,b) => { let m1 = parseInt(a), m2 = parseInt(b); let shift1 = m1 >= 4 ? m1 - 3 : m1 + 9; let shift2 = m2 >= 4 ? m2 - 3 : m2 + 9; return shift2 - shift1; }).forEach(ms => {
                     let md = yd.m[ms]; tHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${mn[parseInt(ms)]}</span><span class="${md.n >= 0 ? 'pnl-positive' : 'pnl-negative'}">${md.n>0?'+':''}${md.n.toFixed(2)}</span></div><div class="tree-children">`;
                     Object.keys(md.c).sort().forEach(cn => { let cv = md.c[cn]; if (cv !== 0) { tHtml += `<div class="tree-leaf"><span>${cn}</span><span class="${cv > 0 ? 'pnl-positive' : 'pnl-negative'}">${cv>0?'+':''}${cv.toFixed(2)}</span></div>`; } }); tHtml += `</div></div>`;
@@ -771,23 +798,23 @@
             return dA - dB; 
         });
 
-        let runningUnits = {}; let runningInvestment = 0; let monthlyData = {}; let years = new Set();
+        let rLots = {}; let monthlyData = {}; let years = new Set();
         
         validTxs.forEach(tx => {
             let d; if (tx.date.includes('-') && tx.date.split('-')[0].length === 2) { let parts = tx.date.split('-'); d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`); } else { d = new Date(tx.date); } if (isNaN(d)) return;
-            
-            let fy = getFY(d); years.add(fy);
-            let ymKey = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+            let fy = getFY(d); years.add(fy); let ymKey = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
             
             let amt = Math.abs(parseFloat(tx.amount)) || 0; let u = Math.abs(parseFloat(tx.unit)) || 0; let txNav = Math.abs(parseFloat(tx.nav))||0; if (u === 0 && amt > 0 && txNav > 0) u = amt / txNav;
-            let typ = (tx.type||'').toLowerCase();
+            let typ = (tx.type||'').toLowerCase(); let isin = tx.isin || 'Unknown';
+            let costPerUnit = txNav > 0 ? txNav : (u > 0 ? amt / u : 0);
             
-            if (!runningUnits[tx.isin]) runningUnits[tx.isin] = 0;
-            if (typ.includes('pur') || typ.includes('sip') || typ.includes('lump')) { runningUnits[tx.isin] += u; runningInvestment += amt; } 
-            else if (typ.includes('red') || typ.includes('sale')) { runningUnits[tx.isin] -= u; runningInvestment -= amt; }
+            if (!rLots[isin]) rLots[isin] = [];
+            if (typ.includes('pur') || typ.includes('sip') || typ.includes('lump')) { rLots[isin].push({ u: u, rem: u, cost: costPerUnit }); } 
+            else if (typ.includes('red') || typ.includes('sale')) { let remT = u; for(let lot of rLots[isin]){ if(lot.rem > 0){ let take = Math.min(lot.rem, remT); lot.rem -= take; remT -= take; if(remT <= 0.0001) break; } } }
             
-            let curAum = 0; Object.keys(runningUnits).forEach(isin => { let navObj = mfdNavs[isin]; curAum += (runningUnits[isin] * (navObj ? navObj.nav : 0)); }); 
-            monthlyData[ymKey] = { aum: curAum, inv: runningInvestment };
+            let curAum = 0; let curCost = 0;
+            Object.keys(rLots).forEach(i => { let aU = 0; let aC = 0; rLots[i].forEach(l => { if(l.rem > 0){ aU += l.rem; aC += (l.rem * l.cost); } }); let nObj = mfdNavs[i]; curAum += (aU * (nObj ? nObj.nav : 0)); curCost += aC; }); 
+            monthlyData[ymKey] = { aum: curAum, inv: curCost }; // Strictly FIFO charted
         });
 
         const yS = document.getElementById('mfd-chart-year-filter'); if (yS && yS.options.length === 1 && years.size > 0) { [...years].sort().reverse().forEach(y => { yS.innerHTML += `<option value="${y}">${y}</option>`; }); }
@@ -816,7 +843,7 @@
         }
 
         if (aumChartInstance) aumChartInstance.destroy();
-        aumChartInstance = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [ { label: 'Estimated AUM', data: aP, borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 2 }, { label: 'Net Invested', data: iP, borderColor: '#2563eb', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.3, pointRadius: 0 } ] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false } } });
+        aumChartInstance = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [ { label: 'Estimated AUM', data: aP, borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 2 }, { label: 'FIFO Cost Basis', data: iP, borderColor: '#2563eb', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.3, pointRadius: 0 } ] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false } } });
     }
 </script>
 </body>
