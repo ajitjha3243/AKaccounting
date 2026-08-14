@@ -163,6 +163,41 @@
                 </table>
             </div>
         </div>
+
+        <!-- EARNINGS / TAIL COMMISSION REPORT -->
+        <div class="panel">
+            <div class="stylish-header gold active-header" onclick="togglePanel('earnings-report-content', this)">
+                <span>💰 Earnings Report (Tail Commission)</span><span class="chevron">▼</span>
+            </div>
+            <div id="earnings-report-content" class="collapsible-table-content active" style="padding-top: 15px;">
+                
+                <!-- CSV Upload Box -->
+                <div class="upload-box" style="margin-bottom: 20px;">
+                    <h3 style="margin-top: 0; color: var(--primary);">📁 Upload Tail Commission CSV</h3>
+                    <p style="font-size: 0.85rem; margin-bottom: 10px;">Upload a CSV containing your commission rates to calculate expected earnings based on current AUM.</p>
+                    <div style="padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid var(--border); background: var(--bg-color);">
+                        <p style="margin: 0 0 5px 0; font-size: 0.8rem; font-weight: bold;">Required Format (2 Columns, Header in Row 1):</p>
+                        <code style="font-size: 0.8rem;">Scheme Name, Commission Rate (%)</code>
+                    </div>
+                    <input type="file" id="tail-comm-csv" accept=".csv" onchange="uploadTailCommCSV(event)">
+                </div>
+
+                <!-- Earnings Table -->
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Scheme Name</th>
+                                <th>Current AUM (₹)</th>
+                                <th>Tail Comm. Rate (%)</th>
+                                <th>Expected Earnings (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mfd-earnings-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
         
         <!-- GOAL PROGRESS REPORT -->
         <div class="panel">
@@ -808,6 +843,7 @@
             }); t.innerHTML = tHtml || `<div style="padding:15px; text-align:center;">No data.</div>`;
         }
         updateAumChart();
+        renderEarningsReport();
     }
 
     function updateAumChart() {
@@ -867,6 +903,81 @@
 
         if (aumChartInstance) aumChartInstance.destroy();
         aumChartInstance = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [ { label: 'Estimated AUM', data: aP, borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 2 }, { label: 'FIFO Cost Basis', data: iP, borderColor: '#2563eb', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.3, pointRadius: 0 } ] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false } } });
+    }
+
+    // --- TAIL COMMISSION & EARNINGS LOGIC ---
+    let tailCommissions = {}; 
+
+    function uploadTailCommCSV(e) {
+        const file = e.target.files[0]; 
+        if (!file) return; 
+        
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            const lines = ev.target.result.split('\n'); 
+            let count = 0;
+            
+            for (let i = 1; i < lines.length; i++) { 
+                const line = lines[i].trim(); 
+                if (!line) continue;
+                
+                const parts = line.split(',').map(x => x.replace(/^"|"$/g, '').trim()); 
+                if (parts.length >= 2) {
+                    const schemeName = parts[0];
+                    const rate = parseFloat(parts[1]);
+                    
+                    if (schemeName && !isNaN(rate)) {
+                        tailCommissions[schemeName] = rate;
+                        count++;
+                    }
+                }
+            }
+            
+            alert(`Successfully imported ${count} tail commission rates!`);
+            e.target.value = ''; 
+            renderEarningsReport(); 
+        }; 
+        reader.readAsText(file);
+    }
+
+    function renderEarningsReport() {
+        const tbody = document.getElementById('mfd-earnings-body');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '';
+        let totalEarnings = 0;
+        let totalAUM = 0;
+
+        if (!pdfSchemeCache || pdfSchemeCache.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:15px; color:#666;">No scheme data available.</td></tr>';
+            return;
+        }
+
+        pdfSchemeCache.forEach(item => {
+            let rate = tailCommissions[item.scheme] || 0; 
+            let earnings = (item.cv * rate) / 100; 
+
+            totalAUM += item.cv;
+            totalEarnings += earnings;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${item.scheme}</strong></td>
+                    <td>₹${item.cv.toFixed(2)}</td>
+                    <td>${rate > 0 ? rate.toFixed(2) + '%' : '<span style="color:#999">-</span>'}</td>
+                    <td class="pnl-positive">₹${earnings.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML += `
+            <tr style="background-color: var(--border); color: var(--text-color);">
+                <td><strong>GRAND TOTAL</strong></td>
+                <td><strong>₹${totalAUM.toFixed(2)}</strong></td>
+                <td>-</td>
+                <td class="pnl-positive"><strong>₹${totalEarnings.toFixed(2)}</strong></td>
+            </tr>
+        `;
     }
 </script>
 </body>
