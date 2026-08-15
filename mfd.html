@@ -164,7 +164,7 @@
             </div>
         </div>
 
-        <!-- EARNINGS / TAIL COMMISSION REPORT -->
+       <!-- EARNINGS / TAIL COMMISSION REPORT -->
         <div class="panel">
             <div class="stylish-header gold active-header" onclick="togglePanel('earnings-report-content', this)">
                 <span>💰 Earnings Report (Tail Commission)</span><span class="chevron">▼</span>
@@ -187,10 +187,11 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Scheme Name</th>
-                                <th>Current AUM (₹)</th>
-                                <th>Tail Comm. Rate (%)</th>
-                                <th>Expected Earnings (₹)</th>
+                                <th class="sortable" onclick="setEarningsSort('scheme')">Scheme Name <span class="sort-icon" id="earn-sort-scheme"></span></th>
+                                <th class="sortable" onclick="setEarningsSort('aum')">Current AUM (₹) <span class="sort-icon" id="earn-sort-aum"></span></th>
+                                <th class="sortable" onclick="setEarningsSort('rate')">Tail Comm. Rate (%) <span class="sort-icon" id="earn-sort-rate"></span></th>
+                                <th class="sortable" onclick="setEarningsSort('annual')">Expected Annual (₹) <span class="sort-icon" id="earn-sort-annual"></span></th>
+                                <th class="sortable" onclick="setEarningsSort('monthly')">Expected Monthly (20 Days) <span class="sort-icon" id="earn-sort-monthly">▼</span></th>
                             </tr>
                         </thead>
                         <tbody id="mfd-earnings-body"></tbody>
@@ -198,7 +199,17 @@
                 </div>
             </div>
         </div>
-        
+
+        <!-- MONTHLY EARNINGS CHART -->
+        <div class="panel">
+            <div class="stylish-header purple active-header" onclick="togglePanel('earnings-chart-content', this)">
+                <span>📊 Historical Monthly Earnings Trend</span><span class="chevron">▼</span>
+            </div>
+            <div id="earnings-chart-content" class="collapsible-table-content active" style="padding-top: 15px;">
+                <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">Calculated historically at the end of each month based on 20 active days.</p>
+                <div style="position: relative; height: 300px; width: 100%;"><canvas id="earningsHistoryChart"></canvas></div>
+            </div>
+        </div>        
         <!-- GOAL PROGRESS REPORT -->
         <div class="panel">
             <div class="stylish-header teal active-header" onclick="togglePanel('goal-report-content', this)"><span>🎯 Goal Progress Report</span><span class="chevron">▼</span></div>
@@ -905,7 +916,7 @@
         aumChartInstance = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [ { label: 'Estimated AUM', data: aP, borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 2 }, { label: 'FIFO Cost Basis', data: iP, borderColor: '#2563eb', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.3, pointRadius: 0 } ] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false } } });
     }
 
-    // --- TAIL COMMISSION & EARNINGS LOGIC ---
+   // --- TAIL COMMISSION & EARNINGS LOGIC ---
     let tailCommissions = {}; 
 
     function uploadTailCommCSV(e) {
@@ -940,32 +951,81 @@
         reader.readAsText(file);
     }
 
+    function updateTailCommRate(scheme, value) {
+        let val = parseFloat(value);
+        if(isNaN(val) || val < 0) val = 0;
+        tailCommissions[scheme] = val;
+        renderEarningsReport();
+    }
+
+    function setEarningsSort(col) {
+        if (earningsSortCol === col) {
+            earningsSortDesc = !earningsSortDesc;
+        } else {
+            earningsSortCol = col;
+            earningsSortDesc = true;
+        }
+        renderEarningsReport();
+    }
+
     function renderEarningsReport() {
         const tbody = document.getElementById('mfd-earnings-body');
         if (!tbody) return;
         
+        // Update Table Sort Icons
+        ['scheme', 'aum', 'rate', 'annual', 'monthly'].forEach(col => {
+            const el = document.getElementById('earn-sort-' + col);
+            if (el) el.innerText = (earningsSortCol === col) ? (earningsSortDesc ? '▼' : '▲') : '';
+        });
+
         tbody.innerHTML = '';
-        let totalEarnings = 0;
         let totalAUM = 0;
+        let totalAnnual = 0;
+        let totalMonthly = 0;
 
         if (!pdfSchemeCache || pdfSchemeCache.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:15px; color:#666;">No scheme data available.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px; color:#666;">No scheme data available.</td></tr>';
+            if(earningsChartInstance) { earningsChartInstance.destroy(); earningsChartInstance = null; }
             return;
         }
 
-        pdfSchemeCache.forEach(item => {
+        // 1. Map Data and Calculate 20-Day Earnings
+        let earnData = pdfSchemeCache.map(item => {
             let rate = tailCommissions[item.scheme] || 0; 
-            let earnings = (item.cv * rate) / 100; 
+            let annual = (item.cv * rate) / 100; 
+            let monthly20Days = (annual / 365) * 20; // Exact calculation for 20 working days
 
-            totalAUM += item.cv;
-            totalEarnings += earnings;
+            return { scheme: item.scheme, aum: item.cv, rate: rate, annual: annual, monthly: monthly20Days };
+        });
+
+        // 2. Sort Data
+        earnData.sort((a, b) => {
+            let v1 = a[earningsSortCol];
+            let v2 = b[earningsSortCol];
+            if (typeof v1 === 'string') v1 = v1.toLowerCase();
+            if (typeof v2 === 'string') v2 = v2.toLowerCase();
+            if (v1 < v2) return earningsSortDesc ? 1 : -1;
+            if (v1 > v2) return earningsSortDesc ? -1 : 1;
+            return 0;
+        });
+
+        // 3. Render Rows
+        earnData.forEach(item => {
+            totalAUM += item.aum;
+            totalAnnual += item.annual;
+            totalMonthly += item.monthly;
 
             tbody.innerHTML += `
                 <tr>
                     <td><strong>${item.scheme}</strong></td>
-                    <td>₹${item.cv.toFixed(2)}</td>
-                    <td>${rate > 0 ? rate.toFixed(2) + '%' : '<span style="color:#999">-</span>'}</td>
-                    <td class="pnl-positive">₹${earnings.toFixed(2)}</td>
+                    <td>₹${item.aum.toFixed(2)}</td>
+                    <td>
+                        <input type="number" step="0.01" min="0" value="${item.rate}" 
+                               onchange="updateTailCommRate('${item.scheme.replace(/'/g, "\\'")}', this.value)" 
+                               style="width: 75px; padding: 4px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-color); color: var(--text-color);"> %
+                    </td>
+                    <td class="pnl-positive">₹${item.annual.toFixed(2)}</td>
+                    <td class="pnl-positive"><strong>₹${item.monthly.toFixed(2)}</strong></td>
                 </tr>
             `;
         });
@@ -975,9 +1035,91 @@
                 <td><strong>GRAND TOTAL</strong></td>
                 <td><strong>₹${totalAUM.toFixed(2)}</strong></td>
                 <td>-</td>
-                <td class="pnl-positive"><strong>₹${totalEarnings.toFixed(2)}</strong></td>
+                <td class="pnl-positive"><strong>₹${totalAnnual.toFixed(2)}</strong></td>
+                <td class="pnl-positive"><strong>₹${totalMonthly.toFixed(2)}</strong></td>
             </tr>
         `;
+
+        // 4. Update the Chart
+        updateEarningsChart();
+    }
+
+    function updateEarningsChart() {
+        const chartContainer = document.getElementById('earningsHistoryChart'); 
+        if (!chartContainer) return; 
+        const ctx = chartContainer.getContext('2d');
+        
+        if(Object.keys(tailCommissions).length === 0) {
+            if (earningsChartInstance) earningsChartInstance.destroy();
+            return;
+        }
+
+        // Group transactions chronologically to calculate historical AUM & historical monthly tail commissions
+        let validTxs = [...mfdTxs].sort((a,b) => { 
+            let dA = a.date.includes('-') && a.date.split('-')[0].length === 2 ? new Date(`${a.date.split('-')[2]}-${a.date.split('-')[1]}-${a.date.split('-')[0]}T00:00:00`) : new Date(a.date); 
+            let dB = b.date.includes('-') && b.date.split('-')[0].length === 2 ? new Date(`${b.date.split('-')[2]}-${b.date.split('-')[1]}-${b.date.split('-')[0]}T00:00:00`) : new Date(b.date); 
+            return dA - dB; 
+        });
+
+        let rLots = {}; let monthlyEarningsMap = {}; 
+        
+        validTxs.forEach(tx => {
+            let d = tx.date.includes('-') && tx.date.split('-')[0].length === 2 ? new Date(`${tx.date.split('-')[2]}-${tx.date.split('-')[1]}-${tx.date.split('-')[0]}T00:00:00`) : new Date(tx.date); 
+            if (isNaN(d)) return;
+            let ymKey = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+            
+            let amt = Math.abs(parseFloat(tx.amount)) || 0; let u = Math.abs(parseFloat(tx.unit)) || 0; let txNav = Math.abs(parseFloat(tx.nav))||0; if (u === 0 && amt > 0 && txNav > 0) u = amt / txNav;
+            let typ = (tx.type||'').toLowerCase(); let isin = tx.isin || 'Unknown'; let scheme = tx.scheme || 'Unknown';
+            
+            if (!rLots[isin]) rLots[isin] = { scheme: scheme, lots: [] };
+            if (typ.includes('pur') || typ.includes('sip') || typ.includes('lump')) { 
+                rLots[isin].lots.push({ u: u, rem: u }); 
+            } else if (typ.includes('red') || typ.includes('sale')) { 
+                let remT = u; 
+                for(let lot of rLots[isin].lots){ 
+                    if(lot.rem > 0){ let take = Math.min(lot.rem, remT); lot.rem -= take; remT -= take; if(remT <= 0.0001) break; } 
+                } 
+            }
+            
+            let monthTotalEarnings = 0;
+            Object.keys(rLots).forEach(i => { 
+                let aU = 0; 
+                rLots[i].lots.forEach(l => { if(l.rem > 0) aU += l.rem; }); 
+                let nObj = mfdNavs[i]; 
+                let curAum = (aU * (nObj ? nObj.nav : 0)); 
+                let rate = tailCommissions[rLots[i].scheme] || 0;
+                
+                monthTotalEarnings += ((curAum * rate) / 100) / 365 * 20; 
+            }); 
+            monthlyEarningsMap[ymKey] = monthTotalEarnings; 
+        });
+
+        let labels = []; let dataPts = []; const mN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        let sortedKeys = Object.keys(monthlyEarningsMap).sort(); 
+        let lastEarn = 0;
+        
+        if (sortedKeys.length > 0) {
+            let firstDate = new Date(sortedKeys[0] + "-01"); let endDate = new Date(); let currDate = new Date(firstDate);
+            while(currDate <= endDate) {
+                let y = currDate.getFullYear(); let m = (currDate.getMonth() + 1).toString().padStart(2, '0'); let targetKey = `${y}-${m}`;
+                if (monthlyEarningsMap[targetKey] !== undefined) { lastEarn = monthlyEarningsMap[targetKey]; }
+                labels.push(`${mN[currDate.getMonth()]} ${y}`); dataPts.push(lastEarn); currDate.setMonth(currDate.getMonth() + 1);
+            }
+        }
+
+        if (earningsChartInstance) earningsChartInstance.destroy();
+        earningsChartInstance = new Chart(ctx, { 
+            type: 'bar', 
+            data: { 
+                labels: labels, 
+                datasets: [ { label: 'Total Expected Earnings (20-Day Month)', data: dataPts, backgroundColor: 'rgba(245, 158, 11, 0.7)', borderColor: '#f59e0b', borderWidth: 1 } ] 
+            }, 
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } } }
+            } 
+        });
     }
 </script>
 </body>
