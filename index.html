@@ -16,7 +16,7 @@
             --warning: #f59e0b; --info: #0ea5e9; --purple: #8b5cf6; --border: #e5e7eb;
         }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; }
+        .container { max-width: 1280px; margin: 0 auto; }
         
         /* --- SECURE AUTHENTICATION OVERLAY --- */
         #auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 20px; box-sizing: border-box; }
@@ -49,15 +49,20 @@
         .btn-restore { background: #475569; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: opacity 0.2s; }
         .btn-backup:hover, .btn-restore:hover { opacity: 0.9; }
         
+        /* Summary Grid */
         .summary-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .card { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid var(--primary); transition: transform 0.2s; }
+        .card { background: var(--card-bg); padding: 18px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid var(--primary); transition: transform 0.2s; }
         .card:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .card.equity { border-left-color: var(--primary); }
         .card.mf { border-left-color: var(--warning); }
-        .card.cash { border-left-color: var(--success); }
+        .card.cash { border-left-color: #64748b; }
         .card.pnl { border-left-color: var(--info); } 
-        .card h3 { margin: 0 0 10px 0; font-size: 0.85rem; text-transform: uppercase; color: #64748b; font-weight: 600; }
-        .card p { margin: 0; font-size: 1.5rem; font-weight: bold; color: #1e293b; }
+        .card.valuation { border-left-color: var(--purple); }
+        .card.unrealized { border-left-color: var(--success); }
+        .card.combined { border-left-color: #0f172a; }
+        .card h3 { margin: 0 0 8px 0; font-size: 0.8rem; text-transform: uppercase; color: #64748b; font-weight: 700; }
+        .card p { margin: 0; font-size: 1.4rem; font-weight: 800; color: #1e293b; }
+        .card small { font-size: 0.8rem; font-weight: 600; display: block; margin-top: 4px; }
         
         .main-grid { display: grid; grid-template-columns: 1fr; gap: 25px; margin-bottom: 25px; align-items: start; }
         @media(min-width: 900px) { .main-grid { grid-template-columns: 350px 1fr; } }
@@ -107,14 +112,14 @@
         button.btn-live { background: var(--info); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; transition: 0.2s; }
         button.btn-live:hover { background: #0284c7; }
         
-        /* Improved Table Design for Mobile & Tablet */
+        /* Table Design */
         .table-container { 
             overflow-x: auto; 
             border: 1px solid var(--border); 
             border-radius: 8px; 
             box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
             background: white;
-            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            -webkit-overflow-scrolling: touch;
         }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
         th, td { padding: 12px 15px; border-bottom: 1px solid var(--border); vertical-align: middle; }
@@ -126,7 +131,6 @@
             border-bottom: 2px solid #e2e8f0;
         }
         
-        /* Zebra Striping & Hover */
         tbody tr:nth-child(even) { background-color: #fafaf9; }
         tbody tr:hover { background-color: #f1f5f9; transition: background-color 0.15s ease-in-out; }
 
@@ -147,9 +151,6 @@
         .badge.cash-paid { background: #fee2e2; color: #991b1b; }
         .badge.transfer { background: #f1f5f9; color: #475569; }
         .badge.other { background: #e5e7eb; color: #374151; }
-        .badge.sip { background: #dcfce7; color: #15803d; }
-        .badge.lumpsum { background: #dbeafe; color: #1d4ed8; }
-        .badge.redemption { background: #fee2e2; color: #991b1b; }
         
         .btn-edit-tx { background: none; border: none; color: var(--primary); cursor: pointer; font-weight: 600; margin-right: 12px; padding: 4px 8px; border-radius: 4px; transition: background 0.2s;}
         .btn-edit-tx:hover { background: #dbeafe; }
@@ -178,29 +179,21 @@
         .tree-leaf:last-child { border-bottom: none; }
         .tree-leaf span:first-child { font-weight: 500; color: #475569; }
 
-        /* --- MOBILE/TABLET RESPONSIVENESS --- */
         @media(max-width: 768px) {
             body { padding: 10px; }
             .header-top { flex-direction: column; align-items: flex-start; gap: 10px; }
             .header-actions { width: 100%; flex-wrap: wrap; justify-content: space-between; }
             .btn-backup, .btn-restore { flex: 1; padding: 10px; text-align: center; }
-            
             .summary-container { grid-template-columns: repeat(2, 1fr); gap: 10px; }
             .card { padding: 15px; }
-            .card p { font-size: 1.25rem; }
-            
+            .card p { font-size: 1.2rem; }
             .main-grid, .reports-grid { grid-template-columns: 1fr; gap: 15px; }
-            
             th, td { padding: 10px 8px; font-size: 0.85rem; }
             .panel { padding: 15px; margin-bottom: 15px; }
-            
             .controls-row { flex-direction: column; align-items: stretch; gap: 10px; padding: 10px; }
             .controls-row .form-group { min-width: 100%; margin-bottom: 5px; }
             button.btn-export, button.btn-live { width: 100%; margin-top: 5px; }
-            
-            /* Give table toggles a more button-like feel on mobile */
             .table-header-toggle { padding: 14px 15px; }
-            
             .user-controls { width: 100%; justify-content: space-between; box-sizing: border-box; }
         }
     </style>
@@ -217,7 +210,6 @@
             <label><input type="radio" name="workspace" value="equity" checked> Equity & MF</label>
             <label><input type="radio" name="workspace" value="other"> Other Purpose</label>
             
-            <!-- Quick Links to Additional Dashboards -->
             <a href="mfd.html" style="display: block; margin-top: 15px; font-size: 0.95rem; color: var(--primary); text-decoration: none; font-weight: 600; text-align: center; border: 1px solid var(--primary); padding: 8px; border-radius: 4px;">
                 🔗 Go to MFD Business Dashboard
             </a>
@@ -243,6 +235,7 @@
         <p id="auth-error" style="color: var(--danger); font-size: 0.85rem; margin: 0; display: none; word-break: break-word; text-align: left;"></p>
     </div>
 </div>
+
 <!-- ========================================================= -->
 <!-- WORKSPACE 1: EQUITY & MF DASHBOARD -->
 <!-- ========================================================= -->
@@ -260,20 +253,29 @@
         </div>
     </div>
 
+    <!-- EXPANDED SUMMARY KPI CARDS WITH UNREALIZED GAIN/LOSS -->
     <div class="summary-container">
-        <div class="card equity"><h3>Equity Investment</h3><p id="equity-investment">0.00</p></div>
-        <div class="card mf"><h3>MF Investment</h3><p id="mf-investment">0.00</p></div>
-        <div class="card cash"><h3>Total Cash Balance</h3><p id="cash-balance">0.00</p></div>
+        <div class="card equity"><h3>Equity Invested</h3><p id="equity-investment">0.00</p></div>
+        <div class="card mf"><h3>MF Invested</h3><p id="mf-investment">0.00</p></div>
+        <div class="card valuation"><h3>Current Valuation</h3><p id="total-valuation" style="color:var(--purple);">0.00</p></div>
+        <div class="card unrealized">
+            <h3>Unrealized P&L</h3>
+            <p id="unrealized-pnl">0.00</p>
+            <small id="unrealized-pnl-pct">+0.00%</small>
+        </div>
         <div class="card pnl"><h3>Realized P&L (Net)</h3><p id="realized-pnl">0.00</p></div>
+        <div class="card combined"><h3>Total Net Return (R+U)</h3><p id="combined-net-pnl">0.00</p></div>
+        <div class="card cash"><h3>Cash Balance</h3><p id="cash-balance">0.00</p></div>
     </div>
 
     <div class="main-grid">
+        <!-- LOG TRANSACTION FORM -->
         <div class="panel" style="margin-bottom: 0; padding-top: 10px;">
             <div class="panel-header" onclick="togglePanel('log-tx-content', 'log-tx-icon')">
                 <h2>Log Transaction</h2>
-                <span id="log-tx-icon">▼</span> <!-- Changed default to ▼ -->
+                <span id="log-tx-icon">▼</span>
             </div>
-            <div id="log-tx-content" class="tx-form-container"> <!-- Removed active class -->
+            <div id="log-tx-content" class="tx-form-container">
                 <form id="tx-form">
                     <input type="hidden" id="tx-id">
                     <div class="form-group"><label>Date</label><input type="date" id="date" required></div>
@@ -300,12 +302,13 @@
             </div>
         </div>
 
+        <!-- SCRIPT ANALYSIS DASHBOARD -->
         <div class="panel" style="margin-bottom: 0; padding-top: 10px;">
             <div class="panel-header" onclick="togglePanel('script-dash-content', 'script-dash-icon')">
                 <h2>Script Analysis Dashboard</h2>
-                <span id="script-dash-icon">▼</span> <!-- Changed to ▼ -->
+                <span id="script-dash-icon">▼</span>
             </div>
-            <div id="script-dash-content" class="collapsible-table-content"> <!-- Removed active class -->
+            <div id="script-dash-content" class="collapsible-table-content">
                 <div class="controls-row">
                     <div class="form-group">
                         <label>Select Script(s) <small style="color: #64748b;">(Ctrl/Cmd + Click)</small></label>
@@ -318,18 +321,17 @@
                 </div>
                 <div id="script-dash-data" style="display: none;">
                     <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                        <!-- Mini Tables are kept simple but use new styling naturally -->
                         <div>
-                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Current Holdings</h3>
+                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Current Holdings & Unrealized</h3>
                             <div class="table-container">
                                 <table>
-                                    <thead><tr><th>Script</th><th>Broker</th><th>Qty</th><th>Avg Price</th><th>Invested</th></tr></thead>
+                                    <thead><tr><th>Script</th><th>Qty</th><th>Avg Cost</th><th>Invested</th><th>Unrealized</th></tr></thead>
                                     <tbody id="dash-holdings-body"></tbody>
                                 </table>
                             </div>
                         </div>
                         <div>
-                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Month-wise P&L</h3>
+                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Month-wise Realized P&L</h3>
                             <div class="table-container">
                                 <table>
                                     <thead><tr><th>Month</th><th>P&L</th></tr></thead>
@@ -353,29 +355,23 @@
         </div>
     </div>
 
+    <!-- SCRIPT-WISE REPORTS & UNREALIZED METRICS -->
     <div class="panel">
-        <h2>Script-wise Reports</h2>
+        <h2>Script-wise & Unrealized Performance Reports</h2>
         <div class="controls-row">
             <div class="form-group"><label>Filter By Broker:</label><select id="report-filter-broker" onchange="renderApp()"><option value="All">All Brokers</option></select></div>
             <div class="form-group"><label>Filter By Asset Class:</label><select id="report-filter-asset" onchange="renderApp()"><option value="All">All Assets</option><option value="Equity">Equity</option><option value="Mutual Fund">Mutual Fund</option></select></div>
-            
-            <div class="form-group" style="min-width: 260px; display:none;">
-                <!-- Hidden since we use the Google Apps Script now instead of Finnhub/AlphaVantage -->
-                <label>Live API Config</label>
-                <input type="password" id="live-api-key" placeholder="Optional Free API Key" style="padding: 10px; font-size: 0.85rem;">
-            </div>
-            <!-- Live prices are now fetched through Google Apps Script -->
             <button class="btn-live" onclick="fetchLivePrices()">🔄 Fetch Live Prices</button>
         </div>
         
         <div class="reports-grid">
             
-            <!-- Table 1 -->
+            <!-- Table 1: Current Holdings with Live Tracking & Unrealized PnL -->
             <div style="grid-column: 1 / -1;">
                 <div class="table-header-toggle" onclick="togglePanel('holdings-content', 'holdings-icon')">
-                    <h3 style="margin:0;">Current Holdings (Balance & Live Market Track)</h3><span id="holdings-icon">▼</span>
+                    <h3 style="margin:0;">Current Holdings (Live Valuation & Unrealized P&L Breakdown)</h3><span id="holdings-icon">▼</span>
                 </div>
-                <div id="holdings-content" class="collapsible-table-content"> <!-- Removed active class -->
+                <div id="holdings-content" class="collapsible-table-content">
                     <div class="table-container">
                         <table>
                             <thead>
@@ -388,7 +384,8 @@
                                     <th>Invested Amt</th>
                                     <th style="background: #e6f4ea; color:#137333;">Live Price</th>
                                     <th style="background: #e6f4ea; color:#137333;">Current Value</th>
-                                    <th style="background: #e6f4ea; color:#137333;">Unrealized P&L</th>
+                                    <th style="background: #e6f4ea; color:#137333;">Unrealized P&L (₹)</th>
+                                    <th style="background: #e6f4ea; color:#137333;">Return (%)</th>
                                 </tr>
                             </thead>
                             <tbody id="holdings-body"></tbody>
@@ -397,7 +394,51 @@
                 </div>
             </div>
             
-            <!-- Table 2 -->
+            <!-- Table 2: Unrealized Gain / Loss by Broker -->
+            <div>
+                <div class="table-header-toggle" onclick="togglePanel('broker-unrealized-content', 'broker-unrealized-icon')">
+                    <h3>Unrealized P&L by Broker</h3><span id="broker-unrealized-icon">▼</span>
+                </div>
+                <div id="broker-unrealized-content" class="collapsible-table-content">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Broker</th>
+                                    <th>Invested</th>
+                                    <th>Current Value</th>
+                                    <th>Unrealized P&L</th>
+                                </tr>
+                            </thead>
+                            <tbody id="broker-unrealized-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table 3: Top Gainers & Losers (Unrealized) -->
+            <div>
+                <div class="table-header-toggle" onclick="togglePanel('top-performers-content', 'top-performers-icon')">
+                    <h3>Top Unrealized Gainers & Losers</h3><span id="top-performers-icon">▼</span>
+                </div>
+                <div id="top-performers-content" class="collapsible-table-content">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Symbol</th>
+                                    <th>Gain/Loss (₹)</th>
+                                    <th>Return (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="top-performers-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table 4: Investment by Broker -->
             <div>
                 <div class="table-header-toggle" onclick="togglePanel('broker-inv-content', 'broker-inv-icon')">
                     <h3>Investment by Broker</h3><span id="broker-inv-icon">▼</span>
@@ -407,7 +448,7 @@
                 </div>
             </div>
 
-            <!-- Table 3 -->
+            <!-- Table 5: Broker Cash Balance -->
             <div>
                 <div class="table-header-toggle" onclick="togglePanel('broker-ledger-content', 'broker-ledger-icon')">
                     <h3>Broker Ledger (Cash) Balance</h3><span id="broker-ledger-icon">▼</span>
@@ -417,17 +458,17 @@
                 </div>
             </div>
             
-            <!-- Table 4 -->
-            <div style="grid-column: 1 / -1; max-width: 600px;">
+            <!-- Table 6: Hierarchical Realized PnL -->
+            <div style="grid-column: 1 / -1; max-width: 650px;">
                 <div class="table-header-toggle" onclick="togglePanel('hierarchical-pnl-content', 'hierarchical-pnl-icon')">
-                    <h3>Hierarchical P&L (FY -> Month -> Day -> Script)</h3><span id="hierarchical-pnl-icon">▼</span>
+                    <h3>Hierarchical Realized P&L (FY -> Month -> Day -> Script)</h3><span id="hierarchical-pnl-icon">▼</span>
                 </div>
                 <div id="hierarchical-pnl-content" class="collapsible-table-content">
                     <div id="hierarchical-pnl-body" class="tree-container"></div>
                 </div>
             </div>
 
-            <!-- Table 5 -->
+            <!-- Table 7: Realized PnL by Script -->
             <div>
                 <div class="table-header-toggle" onclick="togglePanel('pnl-script-content', 'pnl-script-icon')">
                     <h3>Realized P&L by Script</h3><span id="pnl-script-icon">▼</span>
@@ -437,7 +478,7 @@
                 </div>
             </div>
 
-            <!-- Table 6 -->
+            <!-- Table 8: Realized PnL by Broker -->
             <div>
                 <div class="table-header-toggle" onclick="togglePanel('pnl-broker-content', 'pnl-broker-icon')">
                     <h3>Realized P&L by Broker</h3><span id="pnl-broker-icon">▼</span>
@@ -450,12 +491,13 @@
         </div>
     </div>
 
+    <!-- RAW LEDGER -->
     <div class="panel" style="padding-top: 10px;">
         <div class="panel-header" onclick="togglePanel('ledger-content', 'ledger-icon')">
             <h2>Raw Transaction Ledger</h2>
             <span id="ledger-icon">▼</span>
         </div>
-        <div id="ledger-content" class="collapsible-table-content"> <!-- Removed active class -->
+        <div id="ledger-content" class="collapsible-table-content">
             <div class="controls-row" style="background: #f1f5f9; border-color: #e2e8f0;">
                 <div class="form-group" style="flex: 2; min-width: 250px;">
                     <label>Global Live Search</label>
@@ -507,7 +549,6 @@
         </div>
     </div>
     
-    <!-- OTHER PURPOSE: SUMMARY DASHBOARD -->
     <div class="summary-container">
         <div class="card pnl">
             <h3>Net Income</h3>
@@ -523,20 +564,18 @@
         </div>
     </div>
 
-    <!-- DRILLDOWN DASHBOARD -->
     <div class="panel" style="padding-top: 10px; margin-bottom: 25px;">
         <div class="panel-header" onclick="togglePanel('other-drilldown-content', 'other-drilldown-icon')">
             <h2>Monthly Income & Expense Drilldown</h2>
             <span id="other-drilldown-icon">▼</span>
         </div>
-        <div id="other-drilldown-content" class="collapsible-table-content"> <!-- Removed active class -->
+        <div id="other-drilldown-content" class="collapsible-table-content">
             <div class="table-container" style="max-width: 800px; padding: 10px; border:none; box-shadow:none; background:transparent;">
                  <div id="other-hierarchical-body" class="tree-container"></div>
             </div>
         </div>
     </div>
     
-    <!-- PARTY BALANCE DASHBOARD -->
     <div class="panel" style="padding-top: 10px; margin-bottom: 25px;">
         <div class="panel-header" onclick="togglePanel('other-party-dash-content', 'other-party-dash-icon')">
             <h2>Transaction Party Balances</h2>
@@ -559,13 +598,12 @@
     </div>
 
     <div class="main-grid">
-        <!-- OTHER PURPOSE: LOG TRANSACTION FORM -->
         <div class="panel" style="margin-bottom: 25px; padding-top: 10px;">
             <div class="panel-header" onclick="togglePanel('other-log-tx-content', 'other-log-tx-icon')">
                 <h2>Log Transaction</h2>
                 <span id="other-log-tx-icon">▼</span>
             </div>
-            <div id="other-log-tx-content" class="tx-form-container"> <!-- Removed active class -->
+            <div id="other-log-tx-content" class="tx-form-container">
                 <form id="other-tx-form">
                     <input type="hidden" id="other-tx-id">
                     <div class="form-group"><label>1) Date</label><input type="date" id="other-date" required></div>
@@ -593,13 +631,12 @@
             </div>
         </div>
         
-        <!-- OTHER PURPOSE: RAW TRANSACTION LEDGER -->
         <div class="panel" style="padding-top: 10px;">
             <div class="panel-header" onclick="togglePanel('other-ledger-content', 'other-ledger-icon')">
                 <h2>Raw Transaction Ledger</h2>
                 <span id="other-ledger-icon">▼</span>
             </div>
-            <div id="other-ledger-content" class="collapsible-table-content"> <!-- Removed active class -->
+            <div id="other-ledger-content" class="collapsible-table-content">
                 <div class="controls-row" style="background: #f1f5f9; border-color: #e2e8f0;">
                     <div class="form-group" style="flex: 2; min-width: 250px;"><label>Global Live Search</label><input type="text" id="other-ledger-search" placeholder="Start typing to search globally..." oninput="resetOtherPageAndRender()" style="border-color: #cbd5e1;"></div>
                     <button class="btn-export" onclick="exportOtherCSV()">Download CSV</button>
@@ -782,7 +819,6 @@
         }; reader.readAsText(file);
     }
 
-
     // ==========================================
     // 6. WORKSPACE 1: EQUITY & MF LOGIC 
     // ==========================================
@@ -793,9 +829,6 @@
         renderApp();
     }
 
-    // =========================================================
-    // UPDATED FUNCTION: GOOGLE APPS SCRIPT LIVE PRICE FETCHING
-    // =========================================================
     async function fetchLivePrices() {
         let inventorySymbols = new Set();
         currentTxs.forEach(tx => {
@@ -812,13 +845,10 @@
 
         const btn = document.querySelector('.btn-live');
         if (btn) {
-            btn.innerText = "⏳ Fetching securely...";
+            btn.innerText = "⏳ Fetching...";
             btn.disabled = true;
         }
 
-        // USING THE PROVIDED GOOGLE APPS SCRIPT URL
-        // ⚠️ NOTE: A "/dev" URL requires the user to be logged in to the specific Google account that owns the script.
-        // For general usage across different browsers/devices without auth issues, use a "/exec" URL (obtained via New Deployment).
         const scriptUrl = "https://script.google.com/macros/s/AKfycbzll1crET6mvunY9wPdYlOxwLe5Gof5lBoCm1yn_9_xpvTwsC1oNF1HUuVUTndVQzo3/exec";
 
         try {
@@ -830,16 +860,16 @@
                 
                 if (Object.keys(fetchedPrices).length > 0) {
                     Object.assign(livePrices, fetchedPrices);
-                    alert(`Successfully fetched live market prices for ${Object.keys(fetchedPrices).length} Equities!`);
+                    alert(`Successfully updated live market prices for ${Object.keys(fetchedPrices).length} Equities!`);
                 } else {
-                    alert("Failed to fetch prices. Make sure your symbols are formatted correctly (e.g., RELIANCE.NS).");
+                    alert("No prices returned. Ensure symbols exist in Google Finance.");
                 }
             } else {
-                throw new Error("Proxy connection failed.");
+                throw new Error("Connection failed.");
             }
         } catch (err) {
             console.error("Fetch error:", err);
-            alert("Live price fetch failed. Please check your internet connection. (Note: A '/dev' Google Script URL may block requests if you are not logged into the owner account).");
+            alert("Live price fetch failed. Please check internet connection.");
         } finally {
             if (btn) {
                 btn.innerText = "🔄 Fetch Live Prices";
@@ -1022,7 +1052,18 @@
         holdingsBody.innerHTML = '';
         Object.keys(inventory).sort().forEach(key => {
             let item = inventory[key];
-            if (item.qty > 0.0001) { holdingsBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${item.broker}</td><td>${item.qty.toFixed(4)}</td><td>${(item.cost/item.qty).toFixed(2)}</td><td>${item.cost.toFixed(2)}</td></tr>`; }
+            if (item.qty > 0.0001) { 
+                let liveP = livePrices[item.symbol] || null;
+                let unPnlStr = "-";
+                let unClass = "pnl-neutral";
+                if(liveP) {
+                    let curV = item.qty * liveP;
+                    let uPnL = curV - item.cost;
+                    unPnlStr = (uPnL >= 0 ? '+' : '') + uPnL.toFixed(2);
+                    unClass = uPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
+                }
+                holdingsBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${item.qty.toFixed(4)}</td><td>${(item.cost/item.qty).toFixed(2)}</td><td>${item.cost.toFixed(2)}</td><td class="${unClass}"><strong>${unPnlStr}</strong></td></tr>`; 
+            }
         });
         if(holdingsBody.innerHTML === '') holdingsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b; padding: 15px;">No current holdings</td></tr>`;
 
@@ -1052,16 +1093,33 @@
         }
     }
 
+    // ==========================================
+    // 7. COMPREHENSIVE RENDER ENGINE
+    // ==========================================
     function renderApp() {
         populateFilterDropdowns();
 
-        const ledgerBody = document.getElementById('ledger-body'); const holdingsBody = document.getElementById('holdings-body'); const brokerInvestmentBody = document.getElementById('broker-investment-body'); const brokerLedgerBody = document.getElementById('broker-ledger-body'); const pnlBody = document.getElementById('pnl-body'); const brokerPnlBody = document.getElementById('broker-pnl-body');
-        if(!ledgerBody) return; // safeguard if not on tab
+        const ledgerBody = document.getElementById('ledger-body'); 
+        const holdingsBody = document.getElementById('holdings-body'); 
+        const brokerInvestmentBody = document.getElementById('broker-investment-body'); 
+        const brokerLedgerBody = document.getElementById('broker-ledger-body'); 
+        const pnlBody = document.getElementById('pnl-body'); 
+        const brokerPnlBody = document.getElementById('broker-pnl-body');
+        const brokerUnrealizedBody = document.getElementById('broker-unrealized-body');
+        const topPerformersBody = document.getElementById('top-performers-body');
+
+        if(!ledgerBody) return; 
         ledgerBody.innerHTML = ''; holdingsBody.innerHTML = ''; brokerInvestmentBody.innerHTML = ''; brokerLedgerBody.innerHTML = ''; pnlBody.innerHTML = ''; brokerPnlBody.innerHTML = '';
-        
+        if(brokerUnrealizedBody) brokerUnrealizedBody.innerHTML = '';
+        if(topPerformersBody) topPerformersBody.innerHTML = '';
+
         let totalEquity = 0; let totalMF = 0; let totalCash = 0;
-        let inventory = {}; let brokerPnLMap = {}; let brokerInvestmentMap = {}; let brokerLedgerMap = {}; let overallPnL = 0;
+        let totalCurrentValuation = 0; let totalUnrealizedPnL = 0;
+        let inventory = {}; let brokerPnLMap = {}; let brokerInvestmentMap = {}; let brokerLedgerMap = {}; 
+        let brokerUnrealizedMap = {}; // broker -> { cost: 0, currentVal: 0, unrealized: 0 }
+        let overallPnL = 0;
         let hierarchicalPnL = {}; 
+        let unrealizedRankings = [];
         
         function addHierarchical(dateStr, symbol, amount) {
             let d = new Date(dateStr);
@@ -1130,18 +1188,42 @@
 
                 if (!brokerInvestmentMap[item.broker]) brokerInvestmentMap[item.broker] = 0;
                 brokerInvestmentMap[item.broker] += item.cost;
+
+                if (!brokerUnrealizedMap[item.broker]) brokerUnrealizedMap[item.broker] = { cost: 0, currentVal: 0, unrealized: 0 };
+                brokerUnrealizedMap[item.broker].cost += item.cost;
                 
                 let livePrice = livePrices[item.symbol] || null;
                 let currentValStr = "-";
                 let unrealizedPnLStr = "-";
+                let returnPctStr = "-";
                 let pnlStyleClass = "pnl-neutral";
                 
                 if(livePrice) {
                     let curValue = item.qty * livePrice;
                     let unRealizedPnL = curValue - item.cost;
-                    currentValStr = curValue.toFixed(2);
-                    unrealizedPnLStr = (unRealizedPnL > 0 ? "+" : "") + unRealizedPnL.toFixed(2);
-                    pnlStyleClass = unRealizedPnL > 0 ? "pnl-positive" : (unRealizedPnL < 0 ? "pnl-negative" : "pnl-neutral");
+                    let unReturnPct = item.cost > 0 ? (unRealizedPnL / item.cost) * 100 : 0;
+
+                    totalCurrentValuation += curValue;
+                    totalUnrealizedPnL += unRealizedPnL;
+
+                    brokerUnrealizedMap[item.broker].currentVal += curValue;
+                    brokerUnrealizedMap[item.broker].unrealized += unRealizedPnL;
+
+                    unrealizedRankings.push({
+                        symbol: item.symbol,
+                        broker: item.broker,
+                        gain: unRealizedPnL,
+                        pct: unReturnPct
+                    });
+
+                    currentValStr = curValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    unrealizedPnLStr = (unRealizedPnL >= 0 ? "+" : "") + unRealizedPnL.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    returnPctStr = (unReturnPct >= 0 ? "+" : "") + unReturnPct.toFixed(2) + "%";
+                    pnlStyleClass = unRealizedPnL >= 0 ? "pnl-positive" : "pnl-negative";
+                } else {
+                    // If live price is not fetched yet, fallback valuation to cost
+                    totalCurrentValuation += item.cost;
+                    brokerUnrealizedMap[item.broker].currentVal += item.cost;
                 }
 
                 holdingsBody.innerHTML += `<tr>
@@ -1150,10 +1232,11 @@
                     <td>${item.type}</td>
                     <td>${item.qty.toFixed(4)}</td>
                     <td>${(item.cost/item.qty).toFixed(2)}</td>
-                    <td>${item.cost.toFixed(2)}</td>
-                    <td style="background: #e6f4ea; color:#137333; font-weight:bold;">${livePrice ? livePrice.toFixed(2) : 'Click Fetch'}</td>
+                    <td>${item.cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td style="background: #e6f4ea; color:#137333; font-weight:bold;">${livePrice ? livePrice.toFixed(2) : '<span style="color:#64748b; font-weight:normal;">Click Fetch</span>'}</td>
                     <td style="background: #e6f4ea;"><strong>${currentValStr}</strong></td>
                     <td style="background: #e6f4ea;" class="${pnlStyleClass}">${unrealizedPnLStr}</td>
+                    <td style="background: #e6f4ea;" class="${pnlStyleClass}">${returnPctStr}</td>
                 </tr>`;
             }
             if (item.pnl !== 0 && item.hasTrade && item.symbol.toUpperCase() !== 'EXPENSE' && item.symbol.toUpperCase() !== 'CASH') {
@@ -1162,13 +1245,65 @@
             }
         });
 
-        Object.keys(brokerInvestmentMap).sort().forEach(b => brokerInvestmentBody.innerHTML += `<tr><td><strong>${b}</strong></td><td>${brokerInvestmentMap[b].toFixed(2)}</td></tr>`);
+        if (holdingsBody.innerHTML === '') {
+            holdingsBody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 20px; color: #64748b;">No active stock or fund holdings.</td></tr>`;
+        }
+
+        // Render Unrealized P&L by Broker Table
+        if (brokerUnrealizedBody) {
+            Object.keys(brokerUnrealizedMap).sort().forEach(b => {
+                let u = brokerUnrealizedMap[b];
+                let uClass = u.unrealized >= 0 ? 'pnl-positive' : 'pnl-negative';
+                brokerUnrealizedBody.innerHTML += `<tr>
+                    <td><strong>${b}</strong></td>
+                    <td>₹${u.cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td><strong>₹${u.currentVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
+                    <td class="${uClass}">${u.unrealized >= 0 ? '+' : ''}₹${u.unrealized.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                </tr>`;
+            });
+            if (brokerUnrealizedBody.innerHTML === '') {
+                brokerUnrealizedBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding:15px;">No broker unrealized positions.</td></tr>`;
+            }
+        }
+
+        // Render Top Gainers and Losers
+        if (topPerformersBody) {
+            if (unrealizedRankings.length > 0) {
+                unrealizedRankings.sort((a, b) => b.gain - a.gain);
+                let topGainers = unrealizedRankings.slice(0, 3);
+                let topLosers = unrealizedRankings.slice(-3).reverse();
+
+                topGainers.forEach(g => {
+                    topPerformersBody.innerHTML += `<tr>
+                        <td><span class="badge" style="background:#dcfce7; color:#15803d;">Gainer 🚀</span></td>
+                        <td><strong>${g.symbol}</strong> (${g.broker})</td>
+                        <td class="pnl-positive">+₹${g.gain.toFixed(2)}</td>
+                        <td class="pnl-positive">+${g.pct.toFixed(2)}%</td>
+                    </tr>`;
+                });
+
+                topLosers.forEach(l => {
+                    if (l.gain < 0) {
+                        topPerformersBody.innerHTML += `<tr>
+                            <td><span class="badge" style="background:#fee2e2; color:#991b1b;">Loser 🔻</span></td>
+                            <td><strong>${l.symbol}</strong> (${l.broker})</td>
+                            <td class="pnl-negative">₹${l.gain.toFixed(2)}</td>
+                            <td class="pnl-negative">${l.pct.toFixed(2)}%</td>
+                        </tr>`;
+                    }
+                });
+            } else {
+                topPerformersBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding:15px;">Click "Fetch Live Prices" to view performance rankings.</td></tr>`;
+            }
+        }
+
+        Object.keys(brokerInvestmentMap).sort().forEach(b => brokerInvestmentBody.innerHTML += `<tr><td><strong>${b}</strong></td><td>₹${brokerInvestmentMap[b].toFixed(2)}</td></tr>`);
         Object.keys(brokerLedgerMap).sort().forEach(b => { 
             let bal = brokerLedgerMap[b]; totalCash += bal;
             let c = bal > 0 ? 'pnl-positive' : (bal < 0 ? 'pnl-negative' : 'pnl-neutral'); 
-            brokerLedgerBody.innerHTML += `<tr><td><strong>${b}</strong></td><td class="${c}">${bal > 0 ? '+' : ''}${bal.toFixed(2)}</td></tr>`; 
+            brokerLedgerBody.innerHTML += `<tr><td><strong>${b}</strong></td><td class="${c}">${bal > 0 ? '+' : ''}₹${bal.toFixed(2)}</td></tr>`; 
         });
-        Object.keys(brokerPnLMap).sort().forEach(b => { let p = brokerPnLMap[b]; if (p !== 0) brokerPnlBody.innerHTML += `<tr><td><strong>${b}</strong></td><td class="${p>0?'pnl-positive':'pnl-negative'}">${p>0?'+':''}${p.toFixed(2)}</td></tr>`; });
+        Object.keys(brokerPnLMap).sort().forEach(b => { let p = brokerPnLMap[b]; if (p !== 0) brokerPnlBody.innerHTML += `<tr><td><strong>${b}</strong></td><td class="${p>0?'pnl-positive':'pnl-negative'}">${p>0?'+':''}₹${p.toFixed(2)}</td></tr>`; });
 
         let treeHtml = '';
         const monthNames = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -1181,7 +1316,7 @@
             treeHtml += `<div class="tree-node">
                 <div class="tree-header" onclick="this.parentElement.classList.toggle('active')">
                     <span><span class="tree-arrow">▶</span> FY ${fy}</span>
-                    <span class="${fyClass}">${fyData.pnl>0?'+':''}${fyData.pnl.toFixed(2)}</span>
+                    <span class="${fyClass}">${fyData.pnl>0?'+':''}₹${fyData.pnl.toFixed(2)}</span>
                 </div>
                 <div class="tree-children">`;
             
@@ -1193,7 +1328,7 @@
                 treeHtml += `<div class="tree-node">
                     <div class="tree-header" onclick="this.parentElement.classList.toggle('active')">
                         <span><span class="tree-arrow">▶</span> ${monthNames[parseInt(mStr)]}</span>
-                        <span class="${mClass}">${mData.pnl>0?'+':''}${mData.pnl.toFixed(2)}</span>
+                        <span class="${mClass}">${mData.pnl>0?'+':''}₹${mData.pnl.toFixed(2)}</span>
                     </div>
                     <div class="tree-children">`;
                 
@@ -1205,7 +1340,7 @@
                     treeHtml += `<div class="tree-node">
                         <div class="tree-header" onclick="this.parentElement.classList.toggle('active')">
                             <span><span class="tree-arrow">▶</span> ${dStr} ${monthNames[parseInt(mStr)].slice(0,3)}</span>
-                            <span class="${dClass}">${dData.pnl>0?'+':''}${dData.pnl.toFixed(2)}</span>
+                            <span class="${dClass}">${dData.pnl>0?'+':''}₹${dData.pnl.toFixed(2)}</span>
                         </div>
                         <div class="tree-children">`;
                     
@@ -1215,7 +1350,7 @@
                             let sClass = sPnL > 0 ? 'pnl-positive' : 'pnl-negative';
                             treeHtml += `<div class="tree-leaf">
                                 <span>${script}</span>
-                                <span class="${sClass}">${sPnL>0?'+':''}${sPnL.toFixed(2)}</span>
+                                <span class="${sClass}">${sPnL>0?'+':''}₹${sPnL.toFixed(2)}</span>
                             </div>`;
                         }
                     });
@@ -1229,12 +1364,32 @@
         if(treeHtml === '') treeHtml = `<div style="padding: 15px; color: #64748b; text-align: center;">No realized P&L to display.</div>`;
         document.getElementById('hierarchical-pnl-body').innerHTML = treeHtml;
 
-        document.getElementById('equity-investment').innerText = totalEquity.toFixed(2);
-        document.getElementById('mf-investment').innerText = totalMF.toFixed(2);
-        document.getElementById('cash-balance').innerText = totalCash.toFixed(2);
+        // Populate Summary Cards
+        document.getElementById('equity-investment').innerText = `₹${totalEquity.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('mf-investment').innerText = `₹${totalMF.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('total-valuation').innerText = `₹${totalCurrentValuation.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('cash-balance').innerText = `₹${totalCash.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        
+        // Unrealized Summary KPI
+        let unEl = document.getElementById('unrealized-pnl');
+        let unPctEl = document.getElementById('unrealized-pnl-pct');
+        let totalInvestedCost = totalEquity + totalMF;
+        let unPct = totalInvestedCost > 0 ? (totalUnrealizedPnL / totalInvestedCost) * 100 : 0;
+        unEl.innerText = `${totalUnrealizedPnL >= 0 ? '+' : ''}₹${totalUnrealizedPnL.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        unEl.className = totalUnrealizedPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
+        unPctEl.innerText = `${unPct >= 0 ? '+' : ''}${unPct.toFixed(2)}% Overall`;
+        unPctEl.className = totalUnrealizedPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
+
+        // Realized Summary KPI
         let pnlEl = document.getElementById('realized-pnl');
-        pnlEl.innerText = (overallPnL > 0 ? '+' : '') + overallPnL.toFixed(2);
+        pnlEl.innerText = `${overallPnL >= 0 ? '+' : ''}₹${overallPnL.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         pnlEl.className = overallPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
+
+        // Combined Net Return (Realized + Unrealized)
+        let combinedPnL = overallPnL + totalUnrealizedPnL;
+        let combEl = document.getElementById('combined-net-pnl');
+        combEl.innerText = `${combinedPnL >= 0 ? '+' : ''}₹${combinedPnL.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        combEl.className = combinedPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
 
         if(document.getElementById('dash-script')) renderScriptDash();
 
@@ -1320,9 +1475,8 @@
         document.getElementById('btn-next').disabled = currentPage === totalPages;
     }
 
-
     // ======================================================================
-    // 7. WORKSPACE 2: OTHER PURPOSE LOGIC
+    // 8. WORKSPACE 2: OTHER PURPOSE LOGIC
     // ======================================================================
     async function loadOtherTransactions() {
         if(!currentUser) return;
@@ -1332,46 +1486,46 @@
     }
 
     function calcOtherAmount() {
-        let qty = parseFloat(document.getElementById('oth-qty').value) || 0;
-        let rate = parseFloat(document.getElementById('oth-rate').value) || 0;
-        document.getElementById('oth-amount').value = (qty * rate).toFixed(2);
+        let qty = parseFloat(document.getElementById('other-qty').value) || 0;
+        let rate = parseFloat(document.getElementById('other-rate').value) || 0;
+        document.getElementById('other-amount').value = (qty * rate).toFixed(2);
     }
 
-    if(document.getElementById('oth-tx-form')) {
-        document.getElementById('oth-tx-form').addEventListener('submit', async function(e) {
+    if(document.getElementById('other-tx-form')) {
+        document.getElementById('other-tx-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const btn = document.getElementById('oth-submit-btn'); btn.disabled = true; btn.innerText = "Saving...";
+            const btn = document.getElementById('other-submit-btn'); btn.disabled = true; btn.innerText = "Saving...";
             try {
-                const txId = document.getElementById('oth-tx-id').value; 
+                const txId = document.getElementById('other-tx-id').value; 
                 const txData = {
-                    userId: currentUser.uid, date: document.getElementById('oth-date').value, txType: document.getElementById('oth-tx-type').value,
-                    name: document.getElementById('oth-name').value.trim(), remark: document.getElementById('oth-remark').value.trim(),
-                    qty: parseFloat(document.getElementById('oth-qty').value) || 0, rate: parseFloat(document.getElementById('oth-rate').value) || 0,
-                    amount: parseFloat(document.getElementById('oth-amount').value) || 0
+                    userId: currentUser.uid, date: document.getElementById('other-date').value, txType: document.getElementById('other-tx-type').value,
+                    name: document.getElementById('other-name').value.trim(), remark: document.getElementById('other-remark').value.trim(),
+                    qty: parseFloat(document.getElementById('other-qty').value) || 0, rate: parseFloat(document.getElementById('other-rate').value) || 0,
+                    amount: parseFloat(document.getElementById('other-amount').value) || 0
                 };
                 if (txId) { await db.collection('other_transactions').doc(txId).update(txData); cancelOtherEdit(); } 
-                else { await db.collection('other_transactions').add(txData); document.getElementById('oth-tx-form').reset(); document.getElementById('oth-date').valueAsDate = new Date(); }
+                else { await db.collection('other_transactions').add(txData); document.getElementById('other-tx-form').reset(); document.getElementById('other-date').valueAsDate = new Date(); }
                 await loadOtherTransactions();
-            } catch (error) { alert("Error saving transaction: " + error.message); } finally { btn.disabled = false; btn.innerText = document.getElementById('oth-tx-id').value ? "Update Transaction" : "Add Transaction"; }
+            } catch (error) { alert("Error saving transaction: " + error.message); } finally { btn.disabled = false; btn.innerText = document.getElementById('other-tx-id').value ? "Update Transaction" : "Add Transaction"; }
         });
     }
 
     async function editOtherTx(id) {
         const docRef = await db.collection('other_transactions').doc(id).get(); if (!docRef.exists) return; const tx = docRef.data();
-        document.getElementById('oth-tx-id').value = id; document.getElementById('oth-date').value = tx.date; document.getElementById('oth-tx-type').value = tx.txType;
-        document.getElementById('oth-name').value = tx.name || ''; document.getElementById('oth-remark').value = tx.remark || '';
-        document.getElementById('oth-qty').value = tx.qty; document.getElementById('oth-rate').value = tx.rate; document.getElementById('oth-amount').value = tx.amount;
-        document.getElementById('oth-submit-btn').innerText = 'Update Transaction'; document.getElementById('oth-cancel-edit-btn').style.display = 'block';
-        togglePanel('oth-log-tx-content', 'oth-log-tx-icon'); window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById('other-tx-id').value = id; document.getElementById('other-date').value = tx.date; document.getElementById('other-tx-type').value = tx.txType;
+        document.getElementById('other-name').value = tx.name || ''; document.getElementById('other-remark').value = tx.remark || '';
+        document.getElementById('other-qty').value = tx.qty; document.getElementById('other-rate').value = tx.rate; document.getElementById('other-amount').value = tx.amount;
+        document.getElementById('other-submit-btn').innerText = 'Update Transaction'; document.getElementById('other-cancel-edit-btn').style.display = 'block';
+        togglePanel('other-log-tx-content', 'other-log-tx-icon'); window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function cancelOtherEdit() {
-        document.getElementById('oth-tx-id').value = ''; document.getElementById('oth-submit-btn').innerText = 'Add Transaction'; document.getElementById('oth-cancel-edit-btn').style.display = 'none';
-        document.getElementById('oth-tx-form').reset(); document.getElementById('oth-date').valueAsDate = new Date();
+        document.getElementById('other-tx-id').value = ''; document.getElementById('other-submit-btn').innerText = 'Add Transaction'; document.getElementById('other-cancel-edit-btn').style.display = 'none';
+        document.getElementById('other-tx-form').reset(); document.getElementById('other-date').valueAsDate = new Date();
     }
 
     async function deleteOtherTx(id) {
-        if (confirm("Are you sure you want to delete this transaction?")) { await db.collection('other_transactions').doc(id).delete(); if (document.getElementById('oth-tx-id').value === id) cancelOtherEdit(); await loadOtherTransactions(); }
+        if (confirm("Are you sure you want to delete this transaction?")) { await db.collection('other_transactions').doc(id).delete(); if (document.getElementById('other-tx-id').value === id) cancelOtherEdit(); await loadOtherTransactions(); }
     }
 
     function exportOtherCSV() {
@@ -1437,10 +1591,10 @@
         ['date', 'txType', 'name', 'remark', 'qty', 'rate', 'amount'].forEach(col => { const el = document.getElementById(`other-sort-${col}`); if(el) el.innerText = (otherSortCol === col) ? (otherSortDesc ? ' ↓' : ' ↑') : ''; });
 
         const searchText = (document.getElementById('other-ledger-search') ? document.getElementById('other-ledger-search').value : '').toLowerCase().trim();
-        const fColDate = document.getElementById('oth-flt-date').value.toLowerCase().trim();
-        const fColType = document.getElementById('oth-flt-type').value.toLowerCase().trim();
-        const fColName = document.getElementById('oth-flt-name').value.toLowerCase().trim();
-        const fColRemark = document.getElementById('oth-flt-remark').value.toLowerCase().trim();
+        const fColDate = document.getElementById('other-flt-date').value.toLowerCase().trim();
+        const fColType = document.getElementById('other-flt-type').value.toLowerCase().trim();
+        const fColName = document.getElementById('other-flt-name').value.toLowerCase().trim();
+        const fColRemark = document.getElementById('other-flt-remark').value.toLowerCase().trim();
 
         let dynamicTxs = [...otherTxs].filter(tx => {
             let match = true;
