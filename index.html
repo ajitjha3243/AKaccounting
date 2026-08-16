@@ -792,37 +792,113 @@
         renderApp();
     }
 
-    async function fetchLivePrices() {
-        let inventorySymbols = new Set();
-        currentTxs.forEach(tx => {
-            if (tx.symbol && tx.symbol !== 'CASH') { inventorySymbols.add(tx.symbol.toUpperCase().trim()); }
-        });
-        const symbolsArray = Array.from(inventorySymbols);
-        if (symbolsArray.length === 0) { alert("No symbols available to check live prices."); return; }
-        const apiKey = document.getElementById('live-api-key').value.trim();
-        alert(`Fetching real-time market snapshots for ${symbolsArray.length} items...`);
+  async function fetchLivePrices() {
+    let inventorySymbols = new Set();
+    currentTxs.forEach(tx => {
+        if (tx.symbol && tx.symbol !== 'CASH') { inventorySymbols.add(tx.symbol.toUpperCase().trim()); }
+    });
+    
+    const symbolsArray = Array.from(inventorySymbols);
+    if (symbolsArray.length === 0) { 
+        alert("No symbols available to check live prices."); 
+        return; 
+    }
 
+    // 1. LOCAL CACHING: Prevent spamming the API on page reload
+    const CACHE_KEY = "live_prices_cache";
+    const CACHE_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes
+    const cachedData = JSON.parse(localStorage.getItem(CACHE_KEY) || "{}");
+
+    if (cachedData.timestamp && (Date.now() - cachedData.timestamp < CACHE_EXPIRY_MS)) {
+        Object.assign(livePrices, cachedData.prices);
+        renderApp();
+        alert("Loaded prices from cache. (Updates are restricted to once every 15 minutes to prevent blocking).");
+        return;
+    }
+
+    const apiKey = document.getElementById('live-api-key') ? document.getElementById('live-api-key').value.trim() : "";
+    const btn = document.querySelector('.btn-live');
+    if (btn) {
+        btn.innerText = "⏳ Fetching securely... Please Wait";
+        btn.disabled = true;
+    }
+
+    let fetchedPrices = {};
+
+    // 2. THROTTLING & BATCHING LOGIC
+    if (apiKey) {
+        // FINNHUB: Only accepts 1 symbol per request on free tier. 
+        // We MUST throttle to 1 request per second to avoid the 60/min limit.
         for (let sym of symbolsArray) {
-            let apiSymbol = sym;
-            if (!sym.includes('.')) { apiSymbol = sym + ".NS"; }
             try {
-                let url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${apiSymbol}`;
-                if(apiKey) { url = `https://finnhub.io/api/v1/quote?symbol=${sym}&token=${apiKey}`; }
-                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+                const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=${apiKey}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.c) fetchedPrices[sym] = data.c;
+                }
+            } catch (e) { console.warn(`Failed to fetch ${sym}`, e); }
+            
+            // Wait 1 second before the next call
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+    } else {
+        // YAHOO FINANCE via Proxy: Batch up to 5 symbols at once.
+        const BATCH_SIZE = 5;
+        for (let i = 0; i < symbolsArray.length; i += BATCH_SIZE) {
+            const batch = symbolsArray.slice(i, i + BATCH_SIZE);
+            const symbolMap = {}; 
+            
+            // Format for Yahoo and map back to user's original input
+            const yahooSymbols = batch.map(sym => {
+                let ySym = sym.includes('.') ? sym : sym + ".NS";
+                symbolMap[ySym] = sym;
+                return ySym;
+            }).join(',');
+
+            try {
+                let url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${yahooSymbols}`;
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+                
+                const res = await fetch(proxyUrl);
                 if (res.ok) {
                     const wrapData = await res.json();
                     const data = JSON.parse(wrapData.contents);
-                    let price = 0;
-                    if (data.quoteResponse && data.quoteResponse.result && data.quoteResponse.result[0]) {
-                        price = data.quoteResponse.result[0].regularMarketPrice;
-                    } else if (data.c) { price = data.c; }
-                    if (price > 0) { livePrices[sym] = price; }
+                    
+                    if (data.quoteResponse && data.quoteResponse.result) {
+                        data.quoteResponse.result.forEach(quote => {
+                            // Link Yahoo's output symbol back to the user's input symbol
+                            const originalSym = symbolMap[quote.symbol] || quote.symbol.replace('.NS', '');
+                            fetchedPrices[originalSym] = quote.regularMarketPrice;
+                        });
+                    }
                 }
-            } catch (err) { console.warn(`Failed fetching real time value for: ${sym}`, err); }
+            } catch (err) { console.warn("Batch failed", err); }
+
+            // Wait 2 seconds before requesting the next batch to bypass bot detection
+            if (i + BATCH_SIZE < symbolsArray.length) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
         }
-        renderApp();
     }
 
+    // 3. STORE RESULTS & RE-RENDER
+    if (Object.keys(fetchedPrices).length > 0) {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            prices: fetchedPrices
+        }));
+        Object.assign(livePrices, fetchedPrices);
+        alert(`Successfully fetched and cached ${Object.keys(fetchedPrices).length} prices!`);
+    } else {
+        alert("Update failed. The proxy is currently rejecting connections. Please try again later or use the CSV bulk upload feature.");
+    }
+
+    if (btn) {
+        btn.innerText = "🔄 Fetch Live Prices";
+        btn.disabled = false;
+    }
+    renderApp();
+}
     function handleTxTypeChange() {
         const type = document.getElementById('tx-type').value;
         if (type === 'Cash Addition' || type === 'Cash Withdrawal') {
