@@ -671,6 +671,18 @@
     const auth = firebase.auth();
 
     // ==========================================
+    // BULLETPROOF PARSING ENGINE
+    // Converts corrupt strings, commas, or NaNs into clean numbers
+    // ==========================================
+    function parseNum(val) {
+        if (val === null || val === undefined) return 0;
+        if (typeof val === 'number') return isNaN(val) ? 0 : val;
+        const str = String(val).replace(/,/g, '').trim();
+        const n = parseFloat(str);
+        return isNaN(n) ? 0 : n;
+    }
+
+    // ==========================================
     // 2. GLOBAL STATE VARIABLES
     // ==========================================
     let currentUser = null; 
@@ -856,9 +868,8 @@
             e.preventDefault();
             const txId = document.getElementById('tx-id').value; 
             const txType = document.getElementById('tx-type').value;
-            // Parse robustly to protect the DB from NaN
-            const qty = parseFloat(document.getElementById('qty').value) || 0;
-            const price = parseFloat(document.getElementById('price').value) || 0;
+            const qty = parseNum(document.getElementById('qty').value);
+            const price = parseNum(document.getElementById('price').value);
             
             let finalSymbol = document.getElementById('symbol-input').value.toUpperCase().trim();
             let finalBroker = document.getElementById('broker-input').value.trim();
@@ -886,7 +897,7 @@
         document.getElementById('tx-id').value = id; document.getElementById('date').value = tx.date; document.getElementById('broker-input').value = tx.broker;
         document.getElementById('asset-class').value = tx.assetClass; document.getElementById('tx-type').value = tx.txType;
         document.getElementById('symbol-input').value = tx.symbol; document.getElementById('remark-input').value = tx.remark || '';
-        document.getElementById('qty').value = tx.qty; document.getElementById('price').value = tx.price;
+        document.getElementById('qty').value = parseNum(tx.qty); document.getElementById('price').value = parseNum(tx.price);
         document.getElementById('submit-btn').innerText = 'Update Transaction'; document.getElementById('cancel-edit-btn').style.display = 'block';
         togglePanel('log-tx-content', 'log-tx-icon'); window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -908,7 +919,7 @@
     function exportCSV() {
         if (currentTxs.length === 0) return alert("No data to export.");
         let csvContent = "data:text/csv;charset=utf-8,ID,Date,Broker,Asset Class,Transaction Type,Symbol,Remark,Quantity,Price,Total Amount\n";
-        currentTxs.forEach(tx => { csvContent += [tx.id, tx.date, `"${tx.broker}"`, `"${tx.assetClass}"`, `"${tx.txType}"`, `"${tx.symbol}"`, `"${tx.remark || ''}"`, tx.qty, tx.price, tx.total].join(",") + "\n"; });
+        currentTxs.forEach(tx => { csvContent += [tx.id, tx.date, `"${tx.broker}"`, `"${tx.assetClass}"`, `"${tx.txType}"`, `"${tx.symbol}"`, `"${tx.remark || ''}"`, parseNum(tx.qty), parseNum(tx.price), parseNum(tx.total)].join(",") + "\n"; });
         const link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", `Equity_Export_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
     }
@@ -939,12 +950,11 @@
         if(dashScriptSelect) { 
             dashScriptSelect.innerHTML = uniqueSymbols.filter(s => s !== "CASH").map(s => `<option value="${s}">${s}</option>`).join(''); 
             
-            // SMART DROPDOWN SELECTOR: Ensures new scripts are always selected, while preserving user's unchecked preferences
+            // SMART DROPDOWN SELECTOR
             if (currentDashScripts.length > 0) {
                 Array.from(dashScriptSelect.options).forEach(opt => { 
                     if (currentDashScripts.includes(opt.value)) { opt.selected = true; }
                 }); 
-                // Auto-add any brand new scripts to the selection
                 uniqueSymbols.forEach(s => {
                     if (!currentDashScripts.includes(s) && s !== "CASH") {
                         let newOpt = Array.from(dashScriptSelect.options).find(o => o.value === s);
@@ -985,15 +995,16 @@
             let dateObj = new Date(tx.date); let year = tx.date.substring(0, 4);
             let monthKey = `${year}-${(dateObj.getMonth()+1).toString().padStart(2, '0')}`;
             
-            let safeQty = Number(tx.qty) || 0; 
-            let safeTotal = Number(tx.total) || 0;
+            let safeQty = parseNum(tx.qty); 
+            let safeTotal = parseNum(tx.total);
+            let rawType = String(tx.txType || '').trim().toLowerCase();
 
             if (!inventory[key]) inventory[key] = { symbol: s, broker: b, qty: 0, cost: 0 };
             if (!monthlyPnL[monthKey]) monthlyPnL[monthKey] = 0;
 
-            if (tx.txType === 'Purchase') {
+            if (rawType === 'purchase') {
                 inventory[key].qty += safeQty; inventory[key].cost += safeTotal;
-            } else if (tx.txType === 'Sale') {
+            } else if (rawType === 'sale') {
                 let avgCost = inventory[key].qty > 0 ? (inventory[key].cost / inventory[key].qty) : 0;
                 let cogs = avgCost * safeQty;
                 let tradePnL = safeTotal - cogs;
@@ -1020,10 +1031,10 @@
                     unClass = uPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
                 }
                 
-                // Explicit format binding to prevent missing columns
-                let displayQty = (Number(item.qty) || 0).toFixed(4);
-                let displayAvg = item.qty > 0 ? (Number(item.cost) / Number(item.qty)).toFixed(2) : "0.00";
-                let displayInv = (Number(item.cost) || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                // BULLETPROOF FORMATTING: Ensures numbers are shown perfectly
+                let displayQty = parseNum(item.qty).toFixed(4);
+                let displayAvg = parseNum(item.qty) > 0 ? (parseNum(item.cost) / parseNum(item.qty)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "0.00";
+                let displayInv = parseNum(item.cost).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
                 holdingsBody.innerHTML += `<tr>
                     <td><strong>${item.symbol}</strong></td>
@@ -1052,11 +1063,15 @@
         
         const salesBody = document.getElementById('dash-sales-body');
         salesBody.innerHTML = '';
-        let lastSales = sortedTxs.filter(tx => selectedScripts.includes(tx.symbol) && tx.txType === 'Sale').reverse().slice(0, 2);
+        let lastSales = sortedTxs.filter(tx => {
+            let rawType = String(tx.txType || '').trim().toLowerCase();
+            return selectedScripts.includes(tx.symbol) && rawType === 'sale';
+        }).reverse().slice(0, 2);
+        
         if (lastSales.length > 0) {
             lastSales.forEach(tx => {
-                let safeQty = Number(tx.qty) || 0; let safePrice = Number(tx.price) || 0;
-                salesBody.innerHTML += `<tr><td>${tx.date}</td><td><strong>${tx.symbol}</strong></td><td>${safeQty.toFixed(4)}</td><td>${safePrice.toFixed(2)}</td></tr>`;
+                let safeQty = parseNum(tx.qty); let safePrice = parseNum(tx.price);
+                salesBody.innerHTML += `<tr><td>${tx.date}</td><td><strong>${tx.symbol}</strong></td><td>${safeQty.toFixed(4)}</td><td>${safePrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td></tr>`;
             });
         } else { salesBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No recent sales</td></tr>`; }
     }
@@ -1102,35 +1117,35 @@
 
         chronTxs.forEach(tx => {
             let b = tx.broker || 'N/A'; let key = `${tx.symbol}::${b}`;
-            let safeQty = Number(tx.qty) || 0; let safeTotal = Number(tx.total) || 0;
+            let safeQty = parseNum(tx.qty); let safeTotal = parseNum(tx.total);
+            let rawType = String(tx.txType || '').trim().toLowerCase();
             
             if (!inventory[key]) inventory[key] = { symbol: tx.symbol, broker: b, qty: 0, cost: 0, type: tx.assetClass, pnl: 0, hasTrade: false };
             if (!brokerLedgerMap[b]) brokerLedgerMap[b] = 0;
             
-            if (tx.txType === 'Purchase') { 
+            if (rawType === 'purchase') { 
                 inventory[key].qty += safeQty; inventory[key].cost += safeTotal; brokerLedgerMap[b] -= safeTotal; 
                 inventory[key].hasTrade = true;
             } 
-            else if (tx.txType === 'Sale') {
+            else if (rawType === 'sale') {
                 let avgCost = inventory[key].qty > 0 ? (inventory[key].cost / inventory[key].qty) : 0;
                 let cogs = avgCost * safeQty; let tradePnL = safeTotal - cogs; 
                 inventory[key].pnl += tradePnL; overallPnL += tradePnL; 
                 inventory[key].qty -= safeQty; inventory[key].cost -= cogs; brokerLedgerMap[b] += safeTotal; 
                 addHierarchical(tx.date, tx.symbol, tradePnL); inventory[key].hasTrade = true;
             } 
-            else if (tx.txType === 'Expense') { 
+            else if (rawType === 'expense') { 
                 overallPnL -= safeTotal; inventory[key].pnl -= safeTotal; brokerLedgerMap[b] -= safeTotal; 
                 addHierarchical(tx.date, tx.symbol, -safeTotal); 
             } 
-            else if (tx.txType === 'Income') { 
+            else if (rawType === 'income') { 
                 overallPnL += safeTotal; inventory[key].pnl += safeTotal; brokerLedgerMap[b] += safeTotal; 
                 addHierarchical(tx.date, tx.symbol, safeTotal); inventory[key].hasTrade = true;
             } 
-            else if (tx.txType === 'Cash Addition') { brokerLedgerMap[b] += safeTotal; } 
-            else if (tx.txType === 'Cash Withdrawal') { brokerLedgerMap[b] -= safeTotal; }
+            else if (rawType === 'cash addition') { brokerLedgerMap[b] += safeTotal; } 
+            else if (rawType === 'cash withdrawal') { brokerLedgerMap[b] -= safeTotal; }
         });
 
-        // Clamp floating point ghost quantities to 0
         Object.keys(inventory).forEach(key => {
             if (inventory[key].qty < 0.0001) { inventory[key].qty = 0; inventory[key].cost = 0; }
         });
@@ -1178,9 +1193,9 @@
                 }
 
                 // Bulletproof Format Generation
-                let displayQty = (Number(item.qty) || 0).toFixed(4);
-                let displayAvg = item.qty > 0 ? (Number(item.cost) / Number(item.qty)).toFixed(2) : "0.00";
-                let displayInv = (Number(item.cost) || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                let displayQty = parseNum(item.qty).toFixed(4);
+                let displayAvg = parseNum(item.qty) > 0 ? (parseNum(item.cost) / parseNum(item.qty)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "0.00";
+                let displayInv = parseNum(item.cost).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
                 holdingsBody.innerHTML += `<tr>
                     <td><strong>${item.symbol}</strong></td>
@@ -1189,7 +1204,7 @@
                     <td>${displayQty}</td>
                     <td>${displayAvg}</td>
                     <td>${displayInv}</td>
-                    <td style="background: #e6f4ea; color:#137333; font-weight:bold;">${livePrice ? livePrice.toFixed(2) : '<span style="color:#64748b; font-weight:normal;">Click Fetch</span>'}</td>
+                    <td style="background: #e6f4ea; color:#137333; font-weight:bold;">${livePrice ? livePrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '<span style="color:#64748b; font-weight:normal;">Click Fetch</span>'}</td>
                     <td style="background: #e6f4ea;"><strong>${currentValStr}</strong></td>
                     <td style="background: #e6f4ea;" class="${pnlStyleClass}">${unrealizedPnLStr}</td>
                     <td style="background: #e6f4ea;" class="${pnlStyleClass}">${returnPctStr}</td>
@@ -1295,7 +1310,7 @@
 
         const totalDisplayEl = document.getElementById('flt-col-total-display');
         if (fColType || fColSymbol || fColRemark) {
-            let sumTotal = dynamicTxs.reduce((sum, tx) => sum + (Number(tx.total)||0), 0);
+            let sumTotal = dynamicTxs.reduce((sum, tx) => sum + parseNum(tx.total), 0);
             totalDisplayEl.innerText = sumTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}); 
             totalDisplayEl.style.display = 'block';
         } else { totalDisplayEl.style.display = 'none'; }
@@ -1303,7 +1318,7 @@
         dynamicTxs.sort((a, b) => {
             let valA = a[sortCol]; let valB = b[sortCol];
             if (sortCol === 'date') { valA = new Date(valA).getTime(); valB = new Date(valB).getTime(); }
-            else if (['qty', 'price', 'total'].includes(sortCol)) { valA = Number(valA); valB = Number(valB); }
+            else if (['qty', 'price', 'total'].includes(sortCol)) { valA = parseNum(valA); valB = parseNum(valB); }
             else { valA = String(valA || '').toLowerCase(); valB = String(valB || '').toLowerCase(); }
             if (valA < valB) return sortDesc ? 1 : -1; if (valA > valB) return sortDesc ? -1 : 1; return 0;
         });
@@ -1314,11 +1329,11 @@
 
         pageTxs.forEach(tx => {
             let badgeClass = tx.txType.toLowerCase().replace(' ', '-');
-            let safeQty = Number(tx.qty) || 0; let safePrice = Number(tx.price) || 0; let safeTotal = Number(tx.total) || 0;
+            let safeQty = parseNum(tx.qty); let safePrice = parseNum(tx.price); let safeTotal = parseNum(tx.total);
             ledgerBody.innerHTML += `<tr>
                 <td>${tx.date}</td><td>${tx.broker}</td><td>${tx.assetClass}</td>
                 <td><span class="badge ${badgeClass}">${tx.txType}</span></td><td><strong>${tx.symbol}</strong></td><td>${tx.remark || '-'}</td>
-                <td>${safeQty}</td><td>${safePrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td><td><strong>${safeTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
+                <td>${safeQty.toFixed(4)}</td><td>${safePrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td><td><strong>${safeTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
                 <td><button class="btn-edit-tx" onclick="editTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteTx('${tx.id}')">Del</button></td>
             </tr>`;
         });
@@ -1339,7 +1354,8 @@
     }
 
     function calcOtherAmount() {
-        let qty = parseFloat(document.getElementById('other-qty').value) || 0; let rate = parseFloat(document.getElementById('other-rate').value) || 0;
+        let qty = parseNum(document.getElementById('other-qty').value); 
+        let rate = parseNum(document.getElementById('other-rate').value);
         document.getElementById('other-amount').value = (qty * rate).toFixed(2);
     }
 
@@ -1352,8 +1368,8 @@
                 const txData = {
                     userId: currentUser.uid, date: document.getElementById('other-date').value, txType: document.getElementById('other-tx-type').value,
                     name: document.getElementById('other-name').value.trim(), remark: document.getElementById('other-remark').value.trim(),
-                    qty: parseFloat(document.getElementById('other-qty').value) || 0, rate: parseFloat(document.getElementById('other-rate').value) || 0,
-                    amount: parseFloat(document.getElementById('other-amount').value) || 0
+                    qty: parseNum(document.getElementById('other-qty').value), rate: parseNum(document.getElementById('other-rate').value),
+                    amount: parseNum(document.getElementById('other-amount').value)
                 };
                 if (txId) { await db.collection('other_transactions').doc(txId).update(txData); cancelOtherEdit(); } 
                 else { await db.collection('other_transactions').add(txData); document.getElementById('other-tx-form').reset(); document.getElementById('other-date').valueAsDate = new Date(); }
@@ -1366,7 +1382,7 @@
         const docRef = await db.collection('other_transactions').doc(id).get(); if (!docRef.exists) return; const tx = docRef.data();
         document.getElementById('other-tx-id').value = id; document.getElementById('other-date').value = tx.date; document.getElementById('other-tx-type').value = tx.txType;
         document.getElementById('other-name').value = tx.name || ''; document.getElementById('other-remark').value = tx.remark || '';
-        document.getElementById('other-qty').value = tx.qty; document.getElementById('other-rate').value = tx.rate; document.getElementById('other-amount').value = tx.amount;
+        document.getElementById('other-qty').value = parseNum(tx.qty); document.getElementById('other-rate').value = parseNum(tx.rate); document.getElementById('other-amount').value = parseNum(tx.amount);
         document.getElementById('other-submit-btn').innerText = 'Update Transaction'; document.getElementById('other-cancel-edit-btn').style.display = 'block';
         togglePanel('other-log-tx-content', 'other-log-tx-icon'); window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -1385,7 +1401,7 @@
         let csvContent = "data:text/csv;charset=utf-8,ID,Date,Transaction Type,Transaction Party Name,Remark,Quantity,Rate,Amount\n";
         otherTxs.forEach(tx => {
             const effAmt = ['Expense', 'Purchase', 'Cash Paid'].includes(tx.txType) ? -Math.abs(tx.amount) : Math.abs(tx.amount);
-            csvContent += [tx.id, tx.date, `"${tx.txType}"`, `"${tx.name || ''}"`, `"${tx.remark || ''}"`, tx.qty, tx.rate, effAmt.toFixed(2)].join(",") + "\n";
+            csvContent += [tx.id, tx.date, `"${tx.txType}"`, `"${tx.name || ''}"`, `"${tx.remark || ''}"`, parseNum(tx.qty), parseNum(tx.rate), effAmt.toFixed(2)].join(",") + "\n";
         });
         const link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", `Other_Transactions_Export_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
@@ -1463,7 +1479,7 @@
 
         dynamicTxs.sort((a, b) => {
             let valA = a[otherSortCol]; let valB = b[otherSortCol];
-            if (otherSortCol === 'date') { valA = new Date(valA).getTime(); valB = new Date(valB).getTime(); } else if (['qty', 'rate'].includes(otherSortCol)) { valA = Number(valA); valB = Number(valB); } else if (otherSortCol === 'amount') { valA = getOtherEffectiveAmount(a); valB = getOtherEffectiveAmount(b); } else { valA = String(valA || '').toLowerCase(); valB = String(valB || '').toLowerCase(); }
+            if (otherSortCol === 'date') { valA = new Date(valA).getTime(); valB = new Date(valB).getTime(); } else if (['qty', 'rate'].includes(otherSortCol)) { valA = parseNum(valA); valB = parseNum(valB); } else if (otherSortCol === 'amount') { valA = getOtherEffectiveAmount(a); valB = getOtherEffectiveAmount(b); } else { valA = String(valA || '').toLowerCase(); valB = String(valB || '').toLowerCase(); }
             if (valA < valB) return otherSortDesc ? 1 : -1; if (valA > valB) return otherSortDesc ? -1 : 1; return 0;
         });
 
@@ -1472,8 +1488,8 @@
 
         pageTxs.forEach(tx => {
             let badgeClass = tx.txType.toLowerCase().replace(' ', '-'); let effAmt = getOtherEffectiveAmount(tx); let amtClass = effAmt >= 0 ? 'pnl-positive' : 'pnl-negative';
-            let safeQty = Number(tx.qty) || 0; let safeRate = Number(tx.rate) || 0;
-            ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td><span class="badge ${badgeClass}">${tx.txType}</span></td><td><strong>${tx.name || '-'}</strong></td><td>${tx.remark || '-'}</td><td>${safeQty}</td><td>${safeRate.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td><td class="${amtClass}"><strong>${effAmt.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td><td><button class="btn-edit-tx" onclick="editOtherTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteOtherTx('${tx.id}')">Del</button></td></tr>`;
+            let safeQty = parseNum(tx.qty); let safeRate = parseNum(tx.rate);
+            ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td><span class="badge ${badgeClass}">${tx.txType}</span></td><td><strong>${tx.name || '-'}</strong></td><td>${tx.remark || '-'}</td><td>${safeQty.toFixed(4)}</td><td>${safeRate.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td><td class="${amtClass}"><strong>${effAmt.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td><td><button class="btn-edit-tx" onclick="editOtherTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteOtherTx('${tx.id}')">Del</button></td></tr>`;
         });
         if (pageTxs.length === 0) { ledgerBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #64748b;">No transactions logged yet.</td></tr>`; }
         document.getElementById('other-page-indicator').innerText = `Page ${otherCurrentPage} of ${totalPages}`;
