@@ -16,7 +16,9 @@
             --warning: #f59e0b; --info: #0ea5e9; --purple: #8b5cf6; --border: #e5e7eb;
         }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
-        .container { max-width: 1280px; margin: 0 auto; }
+        
+        /* FEATURE 3: Increased container width to 98% to fit all tables comfortably */
+        .container { max-width: 98%; margin: 0 auto; box-sizing: border-box; }
         
         /* --- SECURE AUTHENTICATION OVERLAY --- */
         #auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 20px; box-sizing: border-box; }
@@ -67,24 +69,15 @@
         .main-grid { display: grid; grid-template-columns: 1fr; gap: 25px; margin-bottom: 25px; align-items: start; }
         @media(min-width: 900px) { .main-grid { grid-template-columns: 350px 1fr; } }
         .reports-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
-        @media(min-width: 900px) { .reports-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
+        @media(min-width: 900px) { .reports-grid { grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); } }
         
         .panel { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 25px; }
         
-        /* Modernized Interactive Headers */
-        .panel-header { 
-            display: flex; justify-content: space-between; align-items: center; cursor: pointer; 
-            border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 15px; 
-            user-select: none; transition: color 0.2s; 
-        }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 15px; user-select: none; transition: color 0.2s; }
         .panel-header:hover { color: var(--primary); }
         .panel-header h2 { margin: 0; font-size: 1.2rem; border-bottom: none; padding-bottom: 0; }
         
-        .table-header-toggle { 
-            display: flex; justify-content: space-between; align-items: center; cursor: pointer; 
-            user-select: none; margin-bottom: 10px; transition: all 0.2s; 
-            background: #f8fafc; border: 1px solid var(--border); padding: 12px 15px; border-radius: 6px;
-        }
+        .table-header-toggle { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; margin-bottom: 10px; transition: all 0.2s; background: #f8fafc; border: 1px solid var(--border); padding: 12px 15px; border-radius: 6px; }
         .table-header-toggle:hover { background: #f1f5f9; border-color: #cbd5e1; }
         .table-header-toggle h3 { margin: 0; font-size: 1rem; color: #334155; }
 
@@ -107,12 +100,17 @@
         
         .controls-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid var(--border); }
         .controls-row .form-group { margin-bottom: 0; flex: 1; min-width: 150px; }
+        
         button.btn-export { background: var(--success); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; transition: 0.2s; }
         button.btn-export:hover { background: #15803d; }
+        
         button.btn-live { background: var(--info); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; transition: 0.2s; }
         button.btn-live:hover { background: #0284c7; }
+
+        button.btn-global-rename { background: var(--purple); color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; height: fit-content; cursor: pointer; transition: 0.2s; }
+        button.btn-global-rename:hover { background: #7c3aed; }
         
-        /* Table Design */
+        /* FEATURE 3: Table Design - Prevent Wrapping to Fit Columns */
         .table-container { 
             overflow-x: auto; 
             border: 1px solid var(--border); 
@@ -122,14 +120,8 @@
             -webkit-overflow-scrolling: touch;
         }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
-        th, td { padding: 12px 15px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-        th { 
-            background-color: #f8fafc; 
-            color: #334155; 
-            font-weight: 600; 
-            white-space: nowrap; 
-            border-bottom: 2px solid #e2e8f0;
-        }
+        th, td { padding: 12px 15px; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; /* Forces columns to stretch instead of wrapping text */ }
+        th { background-color: #f8fafc; color: #334155; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
         
         tbody tr:nth-child(even) { background-color: #fafaf9; }
         tbody tr:hover { background-color: #f1f5f9; transition: background-color 0.15s ease-in-out; }
@@ -192,7 +184,7 @@
             .panel { padding: 15px; margin-bottom: 15px; }
             .controls-row { flex-direction: column; align-items: stretch; gap: 10px; padding: 10px; }
             .controls-row .form-group { min-width: 100%; margin-bottom: 5px; }
-            button.btn-export, button.btn-live { width: 100%; margin-top: 5px; }
+            button.btn-export, button.btn-live, button.btn-global-rename { width: 100%; margin-top: 5px; }
             .table-header-toggle { padding: 14px 15px; }
             .user-controls { width: 100%; justify-content: space-between; box-sizing: border-box; }
         }
@@ -253,7 +245,7 @@
         </div>
     </div>
 
-    <!-- EXPANDED SUMMARY KPI CARDS WITH UNREALIZED GAIN/LOSS -->
+    <!-- SUMMARY KPI CARDS WITH UNREALIZED GAIN/LOSS -->
     <div class="summary-container">
         <div class="card equity"><h3>Equity Invested</h3><p id="equity-investment">0.00</p></div>
         <div class="card mf"><h3>MF Invested</h3><p id="mf-investment">0.00</p></div>
@@ -319,8 +311,10 @@
                         <select id="dash-year" multiple onchange="renderScriptDash()"></select>
                     </div>
                 </div>
+                
                 <div id="script-dash-data" style="display: none;">
-                    <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <!-- FEATURE 2: Adjusted Layout - Holdings and P&L side-by-side -->
+                    <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 15px;">
                         <div>
                             <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Current Holdings & Unrealized</h3>
                             <div class="table-container">
@@ -340,14 +334,16 @@
                                 </table>
                             </div>
                         </div>
-                        <div>
-                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Last 2 Sales</h3>
-                            <div class="table-container">
-                                <table>
-                                    <thead><tr><th>Date</th><th>Symbol</th><th>Qty</th><th>Price</th></tr></thead>
-                                    <tbody id="dash-sales-body"></tbody>
-                                </table>
-                            </div>
+                    </div>
+                    
+                    <!-- FEATURE 2: Moved "Last 2 Sales" Below the above tables -->
+                    <div style="margin-top: 25px;">
+                        <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Last 2 Sales</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead><tr><th>Date</th><th>Symbol</th><th>Qty</th><th>Price</th></tr></thead>
+                                <tbody id="dash-sales-body"></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -361,12 +357,15 @@
         <div class="controls-row">
             <div class="form-group"><label>Filter By Broker:</label><select id="report-filter-broker" onchange="renderApp()"><option value="All">All Brokers</option></select></div>
             <div class="form-group"><label>Filter By Asset Class:</label><select id="report-filter-asset" onchange="renderApp()"><option value="All">All Assets</option><option value="Equity">Equity</option><option value="Mutual Fund">Mutual Fund</option></select></div>
+            
+            <!-- Controls Buttons -->
             <button class="btn-live" onclick="fetchLivePrices()">🔄 Fetch Live Prices</button>
+            <!-- FEATURE 4: Rename Script Globally Button -->
+            <button class="btn-global-rename" onclick="renameScriptGlobally()">✏️ Rename Script Globally</button>
         </div>
         
         <div class="reports-grid">
             
-            <!-- Table 1: Current Holdings with Live Tracking & Unrealized PnL -->
             <div style="grid-column: 1 / -1;">
                 <div class="table-header-toggle" onclick="togglePanel('holdings-content', 'holdings-icon')">
                     <h3 style="margin:0;">Current Holdings (Live Valuation & Unrealized P&L Breakdown)</h3><span id="holdings-icon">▼</span>
@@ -394,7 +393,6 @@
                 </div>
             </div>
             
-            <!-- Table 2: Unrealized Gain / Loss by Broker -->
             <div>
                 <div class="table-header-toggle" onclick="togglePanel('broker-unrealized-content', 'broker-unrealized-icon')">
                     <h3>Unrealized P&L by Broker</h3><span id="broker-unrealized-icon">▼</span>
@@ -416,7 +414,6 @@
                 </div>
             </div>
 
-            <!-- Table 3: Top Gainers & Losers (Unrealized) -->
             <div>
                 <div class="table-header-toggle" onclick="togglePanel('top-performers-content', 'top-performers-icon')">
                     <h3>Top Unrealized Gainers & Losers</h3><span id="top-performers-icon">▼</span>
@@ -438,7 +435,6 @@
                 </div>
             </div>
 
-            <!-- Table 4: Investment by Broker -->
             <div>
                 <div class="table-header-toggle" onclick="togglePanel('broker-inv-content', 'broker-inv-icon')">
                     <h3>Investment by Broker</h3><span id="broker-inv-icon">▼</span>
@@ -448,7 +444,6 @@
                 </div>
             </div>
 
-            <!-- Table 5: Broker Cash Balance -->
             <div>
                 <div class="table-header-toggle" onclick="togglePanel('broker-ledger-content', 'broker-ledger-icon')">
                     <h3>Broker Ledger (Cash) Balance</h3><span id="broker-ledger-icon">▼</span>
@@ -458,7 +453,6 @@
                 </div>
             </div>
             
-            <!-- Table 6: Hierarchical Realized PnL -->
             <div style="grid-column: 1 / -1; max-width: 650px;">
                 <div class="table-header-toggle" onclick="togglePanel('hierarchical-pnl-content', 'hierarchical-pnl-icon')">
                     <h3>Hierarchical Realized P&L (FY -> Month -> Day -> Script)</h3><span id="hierarchical-pnl-icon">▼</span>
@@ -468,7 +462,6 @@
                 </div>
             </div>
 
-            <!-- Table 7: Realized PnL by Script -->
             <div>
                 <div class="table-header-toggle" onclick="togglePanel('pnl-script-content', 'pnl-script-icon')">
                     <h3>Realized P&L by Script</h3><span id="pnl-script-icon">▼</span>
@@ -478,7 +471,6 @@
                 </div>
             </div>
 
-            <!-- Table 8: Realized PnL by Broker -->
             <div>
                 <div class="table-header-toggle" onclick="togglePanel('pnl-broker-content', 'pnl-broker-icon')">
                     <h3>Realized P&L by Broker</h3><span id="pnl-broker-icon">▼</span>
@@ -487,7 +479,6 @@
                     <div class="table-container"><table><thead><tr><th>Broker</th><th>Realized P&L</th></tr></thead><tbody id="broker-pnl-body"></tbody></table></div>
                 </div>
             </div>
-            
         </div>
     </div>
 
@@ -692,7 +683,10 @@
     
     // Workspace 1 (Equity/MF)
     let currentTxs = [];    
-    let livePrices = {}; 
+    
+    // FEATURE 1: Load Live Prices from LocalStorage to Persist them
+    let livePrices = JSON.parse(localStorage.getItem('savedLivePrices')) || {}; 
+    
     let currentPage = 1; 
     const pageSize = 15; 
     let sortCol = 'date'; 
@@ -721,7 +715,6 @@
         errEl.innerText = msg; errEl.style.display = 'block'; 
     }
 
-    // Robust Algorithmic XIRR Calculator using Bisection
     function computeXIRR(cashflows) {
         if (!cashflows || cashflows.length < 2) return 0;
         let cfs = [...cashflows].sort((a,b) => a.date.getTime() - b.date.getTime());
@@ -829,6 +822,7 @@
         renderApp();
     }
 
+    // FETCH LIVE PRICES & STORE PERSISTENTLY
     async function fetchLivePrices() {
         let inventorySymbols = new Set();
         currentTxs.forEach(tx => {
@@ -845,7 +839,7 @@
 
         const btn = document.querySelector('.btn-live');
         if (btn) {
-            btn.innerText = "⏳ Fetching...";
+            btn.innerText = "⏳ Fetching securely...";
             btn.disabled = true;
         }
 
@@ -860,22 +854,72 @@
                 
                 if (Object.keys(fetchedPrices).length > 0) {
                     Object.assign(livePrices, fetchedPrices);
+                    
+                    // FEATURE 1: Save Live Prices to LocalStorage
+                    localStorage.setItem('savedLivePrices', JSON.stringify(livePrices));
+                    
                     alert(`Successfully updated live market prices for ${Object.keys(fetchedPrices).length} Equities!`);
                 } else {
-                    alert("No prices returned. Ensure symbols exist in Google Finance.");
+                    alert("Failed to fetch prices. Make sure your symbols are formatted correctly (e.g., RELIANCE.NS).");
                 }
             } else {
-                throw new Error("Connection failed.");
+                throw new Error("Proxy connection failed.");
             }
         } catch (err) {
             console.error("Fetch error:", err);
-            alert("Live price fetch failed. Please check internet connection.");
+            alert("Live price fetch failed. Please check your internet connection.");
         } finally {
             if (btn) {
                 btn.innerText = "🔄 Fetch Live Prices";
                 btn.disabled = false;
             }
             renderApp();
+        }
+    }
+
+    // FEATURE 4: BATCH RENAME SCRIPT NAME GLOBALLY
+    async function renameScriptGlobally() {
+        if (!currentUser) return;
+        
+        const oldSymbol = prompt("Enter the CURRENT exact Script Symbol you want to change (e.g., RELIANCE.NS):");
+        if (!oldSymbol) return;
+        
+        const newSymbol = prompt(`Enter the NEW Script Symbol to replace '${oldSymbol}':`);
+        if (!newSymbol || oldSymbol.trim().toUpperCase() === newSymbol.trim().toUpperCase()) return;
+        
+        if (!confirm(`⚠️ WARNING: Are you sure you want to completely rename EVERY transaction from '${oldSymbol}' to '${newSymbol}'? This cannot be easily undone.`)) return;
+
+        const batch = db.batch();
+        let count = 0;
+        
+        try {
+            const snapshot = await db.collection('transactions')
+                                     .where("userId", "==", currentUser.uid)
+                                     .where("symbol", "==", oldSymbol.trim().toUpperCase())
+                                     .get();
+            
+            snapshot.docs.forEach(doc => {
+                batch.update(doc.ref, { symbol: newSymbol.trim().toUpperCase() });
+                count++;
+            });
+            
+            if (count > 0) {
+                await batch.commit();
+                
+                // Keep the live price mapped to the new name just in case
+                if(livePrices[oldSymbol.trim().toUpperCase()]) {
+                    livePrices[newSymbol.trim().toUpperCase()] = livePrices[oldSymbol.trim().toUpperCase()];
+                    delete livePrices[oldSymbol.trim().toUpperCase()];
+                    localStorage.setItem('savedLivePrices', JSON.stringify(livePrices));
+                }
+                
+                alert(`Successfully Renamed! ${count} transactions were updated from '${oldSymbol}' to '${newSymbol}'.`);
+                loadTransactions(); 
+            } else {
+                alert(`No transactions found for the symbol '${oldSymbol}'. Please check the spelling carefully and try again.`);
+            }
+        } catch(e) {
+            alert(`Error during global rename: ${e.message}`);
         }
     }
 
