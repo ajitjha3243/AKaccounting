@@ -113,7 +113,7 @@
         tbody tr:nth-child(even) { background-color: #fafaf9; }
         tbody tr:hover { background-color: #f1f5f9; transition: background-color 0.15s ease-in-out; }
 
-        /* FEATURE: Compact Table Design for Script Dashboard */
+        /* Compact Table Design */
         table.compact-table { width: auto; min-width: 100%; }
         table.compact-table th, table.compact-table td { padding: 6px 12px; font-size: 0.82rem; }
 
@@ -269,7 +269,7 @@
                         <select id="tx-type" required onchange="handleTxTypeChange()">
                             <option value="Purchase">Purchase</option>
                             <option value="Sale">Sale</option>
-                            <option value="Income">Income</option>
+                            <option value="Income">Income</option> <!-- This serves as Dividends -->
                             <option value="Expense">Expense</option>
                             <option value="Cash Addition">Cash Addition</option>
                             <option value="Cash Withdrawal">Cash Withdrawal</option>
@@ -309,7 +309,7 @@
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Inventory (Cost)</h3>
                             <div class="table-container">
                                 <table class="compact-table">
-                                    <thead><tr><th>Script</th><th>Qty</th><th>Avg Cost</th><th>Invested</th></tr></thead>
+                                    <thead><tr><th>Script</th><th>Qty</th><th>Avg Cost</th><th>Invested</th><th style="color:var(--success);">Dividends</th></tr></thead>
                                     <tbody id="dash-holdings-body"></tbody>
                                 </table>
                             </div>
@@ -363,7 +363,7 @@
             
             <div style="grid-column: 1 / -1;">
                 <div class="table-header-toggle" onclick="togglePanel('holdings-content', 'holdings-icon')">
-                    <h3 style="margin:0;">Current Holdings (Live Valuation & Unrealized P&L Breakdown)</h3><span id="holdings-icon">▼</span>
+                    <h3 style="margin:0;">Current Holdings (Live Valuation & Dividend Yield Breakdown)</h3><span id="holdings-icon">▼</span>
                 </div>
                 <div id="holdings-content" class="collapsible-table-content">
                     <div class="table-container">
@@ -376,9 +376,11 @@
                                     <th>Qty</th>
                                     <th>Avg Price</th>
                                     <th>Invested Amt</th>
+                                    <th style="background: #f0fdf4; color:#16a34a;">Dividends (₹)</th>
+                                    <th style="background: #f0fdf4; color:#16a34a;">Yield (%)</th>
                                     <th style="background: #e6f4ea; color:#137333;">Live Price</th>
                                     <th style="background: #e6f4ea; color:#137333;">Current Value</th>
-                                    <th style="background: #e6f4ea; color:#137333;">Unrealized P&L (₹)</th>
+                                    <th style="background: #e6f4ea; color:#137333;">Unrealized P&L</th>
                                     <th style="background: #e6f4ea; color:#137333;">Return (%)</th>
                                 </tr>
                             </thead>
@@ -682,7 +684,6 @@
         return isNaN(n) ? 0 : n;
     }
 
-    // THE FIX: Intercepts all numbers and safely formats them so the UI never crashes.
     function fmtMoney(val) {
         return parseNum(val).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
@@ -1038,7 +1039,8 @@
             let safeTotal = parseNum(tx.total);
             let rawType = String(tx.txType || '').trim().toLowerCase();
 
-            if (!inventory[key]) inventory[key] = { symbol: s, broker: b, qty: 0, cost: 0 };
+            // FEATURE: Tracking Dividends ('income') tied to a script
+            if (!inventory[key]) inventory[key] = { symbol: s, broker: b, qty: 0, cost: 0, dividends: 0 };
             if (!monthlyPnL[monthKey]) monthlyPnL[monthKey] = 0;
 
             if (rawType === 'purchase') {
@@ -1049,6 +1051,9 @@
                 let tradePnL = safeTotal - cogs;
                 inventory[key].qty -= safeQty; inventory[key].cost -= cogs;
                 monthlyPnL[monthKey] += tradePnL;
+            } else if (rawType === 'income') {
+                inventory[key].dividends += safeTotal;
+                monthlyPnL[monthKey] += safeTotal; // Realized P&L includes dividends
             }
         });
 
@@ -1065,7 +1070,6 @@
         Object.keys(inventory).sort().forEach(key => {
             let item = inventory[key];
             
-            // Safe formatting using the engine
             let liveP = livePrices[item.symbol] !== undefined ? parseNum(livePrices[item.symbol]) : null;
             let livePStr = liveP !== null ? fmtMoney(liveP) : '<span style="color:#64748b; font-weight:normal;">Click Fetch</span>';
             
@@ -1073,7 +1077,7 @@
             let unPnlStr = "0.00"; 
             let unClass = "pnl-neutral";
 
-            // If we hold zero quantity, we still want to track price, but P&L and Value are 0
+            // Track price regardless of holding qty
             if(liveP !== null) {
                 let curV = item.qty * liveP; 
                 let uPnL = curV - item.cost;
@@ -1087,12 +1091,14 @@
                 let displayQty = parseNum(item.qty).toFixed(4);
                 let displayAvg = parseNum(item.qty) > 0 ? fmtMoney(parseNum(item.cost) / parseNum(item.qty)) : "0.00";
                 let displayInv = fmtMoney(item.cost);
+                let displayDivs = fmtMoney(item.dividends);
 
                 holdingsBody.innerHTML += `<tr>
                     <td><strong>${item.symbol}</strong></td>
                     <td>${displayQty}</td>
                     <td>${displayAvg}</td>
                     <td>${displayInv}</td>
+                    <td style="color:var(--success); font-weight:bold;">+${displayDivs}</td>
                 </tr>`; 
             }
 
@@ -1106,7 +1112,7 @@
         });
 
         if(holdingsBody.innerHTML === '') {
-            holdingsBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No active holdings.</td></tr>`;
+            holdingsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b; padding: 15px;">No active holdings.</td></tr>`;
         }
 
         const pnlBody = document.getElementById('dash-pnl-body');
@@ -1188,7 +1194,8 @@
             let safeQty = parseNum(tx.qty); let safeTotal = parseNum(tx.total);
             let rawType = String(tx.txType || '').trim().toLowerCase();
             
-            if (!inventory[key]) inventory[key] = { symbol: tx.symbol, broker: b, qty: 0, cost: 0, type: tx.assetClass, pnl: 0, hasTrade: false };
+            // Added dividends to the base inventory object
+            if (!inventory[key]) inventory[key] = { symbol: tx.symbol, broker: b, qty: 0, cost: 0, type: tx.assetClass, pnl: 0, dividends: 0, hasTrade: false };
             if (!brokerLedgerMap[b]) brokerLedgerMap[b] = 0;
             
             if (rawType === 'purchase') { 
@@ -1209,6 +1216,7 @@
             else if (rawType === 'income') { 
                 overallPnL += safeTotal; inventory[key].pnl += safeTotal; brokerLedgerMap[b] += safeTotal; 
                 addHierarchical(tx.date, tx.symbol, safeTotal); inventory[key].hasTrade = true;
+                inventory[key].dividends += safeTotal; // Track dividends here
             } 
             else if (rawType === 'cash addition') { brokerLedgerMap[b] += safeTotal; } 
             else if (rawType === 'cash withdrawal') { brokerLedgerMap[b] -= safeTotal; }
@@ -1229,7 +1237,7 @@
             if (!brokerPnLMap[item.broker]) brokerPnLMap[item.broker] = 0;
             brokerPnLMap[item.broker] += item.pnl;
 
-            // STRICT DISPLAY LOGIC
+            // STRICT DISPLAY LOGIC: Active Holdings
             if (item.qty > 0) { 
                 if (item.type === 'Equity') totalEquity += item.cost;
                 if (item.type === 'Mutual Fund') totalMF += item.cost;
@@ -1264,6 +1272,11 @@
                 let displayQty = parseNum(item.qty).toFixed(4);
                 let displayAvg = parseNum(item.qty) > 0 ? fmtMoney(parseNum(item.cost) / parseNum(item.qty)) : "0.00";
                 let displayInv = fmtMoney(item.cost);
+                
+                // Dividend Yield Calculation
+                let displayDivs = fmtMoney(item.dividends);
+                let divYield = item.cost > 0 ? (item.dividends / item.cost) * 100 : 0;
+                let displayYield = divYield > 0 ? divYield.toFixed(2) + "%" : "0.00%";
 
                 holdingsBody.innerHTML += `<tr>
                     <td><strong>${item.symbol}</strong></td>
@@ -1272,6 +1285,8 @@
                     <td>${displayQty}</td>
                     <td>${displayAvg}</td>
                     <td>${displayInv}</td>
+                    <td style="background: #f0fdf4; color:#16a34a; font-weight:bold;">+${displayDivs}</td>
+                    <td style="background: #f0fdf4; color:#16a34a;">${displayYield}</td>
                     <td style="background: #e6f4ea; color:#137333; font-weight:bold;">${livePrice !== null ? fmtMoney(livePrice) : '<span style="color:#64748b; font-weight:normal;">Click Fetch</span>'}</td>
                     <td style="background: #e6f4ea;"><strong>${currentValStr}</strong></td>
                     <td style="background: #e6f4ea;" class="${pnlStyleClass}">${unrealizedPnLStr}</td>
@@ -1284,7 +1299,7 @@
             }
         });
 
-        if (holdingsBody.innerHTML === '') { holdingsBody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 20px; color: #64748b;">No active stock or fund holdings.</td></tr>`; }
+        if (holdingsBody.innerHTML === '') { holdingsBody.innerHTML = `<tr><td colspan="12" style="text-align:center; padding: 20px; color: #64748b;">No active stock or fund holdings.</td></tr>`; }
 
         if (brokerUnrealizedBody) {
             Object.keys(brokerUnrealizedMap).sort().forEach(b => {
