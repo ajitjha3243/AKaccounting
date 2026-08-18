@@ -105,7 +105,7 @@
         button.btn-global-rename { background: var(--purple); color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; height: fit-content; cursor: pointer; transition: 0.2s; }
         button.btn-global-rename:hover { background: #7c3aed; }
         
-        /* General Table Design */
+        /* Table Design */
         .table-container { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); background: white; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
         th, td { padding: 12px 15px; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; }
@@ -113,7 +113,6 @@
         tbody tr:nth-child(even) { background-color: #fafaf9; }
         tbody tr:hover { background-color: #f1f5f9; transition: background-color 0.15s ease-in-out; }
 
-        /* Compact Table Design */
         table.compact-table { width: auto; min-width: 100%; }
         table.compact-table th, table.compact-table td { padding: 6px 12px; font-size: 0.82rem; }
 
@@ -269,7 +268,7 @@
                         <select id="tx-type" required onchange="handleTxTypeChange()">
                             <option value="Purchase">Purchase</option>
                             <option value="Sale">Sale</option>
-                            <option value="Income">Income</option> <!-- This serves as Dividends -->
+                            <option value="Income">Income</option>
                             <option value="Expense">Expense</option>
                             <option value="Cash Addition">Cash Addition</option>
                             <option value="Cash Withdrawal">Cash Withdrawal</option>
@@ -285,7 +284,7 @@
             </div>
         </div>
 
-        <!-- SCRIPT ANALYSIS DASHBOARD (NOW WITH 5 TABLES) -->
+        <!-- SCRIPT ANALYSIS DASHBOARD -->
         <div class="panel" style="margin-bottom: 0; padding-top: 10px;">
             <div class="panel-header" onclick="togglePanel('script-dash-content', 'script-dash-icon')">
                 <h2>Script Analysis Dashboard</h2>
@@ -311,7 +310,7 @@
                     <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
                         
                         <!-- 1. Inventory -->
-                        <div>
+                        <div id="container-inventory" style="display: none;">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Inventory (Cost)</h3>
                             <div class="table-container">
                                 <table class="compact-table">
@@ -321,8 +320,8 @@
                             </div>
                         </div>
 
-                        <!-- 2. Live Performance (Watchlist) -->
-                        <div>
+                        <!-- 2. Live Performance -->
+                        <div id="container-live" style="display: none;">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Live Performance (Watchlist)</h3>
                             <div class="table-container">
                                 <table class="compact-table">
@@ -333,7 +332,7 @@
                         </div>
 
                         <!-- 3. Month-wise P&L -->
-                        <div>
+                        <div id="container-pnl" style="display: none;">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Month-wise Realized P&L</h3>
                             <div class="table-container">
                                 <table class="compact-table">
@@ -345,7 +344,7 @@
                         </div>
                         
                         <!-- 4. Last 2 Sales -->
-                        <div>
+                        <div id="container-sales" style="display: none;">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Last 2 Sales</h3>
                             <div class="table-container">
                                 <table class="compact-table">
@@ -356,7 +355,7 @@
                         </div>
                         
                         <!-- 5. Re-entry Opportunities (GLOBAL - Independent of selection) -->
-                        <div>
+                        <div id="container-reentry">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Re-entry Opportunities</h3>
                             <div class="table-container">
                                 <table class="compact-table">
@@ -1047,15 +1046,32 @@
         const dashScriptSelect = document.getElementById('dash-script');
         const dashYearSelect = document.getElementById('dash-year');
         
-        // Removed the return statement so Re-entry always runs even if no script is selected
         const selectedScripts = Array.from(dashScriptSelect.selectedOptions).map(o => o.value);
         const selectedYears = Array.from(dashYearSelect.selectedOptions).map(o => o.value);
 
+        // Hide the first 4 containers if NO scripts are selected
+        const cInv = document.getElementById('container-inventory');
+        const cLive = document.getElementById('container-live');
+        const cPnl = document.getElementById('container-pnl');
+        const cSales = document.getElementById('container-sales');
+
+        if (selectedScripts.length === 0) {
+            cInv.style.display = 'none';
+            cLive.style.display = 'none';
+            cPnl.style.display = 'none';
+            cSales.style.display = 'none';
+        } else {
+            cInv.style.display = 'block';
+            cLive.style.display = 'block';
+            cPnl.style.display = 'block';
+            cSales.style.display = 'block';
+        }
+
         let inventory = {}; let monthlyPnL = {}; let totalPnL = 0;
-        let latestSales = {}; // New Object for independent Re-entry feature
+        let latestSales = {}; // Independent Re-entry feature
         let sortedTxs = [...currentTxs].sort((a,b) => new Date(a.date) - new Date(b.date));
 
-        // SINGLE LOOP ENGINE
+        // GLOBAL PROCESSING LOOP
         sortedTxs.forEach(tx => {
             let s = tx.symbol;
             let rawType = String(tx.txType || '').trim().toLowerCase();
@@ -1075,7 +1091,7 @@
             let key = `${s}::${b}`;
             let dateObj = new Date(tx.date); let year = tx.date.substring(0, 4);
             let monthKey = `${year}-${(dateObj.getMonth()+1).toString().padStart(2, '0')}`;
-            
+
             if (!inventory[key]) inventory[key] = { symbol: s, broker: b, qty: 0, cost: 0, dividends: 0 };
             if (!monthlyPnL[monthKey]) monthlyPnL[monthKey] = 0;
 
@@ -1119,10 +1135,10 @@
 
                 liveBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td style="color:#137333; font-weight:bold;">${livePStr}</td><td>${curValStr}</td><td class="${unClass}"><strong>${unPnlStr}</strong></td></tr>`;
             });
+            
+            if(holdingsBody.innerHTML === '') holdingsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b; padding: 15px;">No active holdings in selection.</td></tr>`;
+            if(liveBody.innerHTML === '') liveBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No active records in selection.</td></tr>`;
         }
-
-        if(holdingsBody.innerHTML === '') holdingsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b; padding: 15px;">No active holdings in selection.</td></tr>`;
-        if(liveBody.innerHTML === '') liveBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No scripts selected.</td></tr>`;
 
         // 3. Render Month-wise P&L
         const pnlBody = document.getElementById('dash-pnl-body');
@@ -1135,10 +1151,7 @@
                 let p = parseNum(monthlyPnL[m]); totalPnL += p;
                 if (p !== 0) { let c = p > 0 ? 'pnl-positive' : 'pnl-negative'; pnlBody.innerHTML += `<tr><td><strong>${m}</strong></td><td class="${c}">${p>0?'+':''}${fmtMoney(p)}</td></tr>`; }
             });
-        } else {
-            pnlBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#64748b; padding: 15px;">No scripts selected.</td></tr>`;
         }
-
         const totalEl = document.getElementById('dash-pnl-total');
         totalEl.innerText = (totalPnL > 0 ? '+' : '') + fmtMoney(totalPnL);
         totalEl.className = totalPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
@@ -1151,11 +1164,9 @@
             if (lastSales.length > 0) {
                 lastSales.forEach(tx => { salesBody.innerHTML += `<tr><td>${tx.date}</td><td>${parseNum(tx.qty).toFixed(4)}</td><td>${fmtMoney(tx.price)}</td></tr>`; });
             } else { salesBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#64748b; padding: 15px;">No recent sales</td></tr>`; }
-        } else {
-            salesBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#64748b; padding: 15px;">No scripts selected.</td></tr>`;
         }
 
-        // 5. Render Re-entry Opportunities (GLOBAL - Independent of Selection)
+        // 5. Render Re-entry Opportunities (GLOBAL - Always Runs!)
         const reentryBody = document.getElementById('dash-reentry-body');
         reentryBody.innerHTML = '';
         let dropPctThreshold = parseNum(document.getElementById('dash-drop-pct').value) || 0;
@@ -1183,7 +1194,7 @@
             </tr>`;
         });
 
-        if (reentryCount === 0) { reentryBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No dips &ge; ${dropPctThreshold}% found. Click Fetch Live Prices.</td></tr>`; }
+        if (reentryCount === 0) { reentryBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No dips &ge; ${dropPctThreshold}% found.<br>Click "Fetch Live Prices".</td></tr>`; }
     }
 
     function renderApp() {
@@ -1257,7 +1268,7 @@
             else if (rawType === 'income') { 
                 overallPnL += safeTotal; inventory[key].pnl += safeTotal; brokerLedgerMap[b] += safeTotal; 
                 addHierarchical(tx.date, tx.symbol, safeTotal); inventory[key].hasTrade = true;
-                inventory[key].dividends += safeTotal; // Track dividends here
+                inventory[key].dividends += safeTotal; 
             } 
             else if (rawType === 'cash addition') { brokerLedgerMap[b] += safeTotal; } 
             else if (rawType === 'cash withdrawal') { brokerLedgerMap[b] -= safeTotal; }
@@ -1278,7 +1289,6 @@
             if (!brokerPnLMap[item.broker]) brokerPnLMap[item.broker] = 0;
             brokerPnLMap[item.broker] += item.pnl;
 
-            // STRICT DISPLAY LOGIC: Active Holdings
             if (item.qty > 0) { 
                 if (item.type === 'Equity') totalEquity += item.cost;
                 if (item.type === 'Mutual Fund') totalMF += item.cost;
@@ -1314,7 +1324,6 @@
                 let displayAvg = parseNum(item.qty) > 0 ? fmtMoney(parseNum(item.cost) / parseNum(item.qty)) : "0.00";
                 let displayInv = fmtMoney(item.cost);
                 
-                // Dividend Yield Calculation
                 let displayDivs = fmtMoney(item.dividends);
                 let divYield = item.cost > 0 ? (item.dividends / item.cost) * 100 : 0;
                 let displayYield = divYield > 0 ? divYield.toFixed(2) + "%" : "0.00%";
@@ -1625,5 +1634,3 @@
         document.getElementById('other-btn-prev').disabled = otherCurrentPage === 1; document.getElementById('other-btn-next').disabled = otherCurrentPage === totalPages;
     }
 </script>
-</body>
-</html>
