@@ -582,7 +582,7 @@
         try {
             const myIsins = new Set(mfdTxs.filter(t => t.isin).map(t => t.isin.trim())); if (myIsins.size === 0) { alert("No ISINs found."); btn.innerText = origText; btn.disabled = false; return; }
             const amfiUrl = 'https://www.amfiindia.com/spages/NAVAll.txt'; let textData = null; let lastErr = "";
-            const proxies = https://script.google.com/macros/s/AKfycbx_Ucj_uVoZnSwoAsG_1iRQ5O05-7y3bC1XhEoSSaB8KLC_nmLrAvSZf7W0hh68oVenjQ/exec
+            const proxies = ['https://script.google.com/macros/s/AKfycbx_Ucj_uVoZnSwoAsG_1iRQ5O05-7y3bC1XhEoSSaB8KLC_nmLrAvSZf7W0hh68oVenjQ/exec'];
             for (let url of proxies) { try { const res = await fetch(url); if (res.ok) { textData = await res.text(); if (textData.includes('ISIN')) break; } } catch (err) { lastErr = err.message; } }
             if (!textData) throw new Error(`Browser blocked request. Reason: ${lastErr}. Try "Upload Raw AMFI File" below.`);
             const lines = textData.split('\n'); let updatedCount = 0; const batch = db.batch(); const todayISO = new Date().toISOString();
