@@ -100,20 +100,29 @@
         
         button.btn-export { background: var(--success); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; transition: 0.2s; }
         button.btn-export:hover { background: #15803d; }
+        
         button.btn-live { background: var(--info); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; transition: 0.2s; }
         button.btn-live:hover { background: #0284c7; }
+
         button.btn-global-rename { background: var(--purple); color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; height: fit-content; cursor: pointer; transition: 0.2s; }
         button.btn-global-rename:hover { background: #7c3aed; }
         
-        /* General Table Design */
-        .table-container { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); background: white; -webkit-overflow-scrolling: touch; }
+        /* Table Design: white-space nowrap forces columns to stretch safely */
+        .table-container { 
+            overflow-x: auto; 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+            background: white;
+            -webkit-overflow-scrolling: touch;
+        }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
         th, td { padding: 12px 15px; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; }
         th { background-color: #f8fafc; color: #334155; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+        
         tbody tr:nth-child(even) { background-color: #fafaf9; }
         tbody tr:hover { background-color: #f1f5f9; transition: background-color 0.15s ease-in-out; }
 
-        /* FEATURE: Compact Table Design for Script Dashboard */
         table.compact-table { width: auto; min-width: 100%; }
         table.compact-table th, table.compact-table td { padding: 6px 12px; font-size: 0.82rem; }
 
@@ -304,7 +313,6 @@
                 </div>
                 
                 <div id="script-dash-data" style="display: none;">
-                    <!-- COMPACT 4-TABLE LAYOUT -->
                     <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
                         <div>
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Inventory (Cost)</h3>
@@ -349,7 +357,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT-WISE REPORTS & UNREALIZED METRICS -->
+    <!-- SCRIPT-WISE REPORTS -->
     <div class="panel">
         <h2>Script-wise & Unrealized Performance Reports</h2>
         <div class="controls-row">
@@ -654,7 +662,6 @@
         </div>
     </div>
 </div>
-<script>
 <script>
     // ==========================================
     // 1. FIREBASE CONFIGURATION
@@ -1070,15 +1077,16 @@
             let unPnlStr = "0.00"; 
             let unClass = "pnl-neutral";
 
-            // ONLY show in Inventory if we actually hold balance
+            if(liveP) {
+                let curV = item.qty * liveP; 
+                let uPnL = curV - item.cost;
+                curValStr = curV.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                unPnlStr = (uPnL >= 0 ? '+' : '') + uPnL.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                unClass = uPnL > 0 ? 'pnl-positive' : (uPnL < 0 ? 'pnl-negative' : 'pnl-neutral');
+            }
+
+            // 1. INVENTORY TABLE: ONLY show if we actually hold balance
             if (item.qty > 0) { 
-                if(liveP) {
-                    let curV = item.qty * liveP; let uPnL = curV - item.cost;
-                    curValStr = curV.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                    unPnlStr = (uPnL >= 0 ? '+' : '') + uPnL.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                    unClass = uPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
-                }
-                
                 let displayQty = parseNum(item.qty).toFixed(4);
                 let displayAvg = parseNum(item.qty) > 0 ? (parseNum(item.cost) / parseNum(item.qty)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "0.00";
                 let displayInv = parseNum(item.cost).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -1091,7 +1099,7 @@
                 </tr>`; 
             }
 
-            // ALWAYS show in Live Performance (to track price regardless of balance)
+            // 2. LIVE PERFORMANCE TABLE: ALWAYS show (even if Qty == 0) to act as a watchlist
             liveBody.innerHTML += `<tr>
                 <td><strong>${item.symbol}</strong></td>
                 <td style="color:#137333; font-weight:bold;">${livePStr}</td>
@@ -1102,9 +1110,6 @@
 
         if(holdingsBody.innerHTML === '') {
             holdingsBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No active holdings.</td></tr>`;
-        }
-        if(liveBody.innerHTML === '') {
-            liveBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No scripts selected.</td></tr>`;
         }
 
         const pnlBody = document.getElementById('dash-pnl-body');
@@ -1221,7 +1226,6 @@
             if (!brokerPnLMap[item.broker]) brokerPnLMap[item.broker] = 0;
             brokerPnLMap[item.broker] += item.pnl;
 
-            // STRICT DISPLAY LOGIC
             if (item.qty > 0) { 
                 if (item.type === 'Equity') totalEquity += item.cost;
                 if (item.type === 'Mutual Fund') totalMF += item.cost;
@@ -1349,7 +1353,6 @@
         const fColSymbol = document.getElementById('flt-col-symbol').value.toLowerCase().trim();
         const fColRemark = document.getElementById('flt-col-remark').value.toLowerCase().trim();
 
-        // Apply filters directly to raw ledger to ensure no missing rows
         let dynamicTxs = [...currentTxs].filter(tx => {
             let match = true;
             if (rBroker !== 'All' && tx.broker !== rBroker) match = false;
