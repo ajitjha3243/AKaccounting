@@ -105,7 +105,7 @@
         button.btn-global-rename { background: var(--purple); color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; height: fit-content; cursor: pointer; transition: 0.2s; }
         button.btn-global-rename:hover { background: #7c3aed; }
         
-        /* General Table Design */
+        /* Table Design */
         .table-container { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); background: white; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
         th, td { padding: 12px 15px; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; }
@@ -113,7 +113,6 @@
         tbody tr:nth-child(even) { background-color: #fafaf9; }
         tbody tr:hover { background-color: #f1f5f9; transition: background-color 0.15s ease-in-out; }
 
-        /* Compact Table Design */
         table.compact-table { width: auto; min-width: 100%; }
         table.compact-table th, table.compact-table td { padding: 6px 12px; font-size: 0.82rem; }
 
@@ -236,7 +235,7 @@
         </div>
     </div>
 
-    <!-- SUMMARY KPI CARDS -->
+    <!-- SUMMARY KPI CARDS WITH UNREALIZED GAIN/LOSS -->
     <div class="summary-container">
         <div class="card equity"><h3>Equity Invested</h3><p id="equity-investment">0.00</p></div>
         <div class="card mf"><h3>MF Invested</h3><p id="mf-investment">0.00</p></div>
@@ -285,7 +284,7 @@
             </div>
         </div>
 
-        <!-- SCRIPT ANALYSIS DASHBOARD -->
+        <!-- SCRIPT ANALYSIS DASHBOARD (NOW WITH 5 TABLES) -->
         <div class="panel" style="margin-bottom: 0; padding-top: 10px;">
             <div class="panel-header" onclick="togglePanel('script-dash-content', 'script-dash-icon')">
                 <h2>Script Analysis Dashboard</h2>
@@ -301,10 +300,17 @@
                         <label>Select Year(s) <small style="color: #64748b;">(Ctrl/Cmd + Click)</small></label>
                         <select id="dash-year" multiple onchange="renderScriptDash()"></select>
                     </div>
+                    <!-- NEW RE-ENTRY DROP % CONTROL -->
+                    <div class="form-group">
+                        <label>Alert Drop % <small style="color: #64748b;">(from Last Sale)</small></label>
+                        <input type="number" id="dash-drop-pct" value="5" step="any" min="0" oninput="renderScriptDash()">
+                    </div>
                 </div>
                 
                 <div id="script-dash-data" style="display: none;">
                     <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+                        
+                        <!-- 1. Inventory -->
                         <div>
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Inventory (Cost)</h3>
                             <div class="table-container">
@@ -314,6 +320,8 @@
                                 </table>
                             </div>
                         </div>
+
+                        <!-- 2. Live Performance (Watchlist) -->
                         <div>
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Live Performance (Watchlist)</h3>
                             <div class="table-container">
@@ -323,6 +331,19 @@
                                 </table>
                             </div>
                         </div>
+
+                        <!-- 3. NEW: Re-entry Opportunities -->
+                        <div>
+                            <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Re-entry Opportunities</h3>
+                            <div class="table-container">
+                                <table class="compact-table">
+                                    <thead><tr><th>Script (Last Sale)</th><th>Sold At</th><th>Live</th><th>Drop</th></tr></thead>
+                                    <tbody id="dash-reentry-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- 4. Month-wise P&L -->
                         <div>
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Month-wise Realized P&L</h3>
                             <div class="table-container">
@@ -333,6 +354,8 @@
                                 </table>
                             </div>
                         </div>
+
+                        <!-- 5. Last 2 Sales -->
                         <div>
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Last 2 Sales</h3>
                             <div class="table-container">
@@ -342,6 +365,7 @@
                                 </table>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -1027,6 +1051,8 @@
         else { dataContainer.style.display = 'block'; }
 
         let inventory = {}; let monthlyPnL = {}; let totalPnL = 0;
+        let latestSales = {}; // New Object for Re-entry feature
+
         let sortedTxs = [...currentTxs].sort((a,b) => new Date(a.date) - new Date(b.date));
 
         sortedTxs.forEach(tx => {
@@ -1039,7 +1065,6 @@
             let safeTotal = parseNum(tx.total);
             let rawType = String(tx.txType || '').trim().toLowerCase();
 
-            // FEATURE: Tracking Dividends ('income') tied to a script
             if (!inventory[key]) inventory[key] = { symbol: s, broker: b, qty: 0, cost: 0, dividends: 0 };
             if (!monthlyPnL[monthKey]) monthlyPnL[monthKey] = 0;
 
@@ -1051,70 +1076,85 @@
                 let tradePnL = safeTotal - cogs;
                 inventory[key].qty -= safeQty; inventory[key].cost -= cogs;
                 monthlyPnL[monthKey] += tradePnL;
+                
+                // Track latest sale for Re-entry feature
+                latestSales[s] = { date: tx.date, price: parseNum(tx.price) };
+                
             } else if (rawType === 'income') {
                 inventory[key].dividends += safeTotal;
-                monthlyPnL[monthKey] += safeTotal; // Realized P&L includes dividends
+                monthlyPnL[monthKey] += safeTotal;
             }
         });
 
-        // FORCE CLAMPING to mathematically guarantee clean values
         Object.keys(inventory).forEach(key => {
             if (inventory[key].qty < 0.001) { inventory[key].qty = 0; inventory[key].cost = 0; }
         });
 
+        // 1 & 2. Render Holdings and Live Watchlist
         const holdingsBody = document.getElementById('dash-holdings-body');
         const liveBody = document.getElementById('dash-live-body');
-        holdingsBody.innerHTML = '';
-        liveBody.innerHTML = '';
+        holdingsBody.innerHTML = ''; liveBody.innerHTML = '';
 
         Object.keys(inventory).sort().forEach(key => {
             let item = inventory[key];
-            
             let liveP = livePrices[item.symbol] !== undefined ? parseNum(livePrices[item.symbol]) : null;
             let livePStr = liveP !== null ? fmtMoney(liveP) : '<span style="color:#64748b; font-weight:normal;">Click Fetch</span>';
-            
-            let curValStr = "0.00"; 
-            let unPnlStr = "0.00"; 
-            let unClass = "pnl-neutral";
+            let curValStr = "0.00"; let unPnlStr = "0.00"; let unClass = "pnl-neutral";
 
-            // Track price regardless of holding qty
             if(liveP !== null) {
-                let curV = item.qty * liveP; 
-                let uPnL = curV - item.cost;
+                let curV = item.qty * liveP; let uPnL = curV - item.cost;
                 curValStr = fmtMoney(curV);
                 unPnlStr = (uPnL >= 0 ? '+' : '') + fmtMoney(uPnL);
                 unClass = uPnL > 0 ? 'pnl-positive' : (uPnL < 0 ? 'pnl-negative' : 'pnl-neutral');
             }
 
-            // 1. INVENTORY TABLE: ONLY show if we actually hold balance
             if (item.qty > 0) { 
                 let displayQty = parseNum(item.qty).toFixed(4);
                 let displayAvg = parseNum(item.qty) > 0 ? fmtMoney(parseNum(item.cost) / parseNum(item.qty)) : "0.00";
                 let displayInv = fmtMoney(item.cost);
                 let displayDivs = fmtMoney(item.dividends);
 
-                holdingsBody.innerHTML += `<tr>
-                    <td><strong>${item.symbol}</strong></td>
-                    <td>${displayQty}</td>
-                    <td>${displayAvg}</td>
-                    <td>${displayInv}</td>
-                    <td style="color:var(--success); font-weight:bold;">+${displayDivs}</td>
-                </tr>`; 
+                holdingsBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${displayQty}</td><td>${displayAvg}</td><td>${displayInv}</td><td style="color:var(--success); font-weight:bold;">+${displayDivs}</td></tr>`; 
             }
 
-            // 2. LIVE PERFORMANCE TABLE: ALWAYS show (even if Qty == 0) to act as a watchlist
-            liveBody.innerHTML += `<tr>
-                <td><strong>${item.symbol}</strong></td>
-                <td style="color:#137333; font-weight:bold;">${livePStr}</td>
-                <td>${curValStr}</td>
-                <td class="${unClass}"><strong>${unPnlStr}</strong></td>
+            liveBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td style="color:#137333; font-weight:bold;">${livePStr}</td><td>${curValStr}</td><td class="${unClass}"><strong>${unPnlStr}</strong></td></tr>`;
+        });
+
+        if(holdingsBody.innerHTML === '') holdingsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b; padding: 15px;">No active holdings.</td></tr>`;
+        
+        // 3. Render Re-entry Opportunities (Drop from Last Sale)
+        const reentryBody = document.getElementById('dash-reentry-body');
+        reentryBody.innerHTML = '';
+        let dropPctThreshold = parseNum(document.getElementById('dash-drop-pct').value) || 0;
+        let reentryCount = 0;
+        let reentryItems = [];
+
+        Object.keys(latestSales).forEach(sym => {
+            let lastSale = latestSales[sym];
+            let liveP = livePrices[sym] !== undefined ? parseNum(livePrices[sym]) : null;
+            if (liveP !== null && lastSale.price > 0) {
+                let dropPct = ((lastSale.price - liveP) / lastSale.price) * 100;
+                if (dropPct >= dropPctThreshold) {
+                    reentryItems.push({ sym: sym, date: lastSale.date, salePrice: lastSale.price, livePrice: liveP, dropPct: dropPct });
+                }
+            }
+        });
+
+        reentryItems.sort((a, b) => b.dropPct - a.dropPct);
+
+        reentryItems.forEach(item => {
+            reentryCount++;
+            reentryBody.innerHTML += `<tr>
+                <td><strong>${item.sym}</strong><br><span style="font-size:0.75rem;color:#64748b;">${item.date}</span></td>
+                <td>${fmtMoney(item.salePrice)}</td>
+                <td style="color:#137333; font-weight:bold;">${fmtMoney(item.livePrice)}</td>
+                <td style="color:var(--danger); font-weight:bold;">-${item.dropPct.toFixed(2)}%</td>
             </tr>`;
         });
 
-        if(holdingsBody.innerHTML === '') {
-            holdingsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b; padding: 15px;">No active holdings.</td></tr>`;
-        }
+        if (reentryCount === 0) { reentryBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No dips &ge; ${dropPctThreshold}% found.</td></tr>`; }
 
+        // 4. Render Month-wise P&L
         const pnlBody = document.getElementById('dash-pnl-body');
         pnlBody.innerHTML = '';
         let keysToRender = Object.keys(monthlyPnL).sort().reverse();
@@ -1129,6 +1169,7 @@
         totalEl.innerText = (totalPnL > 0 ? '+' : '') + fmtMoney(totalPnL);
         totalEl.className = totalPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
         
+        // 5. Render Last 2 Sales
         const salesBody = document.getElementById('dash-sales-body');
         salesBody.innerHTML = '';
         let lastSales = sortedTxs.filter(tx => {
@@ -1194,7 +1235,6 @@
             let safeQty = parseNum(tx.qty); let safeTotal = parseNum(tx.total);
             let rawType = String(tx.txType || '').trim().toLowerCase();
             
-            // Added dividends to the base inventory object
             if (!inventory[key]) inventory[key] = { symbol: tx.symbol, broker: b, qty: 0, cost: 0, type: tx.assetClass, pnl: 0, dividends: 0, hasTrade: false };
             if (!brokerLedgerMap[b]) brokerLedgerMap[b] = 0;
             
@@ -1216,7 +1256,7 @@
             else if (rawType === 'income') { 
                 overallPnL += safeTotal; inventory[key].pnl += safeTotal; brokerLedgerMap[b] += safeTotal; 
                 addHierarchical(tx.date, tx.symbol, safeTotal); inventory[key].hasTrade = true;
-                inventory[key].dividends += safeTotal; // Track dividends here
+                inventory[key].dividends += safeTotal;
             } 
             else if (rawType === 'cash addition') { brokerLedgerMap[b] += safeTotal; } 
             else if (rawType === 'cash withdrawal') { brokerLedgerMap[b] -= safeTotal; }
@@ -1237,7 +1277,6 @@
             if (!brokerPnLMap[item.broker]) brokerPnLMap[item.broker] = 0;
             brokerPnLMap[item.broker] += item.pnl;
 
-            // STRICT DISPLAY LOGIC: Active Holdings
             if (item.qty > 0) { 
                 if (item.type === 'Equity') totalEquity += item.cost;
                 if (item.type === 'Mutual Fund') totalMF += item.cost;
@@ -1273,7 +1312,6 @@
                 let displayAvg = parseNum(item.qty) > 0 ? fmtMoney(parseNum(item.cost) / parseNum(item.qty)) : "0.00";
                 let displayInv = fmtMoney(item.cost);
                 
-                // Dividend Yield Calculation
                 let displayDivs = fmtMoney(item.dividends);
                 let divYield = item.cost > 0 ? (item.dividends / item.cost) * 100 : 0;
                 let displayYield = divYield > 0 ? divYield.toFixed(2) + "%" : "0.00%";
