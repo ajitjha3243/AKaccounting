@@ -655,6 +655,7 @@
     </div>
 </div>
 <script>
+<script>
     // ==========================================
     // 1. FIREBASE CONFIGURATION
     // ==========================================
@@ -886,14 +887,12 @@
             let availableCash = 0;
             
             currentTxs.forEach(t => {
-                if (txId && t.id === txId) return; // Skip the transaction being edited from the availability check
-                
+                if (txId && t.id === txId) return; 
                 let b = t.broker || 'N/A';
                 let tTotal = parseNum(t.total);
                 let tQty = parseNum(t.qty);
                 let rType = String(t.txType).trim().toLowerCase();
 
-                // Calculate Cash Balance for this broker
                 if (b.toLowerCase() === finalBroker.toLowerCase()) {
                     if (rType === 'purchase' || rType === 'expense' || rType === 'cash withdrawal') {
                         availableCash -= tTotal;
@@ -901,17 +900,14 @@
                         availableCash += tTotal;
                     }
                 }
-
-                // Calculate Script Quantity for this broker
                 if (b.toLowerCase() === finalBroker.toLowerCase() && t.symbol.toUpperCase() === finalSymbol) {
                     if (rType === 'purchase') availableQty += tQty;
                     else if (rType === 'sale') availableQty -= tQty;
                 }
             });
 
-            // Enforce the validation rules
             if (txType === 'Sale') {
-                if (qty > availableQty + 0.0001) { // 0.0001 buffer for float math
+                if (qty > availableQty + 0.0001) { 
                     alert(`Transaction Blocked: Cannot sell ${qty} units.\nYou only have ${availableQty.toFixed(4)} units of ${finalSymbol} available with ${finalBroker}.`);
                     return;
                 }
@@ -1000,7 +996,6 @@
 
         if(dashScriptSelect) { 
             dashScriptSelect.innerHTML = uniqueSymbols.filter(s => s !== "CASH").map(s => `<option value="${s}">${s}</option>`).join(''); 
-            // Only preserve explicitly selected options (DEFAULT IS NOTHING SELECTED)
             if (currentDashScripts.length > 0) {
                 Array.from(dashScriptSelect.options).forEach(opt => { 
                     if (currentDashScripts.includes(opt.value)) { opt.selected = true; }
@@ -1055,9 +1050,9 @@
             }
         });
 
-        // Numeric clamping to prevent ghost quantities
+        // FORCE CLAMPING to mathematically guarantee clean values
         Object.keys(inventory).forEach(key => {
-            if (inventory[key].qty < 0.0001) { inventory[key].qty = 0; inventory[key].cost = 0; }
+            if (inventory[key].qty < 0.001) { inventory[key].qty = 0; inventory[key].cost = 0; }
         });
 
         const holdingsBody = document.getElementById('dash-holdings-body');
@@ -1067,14 +1062,18 @@
 
         Object.keys(inventory).sort().forEach(key => {
             let item = inventory[key];
-            if (item.qty > 0.0001 || Math.abs(item.cost) > 0.01) { 
-                let liveP = livePrices[item.symbol] || null;
-                let unPnlStr = "-"; let unClass = "pnl-neutral";
-                let curValStr = "-"; let livePStr = "-";
-                
+            
+            let liveP = livePrices[item.symbol] || null;
+            let livePStr = liveP ? liveP.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '<span style="color:#64748b; font-weight:normal;">Click Fetch</span>';
+            
+            let curValStr = "0.00"; 
+            let unPnlStr = "0.00"; 
+            let unClass = "pnl-neutral";
+
+            // ONLY show in Inventory if we actually hold balance
+            if (item.qty > 0) { 
                 if(liveP) {
                     let curV = item.qty * liveP; let uPnL = curV - item.cost;
-                    livePStr = liveP.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
                     curValStr = curV.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
                     unPnlStr = (uPnL >= 0 ? '+' : '') + uPnL.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
                     unClass = uPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
@@ -1090,19 +1089,22 @@
                     <td>${displayAvg}</td>
                     <td>${displayInv}</td>
                 </tr>`; 
-
-                liveBody.innerHTML += `<tr>
-                    <td><strong>${item.symbol}</strong></td>
-                    <td>${livePStr}</td>
-                    <td>${curValStr}</td>
-                    <td class="${unClass}"><strong>${unPnlStr}</strong></td>
-                </tr>`;
             }
+
+            // ALWAYS show in Live Performance (to track price regardless of balance)
+            liveBody.innerHTML += `<tr>
+                <td><strong>${item.symbol}</strong></td>
+                <td style="color:#137333; font-weight:bold;">${livePStr}</td>
+                <td>${curValStr}</td>
+                <td class="${unClass}"><strong>${unPnlStr}</strong></td>
+            </tr>`;
         });
 
         if(holdingsBody.innerHTML === '') {
             holdingsBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No active holdings.</td></tr>`;
-            liveBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No active holdings.</td></tr>`;
+        }
+        if(liveBody.innerHTML === '') {
+            liveBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No scripts selected.</td></tr>`;
         }
 
         const pnlBody = document.getElementById('dash-pnl-body');
@@ -1205,7 +1207,7 @@
         });
 
         Object.keys(inventory).forEach(key => {
-            if (inventory[key].qty < 0.0001) { inventory[key].qty = 0; inventory[key].cost = 0; }
+            if (inventory[key].qty < 0.001) { inventory[key].qty = 0; inventory[key].cost = 0; }
         });
 
         const rBroker = document.getElementById('report-filter-broker').value || 'All'; 
@@ -1219,7 +1221,8 @@
             if (!brokerPnLMap[item.broker]) brokerPnLMap[item.broker] = 0;
             brokerPnLMap[item.broker] += item.pnl;
 
-            if (item.qty > 0.0001 || Math.abs(item.cost) > 0.01) { 
+            // STRICT DISPLAY LOGIC
+            if (item.qty > 0) { 
                 if (item.type === 'Equity') totalEquity += item.cost;
                 if (item.type === 'Mutual Fund') totalMF += item.cost;
 
@@ -1250,7 +1253,6 @@
                     totalCurrentValuation += item.cost; brokerUnrealizedMap[item.broker].currentVal += item.cost;
                 }
 
-                // Bulletproof Format Generation
                 let displayQty = parseNum(item.qty).toFixed(4);
                 let displayAvg = parseNum(item.qty) > 0 ? (parseNum(item.cost) / parseNum(item.qty)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "0.00";
                 let displayInv = parseNum(item.cost).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -1303,7 +1305,7 @@
             let fyData = hierarchicalPnL[fy]; if (fyData.pnl === 0) return; let fyClass = fyData.pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
             treeHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> FY ${fy}</span><span class="${fyClass}">${fyData.pnl>0?'+':''}₹${fyData.pnl.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div><div class="tree-children">`;
             Object.keys(fyData.months).sort().reverse().forEach(mStr => {
-                let mData = fyData.months[mStr]; if (mData.pnl === 0) return; let mClass = mData.pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+                let mData = yData.months[mStr]; if (mData.pnl === 0) return; let mClass = mData.pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
                 treeHtml += `<div class="tree-node"><div class="tree-header" onclick="this.parentElement.classList.toggle('active')"><span><span class="tree-arrow">▶</span> ${monthNames[parseInt(mStr)]}</span><span class="${mClass}">${mData.pnl>0?'+':''}₹${mData.pnl.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div><div class="tree-children">`;
                 Object.keys(mData.days).sort().reverse().forEach(dStr => {
                     let dData = mData.days[dStr]; if (dData.pnl === 0) return; let dClass = dData.pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
@@ -1554,5 +1556,3 @@
         document.getElementById('other-btn-prev').disabled = otherCurrentPage === 1; document.getElementById('other-btn-next').disabled = otherCurrentPage === totalPages;
     }
 </script>
-</body>
-</html>
