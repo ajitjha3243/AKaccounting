@@ -17,7 +17,6 @@
         }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
         
-        /* Container fits comfortably on all screens */
         .container { max-width: 98%; margin: 0 auto; box-sizing: border-box; }
         
         /* --- SECURE AUTHENTICATION OVERLAY --- */
@@ -101,28 +100,22 @@
         
         button.btn-export { background: var(--success); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; transition: 0.2s; }
         button.btn-export:hover { background: #15803d; }
-        
         button.btn-live { background: var(--info); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; height: fit-content; transition: 0.2s; }
         button.btn-live:hover { background: #0284c7; }
-
         button.btn-global-rename { background: var(--purple); color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; height: fit-content; cursor: pointer; transition: 0.2s; }
         button.btn-global-rename:hover { background: #7c3aed; }
         
-        /* Table Design: white-space nowrap forces columns to stretch safely */
-        .table-container { 
-            overflow-x: auto; 
-            border: 1px solid var(--border); 
-            border-radius: 8px; 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
-            background: white;
-            -webkit-overflow-scrolling: touch;
-        }
+        /* General Table Design */
+        .table-container { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); background: white; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
         th, td { padding: 12px 15px; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; }
         th { background-color: #f8fafc; color: #334155; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
-        
         tbody tr:nth-child(even) { background-color: #fafaf9; }
         tbody tr:hover { background-color: #f1f5f9; transition: background-color 0.15s ease-in-out; }
+
+        /* FEATURE: Compact Table Design for Script Dashboard */
+        table.compact-table { width: auto; min-width: 100%; }
+        table.compact-table th, table.compact-table td { padding: 6px 12px; font-size: 0.82rem; }
 
         th.sortable { cursor: pointer; transition: background 0.2s; user-select: none; }
         th.sortable:hover { background-color: #e2e8f0; }
@@ -311,35 +304,44 @@
                 </div>
                 
                 <div id="script-dash-data" style="display: none;">
-                    <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 15px;">
+                    <!-- COMPACT 4-TABLE LAYOUT -->
+                    <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
                         <div>
-                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Current Holdings & Unrealized</h3>
+                            <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Inventory (Cost)</h3>
                             <div class="table-container">
-                                <table>
-                                    <thead><tr><th>Script</th><th>Qty</th><th>Avg Cost</th><th>Invested</th><th>Unrealized</th></tr></thead>
+                                <table class="compact-table">
+                                    <thead><tr><th>Script</th><th>Qty</th><th>Avg Cost</th><th>Invested</th></tr></thead>
                                     <tbody id="dash-holdings-body"></tbody>
                                 </table>
                             </div>
                         </div>
                         <div>
-                            <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Month-wise Realized P&L</h3>
+                            <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Live Performance</h3>
                             <div class="table-container">
-                                <table>
+                                <table class="compact-table">
+                                    <thead><tr><th>Script</th><th>Live Price</th><th>Current Val</th><th>Unrealized</th></tr></thead>
+                                    <tbody id="dash-live-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Month-wise Realized P&L</h3>
+                            <div class="table-container">
+                                <table class="compact-table">
                                     <thead><tr><th>Month</th><th>P&L</th></tr></thead>
                                     <tbody id="dash-pnl-body"></tbody>
                                     <tfoot><tr><th style="background-color: #f8fafc;">Total Realized</th><th id="dash-pnl-total" style="background-color: #f8fafc;">0.00</th></tr></tfoot>
                                 </table>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div style="margin-top: 25px;">
-                        <h3 style="font-size: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Last 2 Sales</h3>
-                        <div class="table-container">
-                            <table>
-                                <thead><tr><th>Date</th><th>Symbol</th><th>Qty</th><th>Price</th></tr></thead>
-                                <tbody id="dash-sales-body"></tbody>
-                            </table>
+                        <div>
+                            <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Last 2 Sales</h3>
+                            <div class="table-container">
+                                <table class="compact-table">
+                                    <thead><tr><th>Date</th><th>Qty</th><th>Price</th></tr></thead>
+                                    <tbody id="dash-sales-body"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -875,11 +877,60 @@
             let finalBroker = document.getElementById('broker-input').value.trim();
             let finalRemark = document.getElementById('remark-input').value.trim(); 
             const isFlatAmount = ['Expense', 'Income', 'Cash Addition', 'Cash Withdrawal'].includes(txType);
+            const txAmount = isFlatAmount ? price : (qty * price);
+
+            // ==========================================
+            // PRE-FLIGHT VALIDATION CHECKS
+            // ==========================================
+            let availableQty = 0;
+            let availableCash = 0;
+            
+            currentTxs.forEach(t => {
+                if (txId && t.id === txId) return; // Skip the transaction being edited from the availability check
+                
+                let b = t.broker || 'N/A';
+                let tTotal = parseNum(t.total);
+                let tQty = parseNum(t.qty);
+                let rType = String(t.txType).trim().toLowerCase();
+
+                // Calculate Cash Balance for this broker
+                if (b.toLowerCase() === finalBroker.toLowerCase()) {
+                    if (rType === 'purchase' || rType === 'expense' || rType === 'cash withdrawal') {
+                        availableCash -= tTotal;
+                    } else if (rType === 'sale' || rType === 'income' || rType === 'cash addition') {
+                        availableCash += tTotal;
+                    }
+                }
+
+                // Calculate Script Quantity for this broker
+                if (b.toLowerCase() === finalBroker.toLowerCase() && t.symbol.toUpperCase() === finalSymbol) {
+                    if (rType === 'purchase') availableQty += tQty;
+                    else if (rType === 'sale') availableQty -= tQty;
+                }
+            });
+
+            // Enforce the validation rules
+            if (txType === 'Sale') {
+                if (qty > availableQty + 0.0001) { // 0.0001 buffer for float math
+                    alert(`Transaction Blocked: Cannot sell ${qty} units.\nYou only have ${availableQty.toFixed(4)} units of ${finalSymbol} available with ${finalBroker}.`);
+                    return;
+                }
+            } else if (txType === 'Purchase') {
+                if (txAmount > availableCash + 0.01) {
+                    alert(`Transaction Blocked: Cannot purchase.\nRequired amount is ₹${txAmount.toFixed(2)}, but your available cash balance with ${finalBroker} is only ₹${availableCash.toFixed(2)}.\n\nPlease log a "Cash Addition" or "Income" transaction first.`);
+                    return;
+                }
+            } else if (txType === 'Cash Withdrawal') {
+                if (txAmount > availableCash + 0.01) {
+                    alert(`Transaction Blocked: Cannot withdraw cash.\nRequested withdrawal is ₹${txAmount.toFixed(2)}, but your available cash balance with ${finalBroker} is only ₹${availableCash.toFixed(2)}.`);
+                    return;
+                }
+            }
 
             const txData = {
                 userId: currentUser.uid, date: document.getElementById('date').value, broker: finalBroker,
                 assetClass: document.getElementById('asset-class').value, txType: txType, symbol: finalSymbol,
-                remark: finalRemark, qty: isFlatAmount ? 0 : qty, price: price, total: isFlatAmount ? price : (qty * price)
+                remark: finalRemark, qty: isFlatAmount ? 0 : qty, price: price, total: txAmount
             };
 
             if (txId) { await db.collection('transactions').doc(txId).update(txData); cancelEdit(); } 
@@ -949,20 +1000,11 @@
 
         if(dashScriptSelect) { 
             dashScriptSelect.innerHTML = uniqueSymbols.filter(s => s !== "CASH").map(s => `<option value="${s}">${s}</option>`).join(''); 
-            
-            // SMART DROPDOWN SELECTOR
+            // Only preserve explicitly selected options (DEFAULT IS NOTHING SELECTED)
             if (currentDashScripts.length > 0) {
                 Array.from(dashScriptSelect.options).forEach(opt => { 
                     if (currentDashScripts.includes(opt.value)) { opt.selected = true; }
                 }); 
-                uniqueSymbols.forEach(s => {
-                    if (!currentDashScripts.includes(s) && s !== "CASH") {
-                        let newOpt = Array.from(dashScriptSelect.options).find(o => o.value === s);
-                        if(newOpt) newOpt.selected = true;
-                    }
-                });
-            } else {
-                Array.from(dashScriptSelect.options).forEach(opt => opt.selected = true); 
             }
         }
         
@@ -1019,19 +1061,25 @@
         });
 
         const holdingsBody = document.getElementById('dash-holdings-body');
+        const liveBody = document.getElementById('dash-live-body');
         holdingsBody.innerHTML = '';
+        liveBody.innerHTML = '';
+
         Object.keys(inventory).sort().forEach(key => {
             let item = inventory[key];
             if (item.qty > 0.0001 || Math.abs(item.cost) > 0.01) { 
                 let liveP = livePrices[item.symbol] || null;
                 let unPnlStr = "-"; let unClass = "pnl-neutral";
+                let curValStr = "-"; let livePStr = "-";
+                
                 if(liveP) {
                     let curV = item.qty * liveP; let uPnL = curV - item.cost;
+                    livePStr = liveP.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    curValStr = curV.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
                     unPnlStr = (uPnL >= 0 ? '+' : '') + uPnL.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
                     unClass = uPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
                 }
                 
-                // BULLETPROOF FORMATTING: Ensures numbers are shown perfectly
                 let displayQty = parseNum(item.qty).toFixed(4);
                 let displayAvg = parseNum(item.qty) > 0 ? (parseNum(item.cost) / parseNum(item.qty)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "0.00";
                 let displayInv = parseNum(item.cost).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -1041,11 +1089,21 @@
                     <td>${displayQty}</td>
                     <td>${displayAvg}</td>
                     <td>${displayInv}</td>
-                    <td class="${unClass}"><strong>${unPnlStr}</strong></td>
                 </tr>`; 
+
+                liveBody.innerHTML += `<tr>
+                    <td><strong>${item.symbol}</strong></td>
+                    <td>${livePStr}</td>
+                    <td>${curValStr}</td>
+                    <td class="${unClass}"><strong>${unPnlStr}</strong></td>
+                </tr>`;
             }
         });
-        if(holdingsBody.innerHTML === '') holdingsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b; padding: 15px;">No active holdings in selection.</td></tr>`;
+
+        if(holdingsBody.innerHTML === '') {
+            holdingsBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No active holdings.</td></tr>`;
+            liveBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No active holdings.</td></tr>`;
+        }
 
         const pnlBody = document.getElementById('dash-pnl-body');
         pnlBody.innerHTML = '';
@@ -1071,9 +1129,9 @@
         if (lastSales.length > 0) {
             lastSales.forEach(tx => {
                 let safeQty = parseNum(tx.qty); let safePrice = parseNum(tx.price);
-                salesBody.innerHTML += `<tr><td>${tx.date}</td><td><strong>${tx.symbol}</strong></td><td>${safeQty.toFixed(4)}</td><td>${safePrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td></tr>`;
+                salesBody.innerHTML += `<tr><td>${tx.date}</td><td>${safeQty.toFixed(4)}</td><td>${safePrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td></tr>`;
             });
-        } else { salesBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No recent sales</td></tr>`; }
+        } else { salesBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#64748b; padding: 15px;">No recent sales</td></tr>`; }
     }
 
     function renderApp() {
