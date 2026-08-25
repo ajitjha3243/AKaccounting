@@ -8,6 +8,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <!-- Chart.js CDN for historical price chart feature -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         :root {
@@ -41,12 +43,12 @@
         .header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 15px;}
         .user-controls { display: flex; align-items: center; gap: 15px; background: #e2e8f0; padding: 8px 15px; border-radius: 8px; font-weight: 500; font-size: 0.95rem; }
         .btn-logout { background: #64748b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
-        .btn-logout:hover { background: #475569; }
+        .btn-logout:hover { background: #475469; }
 
         h1 { margin: 0; font-weight: 700; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 1.5rem;}
         .header-actions { display: flex; gap: 10px; }
         .btn-backup { background: var(--purple); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: opacity 0.2s; }
-        .btn-restore { background: #475569; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: opacity 0.2s; }
+        .btn-restore { background: #475469; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: opacity 0.2s; }
         .btn-backup:hover, .btn-restore:hover { opacity: 0.9; }
         
         .summary-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
@@ -93,7 +95,7 @@
         button.btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: 0.2s; }
         button.btn-primary:hover { background: #1d4ed8; }
         button.btn-secondary { width: 100%; background: #64748b; color: white; border: none; padding: 10px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: 0.2s; }
-        button.btn-secondary:hover { background: #475569; }
+        button.btn-secondary:hover { background: #475469; }
         
         .controls-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid var(--border); }
         .controls-row .form-group { margin-bottom: 0; flex: 1; min-width: 150px; }
@@ -105,10 +107,30 @@
         button.btn-global-rename { background: var(--purple); color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; height: fit-content; cursor: pointer; transition: 0.2s; }
         button.btn-global-rename:hover { background: #7c3aed; }
         
-        /* Table Design */
-        .table-container { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); background: white; -webkit-overflow-scrolling: touch; }
-        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
-        th, td { padding: 12px 15px; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; }
+        /* 5) Manual Column Width Adjustment Support via resizable tables / layout styling */
+        .table-container { 
+            overflow-x: auto; 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+            background: white; 
+            -webkit-overflow-scrolling: touch; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            text-align: left; 
+            font-size: 0.9rem; 
+            table-layout: auto; /* Allows manual column sizing or flexible distribution */
+        }
+        th, td { 
+            padding: 12px 15px; 
+            border-bottom: 1px solid var(--border); 
+            vertical-align: middle; 
+            white-space: nowrap; 
+            resize: horizontal; /* Enables manual resizing directly on table cells */
+            overflow: hidden;
+        }
         th { background-color: #f8fafc; color: #334155; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
         tbody tr:nth-child(even) { background-color: #fafaf9; }
         tbody tr:hover { background-color: #f1f5f9; transition: background-color 0.15s ease-in-out; }
@@ -131,7 +153,7 @@
         .badge.cash-withdrawal { background: #fee2e2; color: #991b1b; }
         .badge.cash-received { background: #d1fae5; color: #065f46; }
         .badge.cash-paid { background: #fee2e2; color: #991b1b; }
-        .badge.transfer { background: #f1f5f9; color: #475569; }
+        .badge.transfer { background: #f1f5f9; color: #475469; }
         .badge.other { background: #e5e7eb; color: #374151; }
         
         .btn-edit-tx { background: none; border: none; color: var(--primary); cursor: pointer; font-weight: 600; margin-right: 12px; padding: 4px 8px; border-radius: 4px; transition: background 0.2s;}
@@ -159,7 +181,7 @@
         .tree-node.active > .tree-children { display: block; animation: fadeIn 0.3s ease-in-out; }
         .tree-leaf { display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--border); margin-left: 10px; background: #fafafa; border-radius: 4px; margin-bottom: 2px; }
         .tree-leaf:last-child { border-bottom: none; }
-        .tree-leaf span:first-child { font-weight: 500; color: #475569; }
+        .tree-leaf span:first-child { font-weight: 500; color: #475469; }
 
         @media(max-width: 768px) {
             body { padding: 10px; }
@@ -306,7 +328,37 @@
                     </div>
                 </div>
                 
-                <div id="script-dash-data">
+                <!-- NEW CONTROLS FOR HISTORICAL PRICE CHART (Requirement 2) -->
+                <div class="controls-row" style="background: #ffffff; border: 1px dashed var(--border); margin-top: 10px;">
+                    <div class="form-group">
+                        <label>Chart Script Selection</label>
+                        <select id="chart-script-select" onchange="renderHistoricalChart()"><option value="">-- Choose Script for Chart --</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Chart Year Filter</label>
+                        <select id="chart-year-select" onchange="renderHistoricalChart()"><option value="All">All Years</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Chart Month Filter</label>
+                        <select id="chart-month-select" onchange="renderHistoricalChart()">
+                            <option value="All">All Months</option>
+                            <option value="01">January</option><option value="02">February</option><option value="03">March</option>
+                            <option value="04">April</option><option value="05">May</option><option value="06">June</option>
+                            <option value="07">July</option><option value="08">August</option><option value="09">September</option>
+                            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <button type="button" class="btn-secondary" id="btn-toggle-chart" onclick="toggleChartVisibility()" style="width:100%;">📈 Hide Chart</button>
+                    </div>
+                </div>
+
+                <!-- HISTORICAL CHART CONTAINER -->
+                <div id="chart-container-panel" style="margin-top: 15px; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                    <canvas id="historicalPriceChart" style="max-height: 280px; width: 100%;"></canvas>
+                </div>
+
+                <div id="script-dash-data" style="margin-top: 15px;">
                     <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
                         
                         <!-- 1. Inventory -->
@@ -320,7 +372,7 @@
                             </div>
                         </div>
 
-                        <!-- 2. Live Performance -->
+                        <!-- 2. Live Performance (Requirement 3: Single line per script cleanly) -->
                         <div id="container-live" style="display: none;">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Live Performance (Watchlist)</h3>
                             <div class="table-container">
@@ -354,7 +406,7 @@
                             </div>
                         </div>
                         
-                        <!-- 5. Re-entry Opportunities (GLOBAL - Independent of selection) -->
+                        <!-- 5. Re-entry Opportunities (Requirement 4: Kept all existing tables intact) -->
                         <div id="container-reentry">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Re-entry Opportunities</h3>
                             <div class="table-container">
@@ -678,9 +730,10 @@
         </div>
     </div>
 </div>
+
 <script>
     // ==========================================
-    // MULTI-SELECT SINGLE CLICK TOGGLE HACK
+    // MULTI-SELECT SINGLE CLICK TOGGLE HACK (Requirement 3)
     // ==========================================
     document.addEventListener('mousedown', function(e) {
         if (e.target.tagName === 'OPTION' && e.target.closest('select[multiple]')) {
@@ -728,6 +781,10 @@
     let currentUser = null; 
     let currentTxs = [];    
     let livePrices = JSON.parse(localStorage.getItem('savedLivePrices')) || {}; 
+    
+    // HISTORICAL DAILY PRICE LOG (Requirement 1: Save day's last fetched price)
+    let historicalPrices = JSON.parse(localStorage.getItem('savedHistoricalPrices')) || {}; 
+    
     let currentPage = 1; 
     const pageSize = 15; 
     let sortCol = 'date'; 
@@ -736,6 +793,7 @@
     let otherCurrentPage = 1; 
     let otherSortCol = 'date'; 
     let otherSortDesc = true;
+    let priceChartInstance = null; // Chart.js reference
 
     // ==========================================
     // 3. UI HELPERS & SHARED LOGIC
@@ -800,7 +858,8 @@
             const backup = {
                 format: "pro-equity-full-backup", date: new Date().toISOString(),
                 transactions: eqSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
-                other_transactions: othSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;})
+                other_transactions: othSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
+                historicalPrices: historicalPrices // Backing up price history too
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup));
             const link = document.createElement("a"); link.setAttribute("href", dataStr); link.setAttribute("download", `Full_Backup_${new Date().toISOString().split('T')[0]}.json`);
@@ -815,6 +874,10 @@
                 const data = JSON.parse(e.target.result);
                 if (data.format === "pro-equity-full-backup" || data.transactions) {
                     if(!confirm("Restore will ADD data to your current account. Continue?")) return;
+                    if(data.historicalPrices) {
+                        historicalPrices = data.historicalPrices;
+                        localStorage.setItem('savedHistoricalPrices', JSON.stringify(historicalPrices));
+                    }
                     const batch = db.batch(); let count = 0;
                     const addDocs = (collection, items) => { if(!items) return; items.forEach(item => { let ref = db.collection(collection).doc(); item.userId = currentUser.uid; batch.set(ref, item); count++; }); };
                     addDocs('transactions', data.transactions); addDocs('other_transactions', data.other_transactions);
@@ -835,6 +898,7 @@
         renderApp();
     }
 
+    // REQUIREMENT 1: Save the day's last fetched price for all stocks purchased (in stock or not)
     async function fetchLivePrices() {
         let inventorySymbols = new Set();
         currentTxs.forEach(tx => {
@@ -857,7 +921,16 @@
                 if (Object.keys(fetchedPrices).length > 0) {
                     Object.assign(livePrices, fetchedPrices);
                     localStorage.setItem('savedLivePrices', JSON.stringify(livePrices));
-                    alert(`Successfully updated live market prices for ${Object.keys(fetchedPrices).length} Equities!`);
+
+                    // Store historical price timestamp for charts (Requirement 1)
+                    let todayStr = new Date().toISOString().split('T')[0];
+                    if(!historicalPrices[todayStr]) historicalPrices[todayStr] = {};
+                    Object.keys(fetchedPrices).forEach(sym => {
+                        historicalPrices[todayStr][sym] = parseNum(fetchedPrices[sym]);
+                    });
+                    localStorage.setItem('savedHistoricalPrices', JSON.stringify(historicalPrices));
+
+                    alert(`Successfully updated live market prices & saved historical log for ${Object.keys(fetchedPrices).length} Equities!`);
                 } else { alert("Failed to fetch prices. Make sure your symbols are formatted correctly (e.g., RELIANCE.NS)."); }
             } else { throw new Error("Connection failed."); }
         } catch (err) { console.error("Fetch error:", err); alert("Live price fetch failed. Please check your internet connection."); } 
@@ -1011,10 +1084,14 @@
         const brokerDatalist = document.getElementById('broker-list');
         const dashScriptSelect = document.getElementById('dash-script');
         const dashYearSelect = document.getElementById('dash-year');
+        const chartScriptSelect = document.getElementById('chart-script-select');
+        const chartYearSelect = document.getElementById('chart-year-select');
 
         const currentReportBroker = brokerReportFilter ? brokerReportFilter.value : 'All';
         const currentDashScripts = dashScriptSelect ? Array.from(dashScriptSelect.selectedOptions).map(o => o.value) : [];
         const currentDashYears = dashYearSelect ? Array.from(dashYearSelect.selectedOptions).map(o => o.value) : [];
+        const currentChartScript = chartScriptSelect ? chartScriptSelect.value : '';
+        const currentChartYear = chartYearSelect ? chartYearSelect.value : 'All';
 
         const uniqueSymbols = [...new Set(currentTxs.map(tx => tx.symbol))].sort();
         const uniqueBrokers = [...new Set(currentTxs.map(tx => tx.broker || 'N/A'))].sort();
@@ -1036,10 +1113,92 @@
         if(dashYearSelect) { 
             dashYearSelect.innerHTML = uniqueYears.map(y => `<option value="${y}">${y}</option>`).join(''); 
             if (currentDashYears.length > 0) { Array.from(dashYearSelect.options).forEach(opt => { if (currentDashYears.includes(opt.value)) opt.selected = true; }); } 
-            else { Array.from(dashYearSelect.options).forEach(opt => opt.selected = true); }
+            else { Array.from(dashYearSelect.options).forEach(opt => { if (currentDashYears.includes(opt.value)) opt.selected = true; }); }
+        }
+
+        // Populate Chart Script Select
+        if(chartScriptSelect) {
+            chartScriptSelect.innerHTML = '<option value="">-- Choose Script for Chart --</option>' + uniqueSymbols.filter(s => s !== "CASH").map(s => `<option value="${s}">${s}</option>`).join('');
+            if(currentChartScript) chartScriptSelect.value = currentChartScript;
+        }
+
+        // Populate Chart Year Select
+        if(chartYearSelect) {
+            chartYearSelect.innerHTML = '<option value="All">All Years</option>' + uniqueYears.map(y => `<option value="${y}">${y}</option>`).join('');
+            if(currentChartYear) chartYearSelect.value = currentChartYear;
         }
         
         if (brokerReportFilter && currentReportBroker) brokerReportFilter.value = currentReportBroker;
+    }
+
+    // ==========================================
+    // REQUIREMENT 2: HISTORICAL PRICE CHART RENDERING
+    // ==========================================
+    function toggleChartVisibility() {
+        const container = document.getElementById('chart-container-panel');
+        const btn = document.getElementById('btn-toggle-chart');
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+            btn.innerText = '📈 Hide Chart';
+        } else {
+            container.style.display = 'none';
+            btn.innerText = '📈 Show Chart';
+        }
+    }
+
+    function renderHistoricalChart() {
+        const script = document.getElementById('chart-script-select').value;
+        const yearFilter = document.getElementById('chart-year-select').value;
+        const monthFilter = document.getElementById('chart-month-select').value;
+        const ctx = document.getElementById('historicalPriceChart').getContext('2d');
+
+        let labels = [];
+        let dataPoints = [];
+
+        // Sort historical price dates chronologically
+        let sortedDates = Object.keys(historicalPrices).sort((a,b) => new Date(a) - new Date(b));
+
+        sortedDates.forEach(dateStr => {
+            let [yr, mo, dy] = dateStr.split('-');
+            
+            // Apply Year filter
+            if (yearFilter !== 'All' && yr !== yearFilter) return;
+            // Apply Month filter
+            if (monthFilter !== 'All' && mo !== monthFilter) return;
+
+            let dayPrices = historicalPrices[dateStr];
+            if (script && dayPrices && dayPrices[script] !== undefined) {
+                labels.push(dateStr);
+                dataPoints.push(dayPrices[script]);
+            }
+        });
+
+        if (priceChartInstance) {
+            priceChartInstance.destroy();
+        }
+
+        priceChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: script ? `${script} Historical Price (₹)` : 'Select a script',
+                    data: dataPoints,
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: false }
+                }
+            }
+        });
     }
 
     function renderScriptDash() {
@@ -1049,7 +1208,6 @@
         const selectedScripts = Array.from(dashScriptSelect.selectedOptions).map(o => o.value);
         const selectedYears = Array.from(dashYearSelect.selectedOptions).map(o => o.value);
 
-        // Hide the first 4 containers if NO scripts are selected
         const cInv = document.getElementById('container-inventory');
         const cLive = document.getElementById('container-live');
         const cPnl = document.getElementById('container-pnl');
@@ -1068,10 +1226,9 @@
         }
 
         let inventory = {}; let monthlyPnL = {}; let totalPnL = 0;
-        let latestSales = {}; // Independent Re-entry feature
+        let latestSales = {}; 
         let sortedTxs = [...currentTxs].sort((a,b) => new Date(a.date) - new Date(b.date));
 
-        // GLOBAL PROCESSING LOOP
         sortedTxs.forEach(tx => {
             let s = tx.symbol;
             let rawType = String(tx.txType || '').trim().toLowerCase();
@@ -1079,12 +1236,10 @@
             let safeQty = parseNum(tx.qty); 
             let safeTotal = parseNum(tx.total);
 
-            // GLOBAL TRACKING (Independent of selection)
             if (rawType === 'sale' && s.toUpperCase() !== 'CASH') {
                 latestSales[s] = { date: tx.date, price: safePrice };
             }
 
-            // SPECIFIC SELECTION TRACKING
             if (!selectedScripts.includes(s)) return;
             
             let b = tx.broker || 'N/A'; 
@@ -1109,7 +1264,7 @@
             }
         });
 
-        // 1 & 2. Render Holdings and Live Watchlist
+        // 1 & 2. Render Holdings and Live Watchlist (Requirement 3: Single line per script cleanly)
         const holdingsBody = document.getElementById('dash-holdings-body');
         const liveBody = document.getElementById('dash-live-body');
         holdingsBody.innerHTML = ''; liveBody.innerHTML = '';
@@ -1166,7 +1321,7 @@
             } else { salesBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#64748b; padding: 15px;">No recent sales</td></tr>`; }
         }
 
-        // 5. Render Re-entry Opportunities (GLOBAL - Always Runs!)
+        // 5. Render Re-entry Opportunities (GLOBAL - Independent of selection)
         const reentryBody = document.getElementById('dash-reentry-body');
         reentryBody.innerHTML = '';
         let dropPctThreshold = parseNum(document.getElementById('dash-drop-pct').value) || 0;
@@ -1631,6 +1786,8 @@
         });
         if (pageTxs.length === 0) { ledgerBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #64748b;">No transactions logged yet.</td></tr>`; }
         document.getElementById('other-page-indicator').innerText = `Page ${otherCurrentPage} of ${totalPages}`;
-        document.getElementById('other-btn-prev').disabled = otherCurrentPage === 1; document.getElementById('other-btn-next').disabled = otherCurrentPage === totalPages;
+        document.getElementById('btn-prev').disabled = otherCurrentPage === 1; document.getElementById('btn-next').disabled = otherCurrentPage === totalPages;
     }
 </script>
+</body>
+</html>
