@@ -781,7 +781,8 @@
     let currentUser = null; 
     let currentTxs = [];    
     let livePrices = JSON.parse(localStorage.getItem('savedLivePrices')) || {}; 
-    let historicalPrices = {}; // Loaded from Cloud Firestore
+    let historicalPrices = {}; // Cloud Firestore loaded data
+    
     let currentPage = 1; 
     const pageSize = 15; 
     let sortCol = 'date'; 
@@ -908,7 +909,6 @@
         const snapshot = await db.collection('transactions').where("userId", "==", currentUser.uid).get();
         currentTxs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Load historical price records from Cloud Firestore (Requirement 1)
         await loadHistoricalPricesFromCloud();
         renderApp();
     }
@@ -928,7 +928,7 @@
         }
     }
 
-    // REQUIREMENT 1: Save the day's last fetched price for all stocks in Cloud Firestore
+    // REQUIREMENT 1 & User Prompt: Save the day's last fetched price on Cloud and use it for Unrealised P&L & Re-entry calculations
     async function fetchLivePrices() {
         let inventorySymbols = new Set();
         currentTxs.forEach(tx => {
@@ -952,7 +952,6 @@
                     Object.assign(livePrices, fetchedPrices);
                     localStorage.setItem('savedLivePrices', JSON.stringify(livePrices));
 
-                    // Save day's last price to Cloud Firestore (Requirement 1)
                     let todayStr = new Date().toISOString().split('T')[0];
                     let cleanPrices = {};
                     Object.keys(fetchedPrices).forEach(sym => {
@@ -962,7 +961,6 @@
                     if(!historicalPrices[todayStr]) historicalPrices[todayStr] = {};
                     Object.assign(historicalPrices[todayStr], cleanPrices);
 
-                    // Commit directly to Firebase Cloud
                     const docId = `${currentUser.uid}_${todayStr}`;
                     await db.collection('price_history').doc(docId).set({
                         userId: currentUser.uid,
@@ -975,6 +973,21 @@
             } else { throw new Error("Connection failed."); }
         } catch (err) { console.error("Fetch error:", err); alert("Live price fetch failed. Please check your internet connection."); } 
         finally { if (btn) { btn.innerText = "🔄 Fetch Live Prices"; btn.disabled = false; } renderApp(); }
+    }
+
+    // Helper to get the latest available price (from live prices or the most recent historical date logged)
+    function getLatestAvailablePrice(symbol) {
+        if (livePrices[symbol] !== undefined && parseNum(livePrices[symbol]) > 0) {
+            return parseNum(livePrices[symbol]);
+        }
+        // Fallback to latest historical date logged in cloud/local history
+        let sortedDates = Object.keys(historicalPrices).sort((a,b) => new Date(b) - new Date(a));
+        for (let d of sortedDates) {
+            if (historicalPrices[d][symbol] !== undefined && parseNum(historicalPrices[d][symbol]) > 0) {
+                return parseNum(historicalPrices[d][symbol]);
+            }
+        }
+        return null;
     }
 
     async function renameScriptGlobally() {
@@ -1153,16 +1166,13 @@
         if(dashYearSelect) { 
             dashYearSelect.innerHTML = uniqueYears.map(y => `<option value="${y}">${y}</option>`).join(''); 
             if (currentDashYears.length > 0) { Array.from(dashYearSelect.options).forEach(opt => { if (currentDashYears.includes(opt.value)) opt.selected = true; }); } 
-            else { Array.from(dashYearSelect.options).forEach(opt => { if (currentDashYears.includes(opt.value)) opt.selected = true; }); }
         }
 
-        // Populate Chart Script Select
         if(chartScriptSelect) {
             chartScriptSelect.innerHTML = '<option value="">-- Choose Script for Chart --</option>' + uniqueSymbols.filter(s => s !== "CASH").map(s => `<option value="${s}">${s}</option>`).join('');
             if(currentChartScript) chartScriptSelect.value = currentChartScript;
         }
 
-        // Populate Chart Year Select
         if(chartYearSelect) {
             chartYearSelect.innerHTML = '<option value="All">All Years</option>' + uniqueYears.map(y => `<option value="${y}">${y}</option>`).join('');
             if(currentChartYear) chartYearSelect.value = currentChartYear;
@@ -1172,7 +1182,7 @@
     }
 
     // ==========================================
-    // REQUIREMENT 2: HISTORICAL PRICE CHART RENDERING
+    // HISTORICAL PRICE CHART RENDERING
     // ==========================================
     function toggleChartVisibility() {
         const container = document.getElementById('chart-container-panel');
@@ -1301,7 +1311,7 @@
             }
         });
 
-        // 1 & 2. Render Holdings and Live Watchlist (Requirement 3: Clean single line layout)
+        // 1 & 2. Render Holdings and Live Watchlist using latest available price (Live or Historical Cloud)
         const holdingsBody = document.getElementById('dash-holdings-body');
         const liveBody = document.getElementById('dash-live-body');
         holdingsBody.innerHTML = ''; liveBody.innerHTML = '';
@@ -1311,12 +1321,12 @@
 
             Object.keys(inventory).sort().forEach(key => {
                 let item = inventory[key];
-                let liveP = livePrices[item.symbol] !== undefined ? parseNum(livePrices[item.symbol]) : null;
-                let livePStr = liveP !== null ? fmtMoney(liveP) : '<span style="color:#64748b; font-weight:normal;">Click Fetch</span>';
+                let latestP = getLatestAvailablePrice(item.symbol);
+                let livePStr = latestP !== null ? fmtMoney(latestP) : '<span style="color:#64748b; font-weight:normal;">Click Fetch</span>';
                 let curValStr = "0.00"; let unPnlStr = "0.00"; let unClass = "pnl-neutral";
 
-                if(liveP !== null) {
-                    let curV = item.qty * liveP; let uPnL = curV - item.cost;
+                if(latestP !== null) {
+                    let curV = item.qty * latestP; let uPnL = curV - item.cost;
                     curValStr = fmtMoney(curV); unPnlStr = (uPnL >= 0 ? '+' : '') + fmtMoney(uPnL);
                     unClass = uPnL > 0 ? 'pnl-positive' : (uPnL < 0 ? 'pnl-negative' : 'pnl-neutral');
                 }
@@ -1358,7 +1368,7 @@
             } else { salesBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#64748b; padding: 15px;">No recent sales</td></tr>`; }
         }
 
-        // 5. Render Re-entry Opportunities
+        // 5. Render Re-entry Opportunities using latest available price fallback
         const reentryBody = document.getElementById('dash-reentry-body');
         reentryBody.innerHTML = '';
         let dropPctThreshold = parseNum(document.getElementById('dash-drop-pct').value) || 0;
@@ -1366,11 +1376,11 @@
 
         Object.keys(latestSales).forEach(sym => {
             let lastSale = latestSales[sym];
-            let liveP = livePrices[sym] !== undefined ? parseNum(livePrices[sym]) : null;
-            if (liveP !== null && lastSale.price > 0) {
-                let dropPct = ((lastSale.price - liveP) / lastSale.price) * 100;
+            let latestP = getLatestAvailablePrice(sym);
+            if (latestP !== null && lastSale.price > 0) {
+                let dropPct = ((lastSale.price - latestP) / lastSale.price) * 100;
                 if (dropPct >= dropPctThreshold) {
-                    reentryItems.push({ sym: sym, date: lastSale.date, salePrice: lastSale.price, livePrice: liveP, dropPct: dropPct });
+                    reentryItems.push({ sym: sym, date: lastSale.date, salePrice: lastSale.price, livePrice: latestP, dropPct: dropPct });
                 }
             }
         });
@@ -1491,11 +1501,12 @@
                 if (!brokerUnrealizedMap[item.broker]) brokerUnrealizedMap[item.broker] = { cost: 0, currentVal: 0, unrealized: 0 };
                 brokerUnrealizedMap[item.broker].cost += item.cost;
                 
-                let livePrice = livePrices[item.symbol] !== undefined ? parseNum(livePrices[item.symbol]) : null;
+                // Using latest available price fallback for main holdings calculation
+                let latestPrice = getLatestAvailablePrice(item.symbol);
                 let currentValStr = "-"; let unrealizedPnLStr = "-"; let returnPctStr = "-"; let pnlStyleClass = "pnl-neutral";
                 
-                if(livePrice !== null) {
-                    let curValue = item.qty * livePrice;
+                if(latestPrice !== null) {
+                    let curValue = item.qty * latestPrice;
                     let unRealizedPnL = curValue - item.cost;
                     let unReturnPct = item.cost > 0 ? (unRealizedPnL / item.cost) * 100 : 0;
 
@@ -1529,7 +1540,7 @@
                     <td>${displayInv}</td>
                     <td style="background: #f0fdf4; color:#16a34a; font-weight:bold;">+${displayDivs}</td>
                     <td style="background: #f0fdf4; color:#16a34a;">${displayYield}</td>
-                    <td style="background: #e6f4ea; color:#137333; font-weight:bold;">${livePrice !== null ? fmtMoney(livePrice) : '<span style="color:#64748b; font-weight:normal;">Click Fetch</span>'}</td>
+                    <td style="background: #e6f4ea; color:#137333; font-weight:bold;">${latestPrice !== null ? fmtMoney(latestPrice) : '<span style="color:#64748b; font-weight:normal;">Click Fetch</span>'}</td>
                     <td style="background: #e6f4ea;"><strong>${currentValStr}</strong></td>
                     <td style="background: #e6f4ea;" class="${pnlStyleClass}">${unrealizedPnLStr}</td>
                     <td style="background: #e6f4ea;" class="${pnlStyleClass}">${returnPctStr}</td>
@@ -1822,7 +1833,7 @@
             ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td><span class="badge ${badgeClass}">${tx.txType}</span></td><td><strong>${tx.name || '-'}</strong></td><td>${tx.remark || '-'}</td><td>${safeQty.toFixed(4)}</td><td>${fmtMoney(safeRate)}</td><td class="${amtClass}"><strong>${fmtMoney(effAmt)}</strong></td><td><button class="btn-edit-tx" onclick="editOtherTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteOtherTx('${tx.id}')">Del</button></td></tr>`;
         });
         if (pageTxs.length === 0) { ledgerBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #64748b;">No transactions logged yet.</td></tr>`; }
-        document.getElementById('other-page-indicator').innerText = `Page ${otherCurrentPage} of ` + totalPages;
+        document.getElementById('other-page-indicator').innerText = `Page ${otherCurrentPage} of ${totalPages}`;
         document.getElementById('other-btn-prev').disabled = otherCurrentPage === 1; document.getElementById('other-btn-next').disabled = otherCurrentPage === totalPages;
     }
 </script>
