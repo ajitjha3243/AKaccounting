@@ -107,7 +107,7 @@
         button.btn-global-rename { background: var(--purple); color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; height: fit-content; cursor: pointer; transition: 0.2s; }
         button.btn-global-rename:hover { background: #7c3aed; }
         
-        /* 5) Manual Column Width Adjustment Support via resizable tables / layout styling */
+        /* 5) Manual Column Width Adjustment Support */
         .table-container { 
             overflow-x: auto; 
             border: 1px solid var(--border); 
@@ -121,14 +121,14 @@
             border-collapse: collapse; 
             text-align: left; 
             font-size: 0.9rem; 
-            table-layout: auto; /* Allows manual column sizing or flexible distribution */
+            table-layout: auto; 
         }
         th, td { 
             padding: 12px 15px; 
             border-bottom: 1px solid var(--border); 
             vertical-align: middle; 
             white-space: nowrap; 
-            resize: horizontal; /* Enables manual resizing directly on table cells */
+            resize: horizontal; 
             overflow: hidden;
         }
         th { background-color: #f8fafc; color: #334155; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
@@ -328,7 +328,7 @@
                     </div>
                 </div>
                 
-                <!-- NEW CONTROLS FOR HISTORICAL PRICE CHART (Requirement 2) -->
+                <!-- REQUIREMENT 2: HISTORICAL PRICE CHART CONTROLS -->
                 <div class="controls-row" style="background: #ffffff; border: 1px dashed var(--border); margin-top: 10px;">
                     <div class="form-group">
                         <label>Chart Script Selection</label>
@@ -372,7 +372,7 @@
                             </div>
                         </div>
 
-                        <!-- 2. Live Performance (Requirement 3: Single line per script cleanly) -->
+                        <!-- 2. Live Performance (Requirement 3: Clean single line layout) -->
                         <div id="container-live" style="display: none;">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Live Performance (Watchlist)</h3>
                             <div class="table-container">
@@ -406,7 +406,7 @@
                             </div>
                         </div>
                         
-                        <!-- 5. Re-entry Opportunities (Requirement 4: Kept all existing tables intact) -->
+                        <!-- 5. Re-entry Opportunities (Requirement 4: No existing table removed) -->
                         <div id="container-reentry">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Re-entry Opportunities</h3>
                             <div class="table-container">
@@ -733,7 +733,7 @@
 
 <script>
     // ==========================================
-    // MULTI-SELECT SINGLE CLICK TOGGLE HACK (Requirement 3)
+    // MULTI-SELECT SINGLE CLICK TOGGLE HACK
     // ==========================================
     document.addEventListener('mousedown', function(e) {
         if (e.target.tagName === 'OPTION' && e.target.closest('select[multiple]')) {
@@ -781,10 +781,7 @@
     let currentUser = null; 
     let currentTxs = [];    
     let livePrices = JSON.parse(localStorage.getItem('savedLivePrices')) || {}; 
-    
-    // HISTORICAL DAILY PRICE LOG (Requirement 1: Save day's last fetched price)
-    let historicalPrices = JSON.parse(localStorage.getItem('savedHistoricalPrices')) || {}; 
-    
+    let historicalPrices = {}; // Loaded from Cloud Firestore
     let currentPage = 1; 
     const pageSize = 15; 
     let sortCol = 'date'; 
@@ -793,7 +790,7 @@
     let otherCurrentPage = 1; 
     let otherSortCol = 'date'; 
     let otherSortDesc = true;
-    let priceChartInstance = null; // Chart.js reference
+    let priceChartInstance = null;
 
     // ==========================================
     // 3. UI HELPERS & SHARED LOGIC
@@ -855,11 +852,19 @@
             const uid = currentUser.uid;
             const eqSnap = await db.collection('transactions').where("userId", "==", uid).get();
             const othSnap = await db.collection('other_transactions').where("userId", "==", uid).get();
+            const histSnap = await db.collection('price_history').where("userId", "==", uid).get();
+            
+            let histDataBackup = {};
+            histSnap.docs.forEach(d => {
+                let data = d.data();
+                histDataBackup[data.date] = data.prices;
+            });
+
             const backup = {
                 format: "pro-equity-full-backup", date: new Date().toISOString(),
                 transactions: eqSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
                 other_transactions: othSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
-                historicalPrices: historicalPrices // Backing up price history too
+                historicalPrices: histDataBackup
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup));
             const link = document.createElement("a"); link.setAttribute("href", dataStr); link.setAttribute("download", `Full_Backup_${new Date().toISOString().split('T')[0]}.json`);
@@ -874,14 +879,21 @@
                 const data = JSON.parse(e.target.result);
                 if (data.format === "pro-equity-full-backup" || data.transactions) {
                     if(!confirm("Restore will ADD data to your current account. Continue?")) return;
-                    if(data.historicalPrices) {
-                        historicalPrices = data.historicalPrices;
-                        localStorage.setItem('savedHistoricalPrices', JSON.stringify(historicalPrices));
-                    }
                     const batch = db.batch(); let count = 0;
+                    
+                    if(data.historicalPrices) {
+                        for(let dateStr of Object.keys(data.historicalPrices)) {
+                            let ref = db.collection('price_history').doc(`${currentUser.uid}_${dateStr}`);
+                            batch.set(ref, { userId: currentUser.uid, date: dateStr, prices: data.historicalPrices[dateStr] });
+                        }
+                    }
+
                     const addDocs = (collection, items) => { if(!items) return; items.forEach(item => { let ref = db.collection(collection).doc(); item.userId = currentUser.uid; batch.set(ref, item); count++; }); };
                     addDocs('transactions', data.transactions); addDocs('other_transactions', data.other_transactions);
-                    if(count > 0) { await batch.commit(); alert("Database restored successfully!"); window.location.reload(); } else { alert("No valid data found to restore."); }
+                    
+                    await batch.commit(); 
+                    alert("Database restored successfully!"); 
+                    window.location.reload();
                 } else { alert("Invalid backup file format."); }
             } catch (err) { alert("Invalid backup file."); console.error(err); }
             event.target.value = ''; 
@@ -895,10 +907,28 @@
         if(!currentUser) return;
         const snapshot = await db.collection('transactions').where("userId", "==", currentUser.uid).get();
         currentTxs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Load historical price records from Cloud Firestore (Requirement 1)
+        await loadHistoricalPricesFromCloud();
         renderApp();
     }
 
-    // REQUIREMENT 1: Save the day's last fetched price for all stocks purchased (in stock or not)
+    async function loadHistoricalPricesFromCloud() {
+        try {
+            const snap = await db.collection('price_history').where("userId", "==", currentUser.uid).get();
+            historicalPrices = {};
+            snap.docs.forEach(doc => {
+                let d = doc.data();
+                if(d.date && d.prices) {
+                    historicalPrices[d.date] = d.prices;
+                }
+            });
+        } catch(e) {
+            console.error("Error loading price history from cloud:", e);
+        }
+    }
+
+    // REQUIREMENT 1: Save the day's last fetched price for all stocks in Cloud Firestore
     async function fetchLivePrices() {
         let inventorySymbols = new Set();
         currentTxs.forEach(tx => {
@@ -922,15 +952,25 @@
                     Object.assign(livePrices, fetchedPrices);
                     localStorage.setItem('savedLivePrices', JSON.stringify(livePrices));
 
-                    // Store historical price timestamp for charts (Requirement 1)
+                    // Save day's last price to Cloud Firestore (Requirement 1)
                     let todayStr = new Date().toISOString().split('T')[0];
-                    if(!historicalPrices[todayStr]) historicalPrices[todayStr] = {};
+                    let cleanPrices = {};
                     Object.keys(fetchedPrices).forEach(sym => {
-                        historicalPrices[todayStr][sym] = parseNum(fetchedPrices[sym]);
+                        cleanPrices[sym] = parseNum(fetchedPrices[sym]);
                     });
-                    localStorage.setItem('savedHistoricalPrices', JSON.stringify(historicalPrices));
 
-                    alert(`Successfully updated live market prices & saved historical log for ${Object.keys(fetchedPrices).length} Equities!`);
+                    if(!historicalPrices[todayStr]) historicalPrices[todayStr] = {};
+                    Object.assign(historicalPrices[todayStr], cleanPrices);
+
+                    // Commit directly to Firebase Cloud
+                    const docId = `${currentUser.uid}_${todayStr}`;
+                    await db.collection('price_history').doc(docId).set({
+                        userId: currentUser.uid,
+                        date: todayStr,
+                        prices: historicalPrices[todayStr]
+                    }, { merge: true });
+
+                    alert(`Successfully updated live market prices & saved daily log to Cloud for ${Object.keys(fetchedPrices).length} Equities!`);
                 } else { alert("Failed to fetch prices. Make sure your symbols are formatted correctly (e.g., RELIANCE.NS)."); }
             } else { throw new Error("Connection failed."); }
         } catch (err) { console.error("Fetch error:", err); alert("Live price fetch failed. Please check your internet connection."); } 
@@ -1155,15 +1195,12 @@
         let labels = [];
         let dataPoints = [];
 
-        // Sort historical price dates chronologically
         let sortedDates = Object.keys(historicalPrices).sort((a,b) => new Date(a) - new Date(b));
 
         sortedDates.forEach(dateStr => {
             let [yr, mo, dy] = dateStr.split('-');
             
-            // Apply Year filter
             if (yearFilter !== 'All' && yr !== yearFilter) return;
-            // Apply Month filter
             if (monthFilter !== 'All' && mo !== monthFilter) return;
 
             let dayPrices = historicalPrices[dateStr];
@@ -1264,7 +1301,7 @@
             }
         });
 
-        // 1 & 2. Render Holdings and Live Watchlist (Requirement 3: Single line per script cleanly)
+        // 1 & 2. Render Holdings and Live Watchlist (Requirement 3: Clean single line layout)
         const holdingsBody = document.getElementById('dash-holdings-body');
         const liveBody = document.getElementById('dash-live-body');
         holdingsBody.innerHTML = ''; liveBody.innerHTML = '';
@@ -1321,7 +1358,7 @@
             } else { salesBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#64748b; padding: 15px;">No recent sales</td></tr>`; }
         }
 
-        // 5. Render Re-entry Opportunities (GLOBAL - Independent of selection)
+        // 5. Render Re-entry Opportunities
         const reentryBody = document.getElementById('dash-reentry-body');
         reentryBody.innerHTML = '';
         let dropPctThreshold = parseNum(document.getElementById('dash-drop-pct').value) || 0;
@@ -1785,9 +1822,7 @@
             ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td><span class="badge ${badgeClass}">${tx.txType}</span></td><td><strong>${tx.name || '-'}</strong></td><td>${tx.remark || '-'}</td><td>${safeQty.toFixed(4)}</td><td>${fmtMoney(safeRate)}</td><td class="${amtClass}"><strong>${fmtMoney(effAmt)}</strong></td><td><button class="btn-edit-tx" onclick="editOtherTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteOtherTx('${tx.id}')">Del</button></td></tr>`;
         });
         if (pageTxs.length === 0) { ledgerBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #64748b;">No transactions logged yet.</td></tr>`; }
-        document.getElementById('other-page-indicator').innerText = `Page ${otherCurrentPage} of ${totalPages}`;
-        document.getElementById('btn-prev').disabled = otherCurrentPage === 1; document.getElementById('btn-next').disabled = otherCurrentPage === totalPages;
+        document.getElementById('other-page-indicator').innerText = `Page ${otherCurrentPage} of ` + totalPages;
+        document.getElementById('other-btn-prev').disabled = otherCurrentPage === 1; document.getElementById('other-btn-next').disabled = otherCurrentPage === totalPages;
     }
 </script>
-</body>
-</html>
