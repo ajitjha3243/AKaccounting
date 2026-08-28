@@ -68,7 +68,7 @@
         @media(min-width: 900px) { .main-grid { grid-template-columns: 350px 1fr; } }
         
         .reports-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
-        @media(min-width: 900px) { .reports-grid { grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); } }
+        @media(min-width: 900px) { .reports-grid { grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); } }
         
         .panel { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 25px; }
         
@@ -327,21 +327,6 @@
                     </div>
                 </div>
                 
-                <!-- ADVANCED FILTER FEATURE (NEW FEATURE 4) -->
-                <div class="controls-row" style="background: #f8fafc; border: 1px solid var(--border);">
-                    <div class="form-group">
-                        <label>📅 Filter From Date</label>
-                        <input type="date" id="dash-from-date" onchange="renderScriptDash()">
-                    </div>
-                    <div class="form-group">
-                        <label>📅 Filter To Date</label>
-                        <input type="date" id="dash-to-date" onchange="renderScriptDash()">
-                    </div>
-                    <div class="form-group" style="display:flex; align-items:flex-end;">
-                        <button type="button" class="btn-secondary" onclick="document.getElementById('dash-from-date').value=''; document.getElementById('dash-to-date').value=''; renderScriptDash();" style="width:100%;">Reset Dates</button>
-                    </div>
-                </div>
-
                 <!-- HISTORICAL PRICE CHART CONTROLS -->
                 <div class="controls-row" style="background: #ffffff; border: 1px dashed var(--border); margin-top: 10px;">
                     <div class="form-group">
@@ -372,9 +357,8 @@
                     <canvas id="historicalPriceChart" style="max-height: 280px; width: 100%;"></canvas>
                 </div>
 
-                <!-- SCRIPT ANALYSIS REPORTS GRID -->
                 <div id="script-dash-data" style="margin-top: 15px;">
-                    <div class="reports-grid">
+                    <div class="reports-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
                         
                         <!-- 1. Inventory -->
                         <div id="container-inventory" style="display: none;">
@@ -420,7 +404,7 @@
                                 </table>
                             </div>
                         </div>
-
+                        
                         <!-- 5. Re-entry Opportunities -->
                         <div id="container-reentry">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Re-entry Opportunities</h3>
@@ -432,57 +416,7 @@
                             </div>
                         </div>
 
-                        <!-- 6. NEW FEATURE 1: FIFO Tax & Capital Gains Estimator Table -->
-                        <div id="container-tax-estimator" style="display: none; grid-column: 1 / -1;">
-                            <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">FIFO Tax & Capital Gains Estimator (Realized Sales)</h3>
-                            <div class="table-container">
-                                <table class="compact-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Sale Date</th>
-                                            <th>Script</th>
-                                            <th>Qty Sold</th>
-                                            <th>Sale Price</th>
-                                            <th>Match Purchase Date</th>
-                                            <th>Cost Price</th>
-                                            <th>Holding Period</th>
-                                            <th>Gain Type</th>
-                                            <th style="color:var(--danger);">Capital Gain (₹)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="dash-tax-estimator-body"></tbody>
-                                </table>
-                            </div>
-                        </div>
-
                     </div>
-
-                    <!-- Average Cost Target Calculator (Full Width Table Layout) -->
-                    <div id="container-avg-calc" style="display: none; margin-top: 20px; grid-column: 1 / -1;">
-                        <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Average Cost Target Calculator</h3>
-                        <div class="controls-row" style="background:#f1f5f9; padding: 10px; margin-bottom: 10px;">
-                            <div class="form-group" style="margin-bottom:0;">
-                                <label>Desired Avg Price (₹):</label>
-                                <input type="number" id="desired-avg-price" step="any" min="0" placeholder="Enter target avg..." oninput="renderScriptDash()">
-                            </div>
-                        </div>
-                        <div class="table-container">
-                            <table class="compact-table">
-                                <thead>
-                                    <tr>
-                                        <th>Script</th>
-                                        <th>Current Qty</th>
-                                        <th>Current Avg</th>
-                                        <th>Desired Avg</th>
-                                        <th>Shares to Purchase</th>
-                                        <th style="color:var(--primary);">Required Amount (₹)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="dash-avg-calc-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
-
                 </div>
             </div>
         </div>
@@ -881,7 +815,7 @@
     }
 
     // ==========================================
-    // 4. AUTHENTICATION (Safe state handling)
+    // 4. AUTHENTICATION
     // ==========================================
     auth.onAuthStateChanged(user => {
         if (user) {
@@ -1346,71 +1280,6 @@
         });
     }
 
-    // ==========================================
-    // FEATURE 1: FIFO TAX & CAPITAL GAINS ESTIMATOR ENGINE
-    // ==========================================
-    function computeFIFOTaxEstimator(txs) {
-        let sorted = [...txs].sort((a,b) => new Date(a.date) - new Date(b.date));
-        let inventoryLots = {}; // symbol -> array of { date, qty, price }
-        let realizedEvents = [];
-
-        sorted.forEach(tx => {
-            let s = tx.symbol;
-            let type = String(tx.txType || '').trim().toLowerCase();
-            let qty = parseNum(tx.qty);
-            let price = parseNum(tx.price);
-
-            if (!inventoryLots[s]) inventoryLots[s] = [];
-
-            if (type === 'purchase') {
-                inventoryLots[s].push({ date: tx.date, qty: qty, price: price });
-            } else if (type === 'sale') {
-                let sharesToSell = qty;
-                let totalCostBasis = 0;
-                let earliestPurchaseDate = tx.date;
-
-                while (sharesToSell > 0 && inventoryLots[s].length > 0) {
-                    let oldestLot = inventoryLots[s][0];
-                    earliestPurchaseDate = oldestLot.date;
-
-                    if (oldestLot.qty <= sharesToSell) {
-                        totalCostBasis += oldestLot.qty * oldestLot.price;
-                        sharesToSell -= oldestLot.qty;
-                        inventoryLots[s].shift();
-                    } else {
-                        totalCostBasis += sharesToSell * oldestLot.price;
-                        oldestLot.qty -= sharesToSell;
-                        sharesToSell = 0;
-                    }
-                }
-
-                let totalSaleVal = qty * price;
-                let capitalGain = totalSaleVal - totalCostBasis;
-
-                // Holding Period Check (1 Year / 365 Days threshold for LTCG vs STCG)
-                let pDate = new Date(earliestPurchaseDate);
-                let sDate = new Date(tx.date);
-                let diffTime = Math.abs(sDate - pDate);
-                let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                let gainType = diffDays > 365 ? "LTCG (Long Term)" : "STCG (Short Term)";
-
-                realizedEvents.push({
-                    saleDate: tx.date,
-                    symbol: s,
-                    qtySold: qty,
-                    salePrice: price,
-                    matchDate: earliestPurchaseDate,
-                    costPrice: qty > 0 ? (totalCostBasis / qty) : 0,
-                    holdingDays: diffDays,
-                    gainType: gainType,
-                    gain: capitalGain
-                });
-            }
-        });
-
-        return realizedEvents;
-    }
-
     function renderScriptDash() {
         const dashScriptSelect = document.getElementById('dash-script');
         const dashYearSelect = document.getElementById('dash-year');
@@ -1418,7 +1287,6 @@
         const selectedScripts = Array.from(dashScriptSelect.selectedOptions).map(o => o.value);
         const selectedYears = Array.from(dashYearSelect.selectedOptions).map(o => o.value);
 
-        // REQUIREMENT 4: Date-Range Customizer Filters
         let fromDateStr = document.getElementById('dash-from-date').value;
         let toDateStr = document.getElementById('dash-to-date').value;
         let fromDate = fromDateStr ? new Date(fromDateStr) : null;
@@ -1429,7 +1297,6 @@
         const cAvgCalc = document.getElementById('container-avg-calc');
         const cPnl = document.getElementById('container-pnl');
         const cSales = document.getElementById('container-sales');
-        const cTaxEst = document.getElementById('container-tax-estimator');
 
         if (selectedScripts.length === 0) {
             cInv.style.display = 'none';
@@ -1437,21 +1304,18 @@
             cAvgCalc.style.display = 'none';
             cPnl.style.display = 'none';
             cSales.style.display = 'none';
-            cTaxEst.style.display = 'none';
         } else {
             cInv.style.display = 'block';
             cLive.style.display = 'block';
             cAvgCalc.style.display = 'block';
             cPnl.style.display = 'block';
             cSales.style.display = 'block';
-            cTaxEst.style.display = 'block';
         }
 
         let inventory = {}; let monthlyPnL = {}; let totalPnL = 0;
         let latestSales = {}; 
         let sortedTxs = [...currentTxs].sort((a,b) => new Date(a.date) - new Date(b.date));
 
-        // Filter transactions based on Date-Range customizer (Requirement 4)
         let filteredTxsForDash = sortedTxs.filter(tx => {
             let txDate = new Date(tx.date);
             if (fromDate && txDate < fromDate) return false;
@@ -1494,7 +1358,6 @@
             }
         });
 
-        // CONSOLIDATED LIVE PERFORMANCE MAP (No duplicate script lines across brokers)
         let consolidatedLiveMap = {};
         Object.keys(inventory).forEach(key => {
             let item = inventory[key];
@@ -1510,8 +1373,7 @@
         const holdingsBody = document.getElementById('dash-holdings-body');
         const liveBody = document.getElementById('dash-live-body');
         const avgCalcBody = document.getElementById('dash-avg-calc-body');
-        const taxEstBody = document.getElementById('dash-tax-estimator-body');
-        holdingsBody.innerHTML = ''; liveBody.innerHTML = ''; avgCalcBody.innerHTML = ''; taxEstBody.innerHTML = '';
+        holdingsBody.innerHTML = ''; liveBody.innerHTML = ''; avgCalcBody.innerHTML = '';
 
         let desiredAvgPrice = parseNum(document.getElementById('desired-avg-price').value);
         let hasActiveCalc = false;
@@ -1538,7 +1400,6 @@
 
                 liveBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td style="color:#137333; font-weight:bold;">${livePStr}</td><td>${curValStr}</td><td class="${unClass}"><strong>${unPnlStr}</strong></td></tr>`;
 
-                // Average Cost Target Calculator with Required Amount Calculation
                 if (item.qty > 0 && desiredAvgPrice > 0) {
                     let currentAvg = item.cost / item.qty;
                     if (desiredAvgPrice < currentAvg) {
@@ -1569,29 +1430,6 @@
             
             if(holdingsBody.innerHTML === '') holdingsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b; padding: 15px;">No active holdings in selection.</td></tr>`;
             if(liveBody.innerHTML === '') liveBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No active records in selection.</td></tr>`;
-
-            // RENDER FIFO TAX ESTIMATOR (Feature 1)
-            let taxEvents = computeFIFOTaxEstimator(filteredTxsForDash);
-            let matchingTaxEvents = taxEvents.filter(ev => selectedScripts.includes(ev.symbol));
-            
-            if (matchingTaxEvents.length > 0) {
-                matchingTaxEvents.forEach(ev => {
-                    let gainClass = ev.gain >= 0 ? 'pnl-positive' : 'pnl-negative';
-                    taxEstBody.innerHTML += `<tr>
-                        <td>${ev.saleDate}</td>
-                        <td><strong>${ev.symbol}</strong></td>
-                        <td>${ev.qtySold.toFixed(4)}</td>
-                        <td>₹${fmtMoney(ev.salePrice)}</td>
-                        <td>${ev.matchDate}</td>
-                        <td>₹${fmtMoney(ev.costPrice)}</td>
-                        <td>${ev.holdingDays} days</td>
-                        <td><span class="badge" style="background:#e0e7ff; color:#3730a3;">${ev.gainType}</span></td>
-                        <td class="${gainClass}">${ev.gain >= 0 ? '+' : ''}₹${fmtMoney(ev.gain)}</td>
-                    </tr>`;
-                });
-            } else {
-                taxEstBody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#64748b; padding: 15px;">No realized sales found for selected scripts in date range.</td></tr>`;
-            }
         }
 
         if (!hasActiveCalc && desiredAvgPrice > 0) {
@@ -1883,7 +1721,6 @@
         const fColSymbol = document.getElementById('flt-col-symbol').value.toLowerCase().trim();
         const fColRemark = document.getElementById('flt-col-remark').value.toLowerCase().trim();
 
-        // Apply filters directly to raw ledger to ensure no missing rows
         let dynamicTxs = [...currentTxs].filter(tx => {
             let match = true;
             if (rBroker !== 'All' && tx.broker !== rBroker) match = false;
