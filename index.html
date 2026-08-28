@@ -68,8 +68,9 @@
         .main-grid { display: grid; grid-template-columns: 1fr; gap: 25px; margin-bottom: 25px; align-items: start; }
         @media(min-width: 900px) { .main-grid { grid-template-columns: 350px 1fr; } }
         
-        /* Requirement 3: Single column layout for reports grid with clear section headers */
-        .reports-grid { display: flex; flex-direction: column; gap: 20px; }
+        /* Two tables side by side layout grid for script analysis dashboard */
+        .reports-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        @media(min-width: 900px) { .reports-grid { grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); } }
         
         .panel { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 25px; }
         
@@ -359,7 +360,7 @@
                     <canvas id="historicalPriceChart" style="max-height: 280px; width: 100%;"></canvas>
                 </div>
 
-                <!-- REQUIREMENT 3: SINGLE COLUMN STACKED LAYOUT FOR ALL TABLES -->
+                <!-- SCRIPT ANALYSIS REPORTS GRID (Side-by-side compact tables format) -->
                 <div id="script-dash-data" style="margin-top: 15px;">
                     <div class="reports-grid">
                         
@@ -374,7 +375,7 @@
                             </div>
                         </div>
 
-                        <!-- 2. Live Performance (Requirement 2: Consolidated unique script line) -->
+                        <!-- 2. Live Performance (Watchlist) -->
                         <div id="container-live" style="display: none;">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Live Performance (Watchlist)</h3>
                             <div class="table-container">
@@ -385,24 +386,7 @@
                             </div>
                         </div>
 
-                        <!-- 3. REQUIREMENT 1: Average Cost Target Calculator Table -->
-                        <div id="container-avg-calc" style="display: none;">
-                            <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Average Cost Target Calculator</h3>
-                            <div class="controls-row" style="background:#f1f5f9; padding: 10px; margin-bottom: 10px;">
-                                <div class="form-group" style="margin-bottom:0;">
-                                    <label>Desired Avg Price (₹):</label>
-                                    <input type="number" id="desired-avg-price" step="any" min="0" placeholder="Enter target avg..." oninput="renderScriptDash()">
-                                </div>
-                            </div>
-                            <div class="table-container">
-                                <table class="compact-table">
-                                    <thead><tr><th>Script</th><th>Current Qty</th><th>Current Avg</th><th>Desired Avg</th><th>Shares to Purchase</th></tr></thead>
-                                    <tbody id="dash-avg-calc-body"></tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- 4. Month-wise P&L -->
+                        <!-- 3. Month-wise P&L -->
                         <div id="container-pnl" style="display: none;">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Month-wise Realized P&L</h3>
                             <div class="table-container">
@@ -414,7 +398,7 @@
                             </div>
                         </div>
                         
-                        <!-- 5. Last 2 Sales -->
+                        <!-- 4. Last 2 Sales -->
                         <div id="container-sales" style="display: none;">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Last 2 Sales</h3>
                             <div class="table-container">
@@ -424,8 +408,8 @@
                                 </table>
                             </div>
                         </div>
-                        
-                        <!-- 6. Re-entry Opportunities -->
+
+                        <!-- 5. Re-entry Opportunities -->
                         <div id="container-reentry">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Re-entry Opportunities</h3>
                             <div class="table-container">
@@ -437,6 +421,33 @@
                         </div>
 
                     </div>
+
+                    <!-- REQUIREMENT 1: Average Cost Target Calculator (Full Width Table Layout) -->
+                    <div id="container-avg-calc" style="display: none; margin-top: 20px; grid-column: 1 / -1;">
+                        <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Average Cost Target Calculator</h3>
+                        <div class="controls-row" style="background:#f1f5f9; padding: 10px; margin-bottom: 10px;">
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label>Desired Avg Price (₹):</label>
+                                <input type="number" id="desired-avg-price" step="any" min="0" placeholder="Enter target avg..." oninput="renderScriptDash()">
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table class="compact-table">
+                                <thead>
+                                    <tr>
+                                        <th>Script</th>
+                                        <th>Current Qty</th>
+                                        <th>Current Avg</th>
+                                        <th>Desired Avg</th>
+                                        <th>Shares to Purchase</th>
+                                        <th style="color:var(--primary);">Required Amount (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dash-avg-calc-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -1331,8 +1342,8 @@
             }
         });
 
-        // REQUIREMENT 2: CONSOLIDATE LIVE PERFORMANCE ACROSS BROKERS (NO DUPLICATE LINES PER SCRIPT)
-        let consolidatedLiveMap = {}; // symbol -> { symbol, totalQty, totalCost, dividends }
+        // CONSOLIDATED LIVE PERFORMANCE MAP (No duplicate script lines)
+        let consolidatedLiveMap = {};
         Object.keys(inventory).forEach(key => {
             let item = inventory[key];
             if (item.qty < 0.001) { item.qty = 0; item.cost = 0; }
@@ -1344,7 +1355,6 @@
             consolidatedLiveMap[item.symbol].dividends += item.dividends;
         });
 
-        // 1 & 2. Render Holdings and Live Watchlist (Consolidated per Script)
         const holdingsBody = document.getElementById('dash-holdings-body');
         const liveBody = document.getElementById('dash-live-body');
         const avgCalcBody = document.getElementById('dash-avg-calc-body');
@@ -1375,26 +1385,30 @@
 
                 liveBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td style="color:#137333; font-weight:bold;">${livePStr}</td><td>${curValStr}</td><td class="${unClass}"><strong>${unPnlStr}</strong></td></tr>`;
 
-                // REQUIREMENT 1: Average Cost Target Calculator Logic
+                // REQUIREMENT 1: Average Cost Target Calculator with Required Amount Calculation
                 if (item.qty > 0 && desiredAvgPrice > 0) {
                     let currentAvg = item.cost / item.qty;
                     if (desiredAvgPrice < currentAvg) {
                         hasActiveCalc = true;
-                        let currentInvested = item.cost;
                         let currentQty = item.qty;
-                        // Formula: Required Qty = ( (Current Avg - Desired Avg) * Current Qty ) / (Desired Avg - Latest Price)
                         let sharesNeeded = 0;
+                        let requiredAmount = 0;
+
                         if (latestP !== null && desiredAvgPrice > latestP) {
                             sharesNeeded = ((currentAvg - desiredAvgPrice) * currentQty) / (desiredAvgPrice - latestP);
+                            requiredAmount = sharesNeeded * latestP;
                         }
 
                         let neededStr = sharesNeeded > 0 ? Math.ceil(sharesNeeded).toLocaleString() : "Not achievable at this price";
+                        let amountStr = requiredAmount > 0 ? `₹${fmtMoney(requiredAmount)}` : "-";
+
                         avgCalcBody.innerHTML += `<tr>
                             <td><strong>${item.symbol}</strong></td>
                             <td>${parseNum(currentQty).toFixed(2)}</td>
                             <td>₹${fmtMoney(currentAvg)}</td>
                             <td>₹${fmtMoney(desiredAvgPrice)}</td>
-                            <td style="color:var(--primary); font-weight:bold;">${neededStr} ${sharesNeeded > 0 ? 'shares' : ''}</td>
+                            <td>${neededStr} ${sharesNeeded > 0 ? 'shares' : ''}</td>
+                            <td style="color:var(--primary); font-weight:bold;">${amountStr}</td>
                         </tr>`;
                     }
                 }
@@ -1405,9 +1419,9 @@
         }
 
         if (!hasActiveCalc && desiredAvgPrice > 0) {
-            avgCalcBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b; padding: 15px;">Desired average must be lower than current average, and Live/Latest Price must be lower than Desired Average to calculate purchase requirement.</td></tr>`;
+            avgCalcBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b; padding: 15px;">Desired average must be lower than current average, and Latest Price must be lower than Desired Average to calculate purchase requirement.</td></tr>`;
         } else if (desiredAvgPrice <= 0) {
-            avgCalcBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b; padding: 15px;">Enter a target desired average price above.</td></tr>`;
+            avgCalcBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b; padding: 15px;">Enter a target desired average price above.</td></tr>`;
         }
 
         // 4. Render Month-wise P&L
@@ -1436,7 +1450,7 @@
             } else { salesBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#64748b; padding: 15px;">No recent sales</td></tr>`; }
         }
 
-        // 6. Render Re-entry Opportunities (Using latest available price fallback)
+        // 6. Render Re-entry Opportunities
         const reentryBody = document.getElementById('dash-reentry-body');
         reentryBody.innerHTML = '';
         let dropPctThreshold = parseNum(document.getElementById('dash-drop-pct').value) || 0;
@@ -1569,7 +1583,6 @@
                 if (!brokerUnrealizedMap[item.broker]) brokerUnrealizedMap[item.broker] = { cost: 0, currentVal: 0, unrealized: 0 };
                 brokerUnrealizedMap[item.broker].cost += item.cost;
                 
-                // Using latest available price fallback for main holdings calculation
                 let latestPrice = getLatestAvailablePrice(item.symbol);
                 let currentValStr = "-"; let unrealizedPnLStr = "-"; let returnPctStr = "-"; let pnlStyleClass = "pnl-neutral";
                 
@@ -1867,7 +1880,7 @@
 
         ['date', 'txType', 'name', 'remark', 'qty', 'rate', 'amount'].forEach(col => { const el = document.getElementById(`other-sort-${col}`); if(el) el.innerText = (otherSortCol === col) ? (otherSortDesc ? ' ↓' : ' ↑') : ''; });
 
-        const searchText = (document.getElementById('other-ledger-search') ? document.getElementById('other-ledger-search').value : '').toLowerCase().trim();
+        const searchText = (document.getElementById('other-ledger-search') ? document.getElementById('other-ledger-search'].value : '').toLowerCase().trim();
         const fColDate = document.getElementById('other-flt-date').value.toLowerCase().trim();
         const fColType = document.getElementById('other-flt-type').value.toLowerCase().trim();
         const fColName = document.getElementById('other-flt-name').value.toLowerCase().trim();
@@ -1900,7 +1913,7 @@
             let safeQty = parseNum(tx.qty); let safeRate = parseNum(tx.rate);
             ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td><span class="badge ${badgeClass}">${tx.txType}</span></td><td><strong>${tx.name || '-'}</strong></td><td>${tx.remark || '-'}</td><td>${safeQty.toFixed(4)}</td><td>${fmtMoney(safeRate)}</td><td class="${amtClass}"><strong>${fmtMoney(effAmt)}</strong></td><td><button class="btn-edit-tx" onclick="editOtherTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteOtherTx('${tx.id}')">Del</button></td></tr>`;
         });
-        if (pageTxs.length === 0) { ledgerBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #64748b;">No transactions logged yet.</td></tr>`; }
+        if (pageTxs.length === 0) { ledgerJobBody = document.getElementById('other-ledger-body'); ledgerJobBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #64748b;">No transactions logged yet.</td></tr>`; }
         document.getElementById('other-page-indicator').innerText = `Page ${otherCurrentPage} of ${totalPages}`;
         document.getElementById('other-btn-prev').disabled = otherCurrentPage === 1; document.getElementById('other-btn-next').disabled = otherCurrentPage === totalPages;
     }
