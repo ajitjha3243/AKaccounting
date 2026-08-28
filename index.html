@@ -8,6 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <!-- Chart.js CDN for historical price chart feature -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -66,7 +67,6 @@
         
         .main-grid { display: grid; grid-template-columns: 1fr; gap: 25px; margin-bottom: 25px; align-items: start; }
         @media(min-width: 900px) { .main-grid { grid-template-columns: 350px 1fr; } }
-        
         .reports-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
         @media(min-width: 900px) { .reports-grid { grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); } }
         
@@ -87,7 +87,7 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
         .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; color: #475469; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; color: #475569; }
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; transition: border-color 0.2s; }
         .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
         select[multiple] { height: 90px; padding: 4px; }
@@ -107,6 +107,7 @@
         button.btn-global-rename { background: var(--purple); color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; height: fit-content; cursor: pointer; transition: 0.2s; }
         button.btn-global-rename:hover { background: #7c3aed; }
         
+        /* 5) Manual Column Width Adjustment Support */
         .table-container { 
             overflow-x: auto; 
             border: 1px solid var(--border); 
@@ -327,7 +328,7 @@
                     </div>
                 </div>
                 
-                <!-- HISTORICAL PRICE CHART CONTROLS -->
+                <!-- REQUIREMENT 2: HISTORICAL PRICE CHART CONTROLS -->
                 <div class="controls-row" style="background: #ffffff; border: 1px dashed var(--border); margin-top: 10px;">
                     <div class="form-group">
                         <label>Chart Script Selection</label>
@@ -371,7 +372,7 @@
                             </div>
                         </div>
 
-                        <!-- 2. Live Performance -->
+                        <!-- 2. Live Performance (Requirement 3: Clean single line layout) -->
                         <div id="container-live" style="display: none;">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Live Performance (Watchlist)</h3>
                             <div class="table-container">
@@ -405,7 +406,7 @@
                             </div>
                         </div>
                         
-                        <!-- 5. Re-entry Opportunities -->
+                        <!-- 5. Re-entry Opportunities (Requirement 4: No existing table removed) -->
                         <div id="container-reentry">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Re-entry Opportunities</h3>
                             <div class="table-container">
@@ -755,9 +756,7 @@
       measurementId: "G-7XHQXMX6PR"
     };
 
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
 
@@ -782,7 +781,7 @@
     let currentUser = null; 
     let currentTxs = [];    
     let livePrices = JSON.parse(localStorage.getItem('savedLivePrices')) || {}; 
-    let historicalPrices = {}; 
+    let historicalPrices = {}; // Cloud Firestore loaded data
     
     let currentPage = 1; 
     const pageSize = 15; 
@@ -808,10 +807,7 @@
     
     function showError(msg) { 
         const errEl = document.getElementById('auth-error'); 
-        if(errEl) {
-            errEl.innerText = msg; 
-            errEl.style.display = 'block'; 
-        }
+        errEl.innerText = msg; errEl.style.display = 'block'; 
     }
 
     // ==========================================
@@ -820,63 +816,32 @@
     auth.onAuthStateChanged(user => {
         if (user) {
             currentUser = user;
-            const overlay = document.getElementById('auth-overlay');
-            if(overlay) overlay.style.display = 'none';
+            document.getElementById('auth-overlay').style.display = 'none';
             document.querySelectorAll('.display-user-email').forEach(el => { el.innerText = user.email || "Logged in"; });
 
             if(document.getElementById('date')) document.getElementById('date').valueAsDate = new Date();
             if(document.getElementById('other-date')) document.getElementById('other-date').valueAsDate = new Date();
 
-            const selectedWorkspaceEl = document.querySelector('input[name="workspace"]:checked');
-            const selectedWorkspace = selectedWorkspaceEl ? selectedWorkspaceEl.value : 'equity';
+            const selectedWorkspace = document.querySelector('input[name="workspace"]:checked').value;
             
             if (selectedWorkspace === 'equity') {
-                const eq = document.getElementById('workspace-equity');
-                const oth = document.getElementById('workspace-other');
-                if(eq) eq.style.display = 'block'; 
-                if(oth) oth.style.display = 'none';
+                document.getElementById('workspace-equity').style.display = 'block'; document.getElementById('workspace-other').style.display = 'none';
                 loadTransactions(); 
             } else if (selectedWorkspace === 'other') {
-                const eq = document.getElementById('workspace-equity');
-                const oth = document.getElementById('workspace-other');
-                if(eq) eq.style.display = 'none'; 
-                if(oth) oth.style.display = 'block';
+                document.getElementById('workspace-equity').style.display = 'none'; document.getElementById('workspace-other').style.display = 'block';
                 loadOtherTransactions();
             }
         } else {
             currentUser = null;
-            const eq = document.getElementById('workspace-equity');
-            const oth = document.getElementById('workspace-other');
-            const overlay = document.getElementById('auth-overlay');
-            if(eq) eq.style.display = 'none'; 
-            if(oth) oth.style.display = 'none';
-            if(overlay) overlay.style.display = 'flex';
+            document.getElementById('workspace-equity').style.display = 'none'; document.getElementById('workspace-other').style.display = 'none';
+            document.getElementById('auth-overlay').style.display = 'flex';
         }
     });
 
     function signInWithGoogle() { const provider = new firebase.auth.GoogleAuthProvider(); auth.signInWithPopup(provider).catch(error => { console.error("Google Auth Error:", error); showError(error.message); }); }
-    function signInWithEmail() { 
-        const emailEl = document.getElementById('auth-email');
-        const pwdEl = document.getElementById('auth-password');
-        const email = emailEl ? emailEl.value : ''; 
-        const pwd = pwdEl ? pwdEl.value : ''; 
-        if(!email || !pwd) return showError("Please enter email and password."); 
-        auth.signInWithEmailAndPassword(email, pwd).catch(error => showError(error.message)); 
-    }
-    function signUpWithEmail() { 
-        const emailEl = document.getElementById('auth-email');
-        const pwdEl = document.getElementById('auth-password');
-        const email = emailEl ? emailEl.value : ''; 
-        const pwd = pwdEl ? pwdEl.value : ''; 
-        if(!email || !pwd) return showError("Please enter email and password."); 
-        auth.createUserWithEmailAndPassword(email, pwd).catch(error => showError(error.message)); 
-    }
-    function forgotPassword() { 
-        const emailEl = document.getElementById('auth-email');
-        const email = emailEl ? emailEl.value.trim() : ''; 
-        if (!email) return showError("Please enter your email address in the field above first, then click 'Forgot Password?'."); 
-        auth.sendPasswordResetEmail(email).then(() => { alert(`Password reset link sent to ${email}! Please check your email inbox (and spam folder).`); document.getElementById('auth-error').style.display = 'none'; }).catch(error => showError("Reset error: " + error.message)); 
-    }
+    function signInWithEmail() { const email = document.getElementById('auth-email').value; const pwd = document.getElementById('auth-password').value; if(!email || !pwd) return showError("Please enter email and password."); auth.signInWithEmailAndPassword(email, pwd).catch(error => showError(error.message)); }
+    function signUpWithEmail() { const email = document.getElementById('auth-email').value; const pwd = document.getElementById('auth-password').value; if(!email || !pwd) return showError("Please enter email and password."); auth.createUserWithEmailAndPassword(email, pwd).catch(error => showError(error.message)); }
+    function forgotPassword() { const email = document.getElementById('auth-email').value.trim(); if (!email) return showError("Please enter your email address in the field above first, then click 'Forgot Password?'."); auth.sendPasswordResetEmail(email).then(() => { alert(`Password reset link sent to ${email}! Please check your email inbox (and spam folder).`); document.getElementById('auth-error').style.display = 'none'; }).catch(error => showError("Reset error: " + error.message)); }
     function signOut() { auth.signOut(); }
 
     // ==========================================
@@ -963,6 +928,7 @@
         }
     }
 
+    // REQUIREMENT 1 & User Prompt: Save the day's last fetched price on Cloud and use it for Unrealised P&L & Re-entry calculations
     async function fetchLivePrices() {
         let inventorySymbols = new Set();
         currentTxs.forEach(tx => {
@@ -1009,10 +975,12 @@
         finally { if (btn) { btn.innerText = "🔄 Fetch Live Prices"; btn.disabled = false; } renderApp(); }
     }
 
+    // Helper to get the latest available price (from live prices or the most recent historical date logged)
     function getLatestAvailablePrice(symbol) {
         if (livePrices[symbol] !== undefined && parseNum(livePrices[symbol]) > 0) {
             return parseNum(livePrices[symbol]);
         }
+        // Fallback to latest historical date logged in cloud/local history
         let sortedDates = Object.keys(historicalPrices).sort((a,b) => new Date(b) - new Date(a));
         for (let d of sortedDates) {
             if (historicalPrices[d][symbol] !== undefined && parseNum(historicalPrices[d][symbol]) > 0) {
@@ -1287,27 +1255,19 @@
         const selectedScripts = Array.from(dashScriptSelect.selectedOptions).map(o => o.value);
         const selectedYears = Array.from(dashYearSelect.selectedOptions).map(o => o.value);
 
-        let fromDateStr = document.getElementById('dash-from-date').value;
-        let toDateStr = document.getElementById('dash-to-date').value;
-        let fromDate = fromDateStr ? new Date(fromDateStr) : null;
-        let toDate = toDateStr ? new Date(toDateStr) : null;
-
         const cInv = document.getElementById('container-inventory');
         const cLive = document.getElementById('container-live');
-        const cAvgCalc = document.getElementById('container-avg-calc');
         const cPnl = document.getElementById('container-pnl');
         const cSales = document.getElementById('container-sales');
 
         if (selectedScripts.length === 0) {
             cInv.style.display = 'none';
             cLive.style.display = 'none';
-            cAvgCalc.style.display = 'none';
             cPnl.style.display = 'none';
             cSales.style.display = 'none';
         } else {
             cInv.style.display = 'block';
             cLive.style.display = 'block';
-            cAvgCalc.style.display = 'block';
             cPnl.style.display = 'block';
             cSales.style.display = 'block';
         }
@@ -1316,14 +1276,7 @@
         let latestSales = {}; 
         let sortedTxs = [...currentTxs].sort((a,b) => new Date(a.date) - new Date(b.date));
 
-        let filteredTxsForDash = sortedTxs.filter(tx => {
-            let txDate = new Date(tx.date);
-            if (fromDate && txDate < fromDate) return false;
-            if (toDate && txDate > toDate) return false;
-            return true;
-        });
-
-        filteredTxsForDash.forEach(tx => {
+        sortedTxs.forEach(tx => {
             let s = tx.symbol;
             let rawType = String(tx.txType || '').trim().toLowerCase();
             let safePrice = parseNum(tx.price);
@@ -1358,37 +1311,17 @@
             }
         });
 
-        let consolidatedLiveMap = {};
-        Object.keys(inventory).forEach(key => {
-            let item = inventory[key];
-            if (item.qty < 0.001) { item.qty = 0; item.cost = 0; }
-            if (!consolidatedLiveMap[item.symbol]) {
-                consolidatedLiveMap[item.symbol] = { symbol: item.symbol, qty: 0, cost: 0, dividends: 0 };
-            }
-            consolidatedLiveMap[item.symbol].qty += item.qty;
-            consolidatedLiveMap[item.symbol].cost += item.cost;
-            consolidatedLiveMap[item.symbol].dividends += item.dividends;
-        });
-
+        // 1 & 2. Render Holdings and Live Watchlist using latest available price (Live or Historical Cloud)
         const holdingsBody = document.getElementById('dash-holdings-body');
         const liveBody = document.getElementById('dash-live-body');
-        const avgCalcBody = document.getElementById('dash-avg-calc-body');
-        holdingsBody.innerHTML = ''; liveBody.innerHTML = ''; avgCalcBody.innerHTML = '';
-
-        let desiredAvgPrice = parseNum(document.getElementById('desired-avg-price').value);
-        let hasActiveCalc = false;
+        holdingsBody.innerHTML = ''; liveBody.innerHTML = '';
 
         if (selectedScripts.length > 0) {
+            Object.keys(inventory).forEach(key => { if (inventory[key].qty < 0.001) { inventory[key].qty = 0; inventory[key].cost = 0; } });
+
             Object.keys(inventory).sort().forEach(key => {
                 let item = inventory[key];
-                if (item.qty > 0) { 
-                    holdingsBody.innerHTML += `<tr><td><strong>${item.symbol}</strong> <span style="font-size:0.75rem; color:#64748b;">(${item.broker})</span></td><td>${parseNum(item.qty).toFixed(4)}</td><td>${fmtMoney(item.cost/item.qty)}</td><td>${fmtMoney(item.cost)}</td><td style="color:var(--success); font-weight:bold;">+${fmtMoney(item.dividends)}</td></tr>`; 
-                }
-            });
-
-            Object.keys(consolidatedLiveMap).sort().forEach(sym => {
-                let item = consolidatedLiveMap[sym];
-                let latestP = getLatestAvailablePrice(sym);
+                let latestP = getLatestAvailablePrice(item.symbol);
                 let livePStr = latestP !== null ? fmtMoney(latestP) : '<span style="color:#64748b; font-weight:normal;">Click Fetch</span>';
                 let curValStr = "0.00"; let unPnlStr = "0.00"; let unClass = "pnl-neutral";
 
@@ -1398,47 +1331,18 @@
                     unClass = uPnL > 0 ? 'pnl-positive' : (uPnL < 0 ? 'pnl-negative' : 'pnl-neutral');
                 }
 
-                liveBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td style="color:#137333; font-weight:bold;">${livePStr}</td><td>${curValStr}</td><td class="${unClass}"><strong>${unPnlStr}</strong></td></tr>`;
-
-                if (item.qty > 0 && desiredAvgPrice > 0) {
-                    let currentAvg = item.cost / item.qty;
-                    if (desiredAvgPrice < currentAvg) {
-                        hasActiveCalc = true;
-                        let currentQty = item.qty;
-                        let sharesNeeded = 0;
-                        let requiredAmount = 0;
-
-                        if (latestP !== null && desiredAvgPrice > latestP) {
-                            sharesNeeded = ((currentAvg - desiredAvgPrice) * currentQty) / (desiredAvgPrice - latestP);
-                            requiredAmount = sharesNeeded * latestP;
-                        }
-
-                        let neededStr = sharesNeeded > 0 ? Math.ceil(sharesNeeded).toLocaleString() : "Not achievable at this price";
-                        let amountStr = requiredAmount > 0 ? `₹${fmtMoney(requiredAmount)}` : "-";
-
-                        avgCalcBody.innerHTML += `<tr>
-                            <td><strong>${item.symbol}</strong></td>
-                            <td>${parseNum(currentQty).toFixed(2)}</td>
-                            <td>₹${fmtMoney(currentAvg)}</td>
-                            <td>₹${fmtMoney(desiredAvgPrice)}</td>
-                            <td>${neededStr} ${sharesNeeded > 0 ? 'shares' : ''}</td>
-                            <td style="color:var(--primary); font-weight:bold;">${amountStr}</td>
-                        </tr>`;
-                    }
+                if (item.qty > 0) { 
+                    holdingsBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${parseNum(item.qty).toFixed(4)}</td><td>${item.qty>0?fmtMoney(item.cost/item.qty):"0.00"}</td><td>${fmtMoney(item.cost)}</td><td style="color:var(--success); font-weight:bold;">+${fmtMoney(item.dividends)}</td></tr>`; 
                 }
+
+                liveBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td style="color:#137333; font-weight:bold;">${livePStr}</td><td>${curValStr}</td><td class="${unClass}"><strong>${unPnlStr}</strong></td></tr>`;
             });
             
             if(holdingsBody.innerHTML === '') holdingsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b; padding: 15px;">No active holdings in selection.</td></tr>`;
             if(liveBody.innerHTML === '') liveBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No active records in selection.</td></tr>`;
         }
 
-        if (!hasActiveCalc && desiredAvgPrice > 0) {
-            avgCalcBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b; padding: 15px;">Desired average must be lower than current average, and Latest Price must be lower than Desired Average to calculate purchase requirement.</td></tr>`;
-        } else if (desiredAvgPrice <= 0) {
-            avgCalcBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b; padding: 15px;">Enter a target desired average price above.</td></tr>`;
-        }
-
-        // 4. Render Month-wise P&L
+        // 3. Render Month-wise P&L
         const pnlBody = document.getElementById('dash-pnl-body');
         pnlBody.innerHTML = '';
         if (selectedScripts.length > 0) {
@@ -1454,17 +1358,17 @@
         totalEl.innerText = (totalPnL > 0 ? '+' : '') + fmtMoney(totalPnL);
         totalEl.className = totalPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
         
-        // 5. Render Last 2 Sales
+        // 4. Render Last 2 Sales
         const salesBody = document.getElementById('dash-sales-body');
         salesBody.innerHTML = '';
         if (selectedScripts.length > 0) {
-            let lastSales = filteredTxsForDash.filter(tx => String(tx.txType||'').trim().toLowerCase()==='sale' && selectedScripts.includes(tx.symbol)).reverse().slice(0, 2);
+            let lastSales = sortedTxs.filter(tx => String(tx.txType||'').trim().toLowerCase()==='sale' && selectedScripts.includes(tx.symbol)).reverse().slice(0, 2);
             if (lastSales.length > 0) {
                 lastSales.forEach(tx => { salesBody.innerHTML += `<tr><td>${tx.date}</td><td>${parseNum(tx.qty).toFixed(4)}</td><td>${fmtMoney(tx.price)}</td></tr>`; });
-            } else { salesBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#64748b; padding: 15px;">No recent sales in date range</td></tr>`; }
+            } else { salesBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#64748b; padding: 15px;">No recent sales</td></tr>`; }
         }
 
-        // 6. Render Re-entry Opportunities
+        // 5. Render Re-entry Opportunities using latest available price fallback
         const reentryBody = document.getElementById('dash-reentry-body');
         reentryBody.innerHTML = '';
         let dropPctThreshold = parseNum(document.getElementById('dash-drop-pct').value) || 0;
@@ -1597,6 +1501,7 @@
                 if (!brokerUnrealizedMap[item.broker]) brokerUnrealizedMap[item.broker] = { cost: 0, currentVal: 0, unrealized: 0 };
                 brokerUnrealizedMap[item.broker].cost += item.cost;
                 
+                // Using latest available price fallback for main holdings calculation
                 let latestPrice = getLatestAvailablePrice(item.symbol);
                 let currentValStr = "-"; let unrealizedPnLStr = "-"; let returnPctStr = "-"; let pnlStyleClass = "pnl-neutral";
                 
@@ -1721,6 +1626,7 @@
         const fColSymbol = document.getElementById('flt-col-symbol').value.toLowerCase().trim();
         const fColRemark = document.getElementById('flt-col-remark').value.toLowerCase().trim();
 
+        // Apply filters directly to raw ledger to ensure no missing rows
         let dynamicTxs = [...currentTxs].filter(tx => {
             let match = true;
             if (rBroker !== 'All' && tx.broker !== rBroker) match = false;
@@ -1931,5 +1837,3 @@
         document.getElementById('other-btn-prev').disabled = otherCurrentPage === 1; document.getElementById('other-btn-next').disabled = otherCurrentPage === totalPages;
     }
 </script>
-</body>
-</html>
