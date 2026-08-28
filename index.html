@@ -8,7 +8,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
-    <!-- Chart.js CDN for historical price chart feature -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -68,7 +67,6 @@
         .main-grid { display: grid; grid-template-columns: 1fr; gap: 25px; margin-bottom: 25px; align-items: start; }
         @media(min-width: 900px) { .main-grid { grid-template-columns: 350px 1fr; } }
         
-        /* Two tables side by side layout grid for script analysis dashboard */
         .reports-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
         @media(min-width: 900px) { .reports-grid { grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); } }
         
@@ -89,7 +87,7 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
         .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; color: #475569; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; color: #475469; }
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; transition: border-color 0.2s; }
         .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
         select[multiple] { height: 90px; padding: 4px; }
@@ -109,7 +107,6 @@
         button.btn-global-rename { background: var(--purple); color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; height: fit-content; cursor: pointer; transition: 0.2s; }
         button.btn-global-rename:hover { background: #7c3aed; }
         
-        /* Manual Column Width Adjustment Support */
         .table-container { 
             overflow-x: auto; 
             border: 1px solid var(--border); 
@@ -330,6 +327,21 @@
                     </div>
                 </div>
                 
+                <!-- ADVANCED FILTER FEATURE (NEW FEATURE 4) -->
+                <div class="controls-row" style="background: #f8fafc; border: 1px solid var(--border);">
+                    <div class="form-group">
+                        <label>📅 Filter From Date</label>
+                        <input type="date" id="dash-from-date" onchange="renderScriptDash()">
+                    </div>
+                    <div class="form-group">
+                        <label>📅 Filter To Date</label>
+                        <input type="date" id="dash-to-date" onchange="renderScriptDash()">
+                    </div>
+                    <div class="form-group" style="display:flex; align-items:flex-end;">
+                        <button type="button" class="btn-secondary" onclick="document.getElementById('dash-from-date').value=''; document.getElementById('dash-to-date').value=''; renderScriptDash();" style="width:100%;">Reset Dates</button>
+                    </div>
+                </div>
+
                 <!-- HISTORICAL PRICE CHART CONTROLS -->
                 <div class="controls-row" style="background: #ffffff; border: 1px dashed var(--border); margin-top: 10px;">
                     <div class="form-group">
@@ -360,7 +372,7 @@
                     <canvas id="historicalPriceChart" style="max-height: 280px; width: 100%;"></canvas>
                 </div>
 
-                <!-- SCRIPT ANALYSIS REPORTS GRID (Side-by-side compact tables format) -->
+                <!-- SCRIPT ANALYSIS REPORTS GRID -->
                 <div id="script-dash-data" style="margin-top: 15px;">
                     <div class="reports-grid">
                         
@@ -375,7 +387,7 @@
                             </div>
                         </div>
 
-                        <!-- 2. Live Performance (Watchlist) -->
+                        <!-- 2. Live Performance -->
                         <div id="container-live" style="display: none;">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Live Performance (Watchlist)</h3>
                             <div class="table-container">
@@ -420,9 +432,32 @@
                             </div>
                         </div>
 
+                        <!-- 6. NEW FEATURE 1: FIFO Tax & Capital Gains Estimator Table -->
+                        <div id="container-tax-estimator" style="display: none; grid-column: 1 / -1;">
+                            <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">FIFO Tax & Capital Gains Estimator (Realized Sales)</h3>
+                            <div class="table-container">
+                                <table class="compact-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Sale Date</th>
+                                            <th>Script</th>
+                                            <th>Qty Sold</th>
+                                            <th>Sale Price</th>
+                                            <th>Match Purchase Date</th>
+                                            <th>Cost Price</th>
+                                            <th>Holding Period</th>
+                                            <th>Gain Type</th>
+                                            <th style="color:var(--danger);">Capital Gain (₹)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dash-tax-estimator-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
                     </div>
 
-                    <!-- REQUIREMENT 1: Average Cost Target Calculator (Full Width Table Layout) -->
+                    <!-- Average Cost Target Calculator (Full Width Table Layout) -->
                     <div id="container-avg-calc" style="display: none; margin-top: 20px; grid-column: 1 / -1;">
                         <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Average Cost Target Calculator</h3>
                         <div class="controls-row" style="background:#f1f5f9; padding: 10px; margin-bottom: 10px;">
@@ -786,7 +821,9 @@
       measurementId: "G-7XHQXMX6PR"
     };
 
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
     const db = firebase.firestore();
     const auth = firebase.auth();
 
@@ -837,41 +874,75 @@
     
     function showError(msg) { 
         const errEl = document.getElementById('auth-error'); 
-        errEl.innerText = msg; errEl.style.display = 'block'; 
+        if(errEl) {
+            errEl.innerText = msg; 
+            errEl.style.display = 'block'; 
+        }
     }
 
     // ==========================================
-    // 4. AUTHENTICATION
+    // 4. AUTHENTICATION (Safe state handling)
     // ==========================================
     auth.onAuthStateChanged(user => {
         if (user) {
             currentUser = user;
-            document.getElementById('auth-overlay').style.display = 'none';
+            const overlay = document.getElementById('auth-overlay');
+            if(overlay) overlay.style.display = 'none';
             document.querySelectorAll('.display-user-email').forEach(el => { el.innerText = user.email || "Logged in"; });
 
             if(document.getElementById('date')) document.getElementById('date').valueAsDate = new Date();
             if(document.getElementById('other-date')) document.getElementById('other-date').valueAsDate = new Date();
 
-            const selectedWorkspace = document.querySelector('input[name="workspace"]:checked').value;
+            const selectedWorkspaceEl = document.querySelector('input[name="workspace"]:checked');
+            const selectedWorkspace = selectedWorkspaceEl ? selectedWorkspaceEl.value : 'equity';
             
             if (selectedWorkspace === 'equity') {
-                document.getElementById('workspace-equity').style.display = 'block'; document.getElementById('workspace-other').style.display = 'none';
+                const eq = document.getElementById('workspace-equity');
+                const oth = document.getElementById('workspace-other');
+                if(eq) eq.style.display = 'block'; 
+                if(oth) oth.style.display = 'none';
                 loadTransactions(); 
             } else if (selectedWorkspace === 'other') {
-                document.getElementById('workspace-equity').style.display = 'none'; document.getElementById('workspace-other').style.display = 'block';
+                const eq = document.getElementById('workspace-equity');
+                const oth = document.getElementById('workspace-other');
+                if(eq) eq.style.display = 'none'; 
+                if(oth) oth.style.display = 'block';
                 loadOtherTransactions();
             }
         } else {
             currentUser = null;
-            document.getElementById('workspace-equity').style.display = 'none'; document.getElementById('workspace-other').style.display = 'none';
-            document.getElementById('auth-overlay').style.display = 'flex';
+            const eq = document.getElementById('workspace-equity');
+            const oth = document.getElementById('workspace-other');
+            const overlay = document.getElementById('auth-overlay');
+            if(eq) eq.style.display = 'none'; 
+            if(oth) oth.style.display = 'none';
+            if(overlay) overlay.style.display = 'flex';
         }
     });
 
     function signInWithGoogle() { const provider = new firebase.auth.GoogleAuthProvider(); auth.signInWithPopup(provider).catch(error => { console.error("Google Auth Error:", error); showError(error.message); }); }
-    function signInWithEmail() { const email = document.getElementById('auth-email').value; const pwd = document.getElementById('auth-password').value; if(!email || !pwd) return showError("Please enter email and password."); auth.signInWithEmailAndPassword(email, pwd).catch(error => showError(error.message)); }
-    function signUpWithEmail() { const email = document.getElementById('auth-email').value; const pwd = document.getElementById('auth-password').value; if(!email || !pwd) return showError("Please enter email and password."); auth.createUserWithEmailAndPassword(email, pwd).catch(error => showError(error.message)); }
-    function forgotPassword() { const email = document.getElementById('auth-email').value.trim(); if (!email) return showError("Please enter your email address in the field above first, then click 'Forgot Password?'."); auth.sendPasswordResetEmail(email).then(() => { alert(`Password reset link sent to ${email}! Please check your email inbox (and spam folder).`); document.getElementById('auth-error').style.display = 'none'; }).catch(error => showError("Reset error: " + error.message)); }
+    function signInWithEmail() { 
+        const emailEl = document.getElementById('auth-email');
+        const pwdEl = document.getElementById('auth-password');
+        const email = emailEl ? emailEl.value : ''; 
+        const pwd = pwdEl ? pwdEl.value : ''; 
+        if(!email || !pwd) return showError("Please enter email and password."); 
+        auth.signInWithEmailAndPassword(email, pwd).catch(error => showError(error.message)); 
+    }
+    function signUpWithEmail() { 
+        const emailEl = document.getElementById('auth-email');
+        const pwdEl = document.getElementById('auth-password');
+        const email = emailEl ? emailEl.value : ''; 
+        const pwd = pwdEl ? pwdEl.value : ''; 
+        if(!email || !pwd) return showError("Please enter email and password."); 
+        auth.createUserWithEmailAndPassword(email, pwd).catch(error => showError(error.message)); 
+    }
+    function forgotPassword() { 
+        const emailEl = document.getElementById('auth-email');
+        const email = emailEl ? emailEl.value.trim() : ''; 
+        if (!email) return showError("Please enter your email address in the field above first, then click 'Forgot Password?'."); 
+        auth.sendPasswordResetEmail(email).then(() => { alert(`Password reset link sent to ${email}! Please check your email inbox (and spam folder).`); document.getElementById('auth-error').style.display = 'none'; }).catch(error => showError("Reset error: " + error.message)); 
+    }
     function signOut() { auth.signOut(); }
 
     // ==========================================
@@ -1004,7 +1075,6 @@
         finally { if (btn) { btn.innerText = "🔄 Fetch Live Prices"; btn.disabled = false; } renderApp(); }
     }
 
-    // Latest Available Price Fallback Engine
     function getLatestAvailablePrice(symbol) {
         if (livePrices[symbol] !== undefined && parseNum(livePrices[symbol]) > 0) {
             return parseNum(livePrices[symbol]);
@@ -1276,6 +1346,71 @@
         });
     }
 
+    // ==========================================
+    // FEATURE 1: FIFO TAX & CAPITAL GAINS ESTIMATOR ENGINE
+    // ==========================================
+    function computeFIFOTaxEstimator(txs) {
+        let sorted = [...txs].sort((a,b) => new Date(a.date) - new Date(b.date));
+        let inventoryLots = {}; // symbol -> array of { date, qty, price }
+        let realizedEvents = [];
+
+        sorted.forEach(tx => {
+            let s = tx.symbol;
+            let type = String(tx.txType || '').trim().toLowerCase();
+            let qty = parseNum(tx.qty);
+            let price = parseNum(tx.price);
+
+            if (!inventoryLots[s]) inventoryLots[s] = [];
+
+            if (type === 'purchase') {
+                inventoryLots[s].push({ date: tx.date, qty: qty, price: price });
+            } else if (type === 'sale') {
+                let sharesToSell = qty;
+                let totalCostBasis = 0;
+                let earliestPurchaseDate = tx.date;
+
+                while (sharesToSell > 0 && inventoryLots[s].length > 0) {
+                    let oldestLot = inventoryLots[s][0];
+                    earliestPurchaseDate = oldestLot.date;
+
+                    if (oldestLot.qty <= sharesToSell) {
+                        totalCostBasis += oldestLot.qty * oldestLot.price;
+                        sharesToSell -= oldestLot.qty;
+                        inventoryLots[s].shift();
+                    } else {
+                        totalCostBasis += sharesToSell * oldestLot.price;
+                        oldestLot.qty -= sharesToSell;
+                        sharesToSell = 0;
+                    }
+                }
+
+                let totalSaleVal = qty * price;
+                let capitalGain = totalSaleVal - totalCostBasis;
+
+                // Holding Period Check (1 Year / 365 Days threshold for LTCG vs STCG)
+                let pDate = new Date(earliestPurchaseDate);
+                let sDate = new Date(tx.date);
+                let diffTime = Math.abs(sDate - pDate);
+                let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                let gainType = diffDays > 365 ? "LTCG (Long Term)" : "STCG (Short Term)";
+
+                realizedEvents.push({
+                    saleDate: tx.date,
+                    symbol: s,
+                    qtySold: qty,
+                    salePrice: price,
+                    matchDate: earliestPurchaseDate,
+                    costPrice: qty > 0 ? (totalCostBasis / qty) : 0,
+                    holdingDays: diffDays,
+                    gainType: gainType,
+                    gain: capitalGain
+                });
+            }
+        });
+
+        return realizedEvents;
+    }
+
     function renderScriptDash() {
         const dashScriptSelect = document.getElementById('dash-script');
         const dashYearSelect = document.getElementById('dash-year');
@@ -1283,11 +1418,18 @@
         const selectedScripts = Array.from(dashScriptSelect.selectedOptions).map(o => o.value);
         const selectedYears = Array.from(dashYearSelect.selectedOptions).map(o => o.value);
 
+        // REQUIREMENT 4: Date-Range Customizer Filters
+        let fromDateStr = document.getElementById('dash-from-date').value;
+        let toDateStr = document.getElementById('dash-to-date').value;
+        let fromDate = fromDateStr ? new Date(fromDateStr) : null;
+        let toDate = toDateStr ? new Date(toDateStr) : null;
+
         const cInv = document.getElementById('container-inventory');
         const cLive = document.getElementById('container-live');
         const cAvgCalc = document.getElementById('container-avg-calc');
         const cPnl = document.getElementById('container-pnl');
         const cSales = document.getElementById('container-sales');
+        const cTaxEst = document.getElementById('container-tax-estimator');
 
         if (selectedScripts.length === 0) {
             cInv.style.display = 'none';
@@ -1295,19 +1437,29 @@
             cAvgCalc.style.display = 'none';
             cPnl.style.display = 'none';
             cSales.style.display = 'none';
+            cTaxEst.style.display = 'none';
         } else {
             cInv.style.display = 'block';
             cLive.style.display = 'block';
             cAvgCalc.style.display = 'block';
             cPnl.style.display = 'block';
             cSales.style.display = 'block';
+            cTaxEst.style.display = 'block';
         }
 
         let inventory = {}; let monthlyPnL = {}; let totalPnL = 0;
         let latestSales = {}; 
         let sortedTxs = [...currentTxs].sort((a,b) => new Date(a.date) - new Date(b.date));
 
-        sortedTxs.forEach(tx => {
+        // Filter transactions based on Date-Range customizer (Requirement 4)
+        let filteredTxsForDash = sortedTxs.filter(tx => {
+            let txDate = new Date(tx.date);
+            if (fromDate && txDate < fromDate) return false;
+            if (toDate && txDate > toDate) return false;
+            return true;
+        });
+
+        filteredTxsForDash.forEach(tx => {
             let s = tx.symbol;
             let rawType = String(tx.txType || '').trim().toLowerCase();
             let safePrice = parseNum(tx.price);
@@ -1342,7 +1494,7 @@
             }
         });
 
-        // CONSOLIDATED LIVE PERFORMANCE MAP (No duplicate script lines)
+        // CONSOLIDATED LIVE PERFORMANCE MAP (No duplicate script lines across brokers)
         let consolidatedLiveMap = {};
         Object.keys(inventory).forEach(key => {
             let item = inventory[key];
@@ -1358,7 +1510,8 @@
         const holdingsBody = document.getElementById('dash-holdings-body');
         const liveBody = document.getElementById('dash-live-body');
         const avgCalcBody = document.getElementById('dash-avg-calc-body');
-        holdingsBody.innerHTML = ''; liveBody.innerHTML = ''; avgCalcBody.innerHTML = '';
+        const taxEstBody = document.getElementById('dash-tax-estimator-body');
+        holdingsBody.innerHTML = ''; liveBody.innerHTML = ''; avgCalcBody.innerHTML = ''; taxEstBody.innerHTML = '';
 
         let desiredAvgPrice = parseNum(document.getElementById('desired-avg-price').value);
         let hasActiveCalc = false;
@@ -1385,7 +1538,7 @@
 
                 liveBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td style="color:#137333; font-weight:bold;">${livePStr}</td><td>${curValStr}</td><td class="${unClass}"><strong>${unPnlStr}</strong></td></tr>`;
 
-                // REQUIREMENT 1: Average Cost Target Calculator with Required Amount Calculation
+                // Average Cost Target Calculator with Required Amount Calculation
                 if (item.qty > 0 && desiredAvgPrice > 0) {
                     let currentAvg = item.cost / item.qty;
                     if (desiredAvgPrice < currentAvg) {
@@ -1416,6 +1569,29 @@
             
             if(holdingsBody.innerHTML === '') holdingsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b; padding: 15px;">No active holdings in selection.</td></tr>`;
             if(liveBody.innerHTML === '') liveBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No active records in selection.</td></tr>`;
+
+            // RENDER FIFO TAX ESTIMATOR (Feature 1)
+            let taxEvents = computeFIFOTaxEstimator(filteredTxsForDash);
+            let matchingTaxEvents = taxEvents.filter(ev => selectedScripts.includes(ev.symbol));
+            
+            if (matchingTaxEvents.length > 0) {
+                matchingTaxEvents.forEach(ev => {
+                    let gainClass = ev.gain >= 0 ? 'pnl-positive' : 'pnl-negative';
+                    taxEstBody.innerHTML += `<tr>
+                        <td>${ev.saleDate}</td>
+                        <td><strong>${ev.symbol}</strong></td>
+                        <td>${ev.qtySold.toFixed(4)}</td>
+                        <td>₹${fmtMoney(ev.salePrice)}</td>
+                        <td>${ev.matchDate}</td>
+                        <td>₹${fmtMoney(ev.costPrice)}</td>
+                        <td>${ev.holdingDays} days</td>
+                        <td><span class="badge" style="background:#e0e7ff; color:#3730a3;">${ev.gainType}</span></td>
+                        <td class="${gainClass}">${ev.gain >= 0 ? '+' : ''}₹${fmtMoney(ev.gain)}</td>
+                    </tr>`;
+                });
+            } else {
+                taxEstBody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#64748b; padding: 15px;">No realized sales found for selected scripts in date range.</td></tr>`;
+            }
         }
 
         if (!hasActiveCalc && desiredAvgPrice > 0) {
@@ -1444,10 +1620,10 @@
         const salesBody = document.getElementById('dash-sales-body');
         salesBody.innerHTML = '';
         if (selectedScripts.length > 0) {
-            let lastSales = sortedTxs.filter(tx => String(tx.txType||'').trim().toLowerCase()==='sale' && selectedScripts.includes(tx.symbol)).reverse().slice(0, 2);
+            let lastSales = filteredTxsForDash.filter(tx => String(tx.txType||'').trim().toLowerCase()==='sale' && selectedScripts.includes(tx.symbol)).reverse().slice(0, 2);
             if (lastSales.length > 0) {
                 lastSales.forEach(tx => { salesBody.innerHTML += `<tr><td>${tx.date}</td><td>${parseNum(tx.qty).toFixed(4)}</td><td>${fmtMoney(tx.price)}</td></tr>`; });
-            } else { salesBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#64748b; padding: 15px;">No recent sales</td></tr>`; }
+            } else { salesBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#64748b; padding: 15px;">No recent sales in date range</td></tr>`; }
         }
 
         // 6. Render Re-entry Opportunities
@@ -1880,7 +2056,7 @@
 
         ['date', 'txType', 'name', 'remark', 'qty', 'rate', 'amount'].forEach(col => { const el = document.getElementById(`other-sort-${col}`); if(el) el.innerText = (otherSortCol === col) ? (otherSortDesc ? ' ↓' : ' ↑') : ''; });
 
-        const searchText = (document.getElementById('other-ledger-search') ? document.getElementById('other-ledger-search'].value : '').toLowerCase().trim();
+        const searchText = (document.getElementById('other-ledger-search') ? document.getElementById('other-ledger-search').value : '').toLowerCase().trim();
         const fColDate = document.getElementById('other-flt-date').value.toLowerCase().trim();
         const fColType = document.getElementById('other-flt-type').value.toLowerCase().trim();
         const fColName = document.getElementById('other-flt-name').value.toLowerCase().trim();
@@ -1913,7 +2089,7 @@
             let safeQty = parseNum(tx.qty); let safeRate = parseNum(tx.rate);
             ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td><span class="badge ${badgeClass}">${tx.txType}</span></td><td><strong>${tx.name || '-'}</strong></td><td>${tx.remark || '-'}</td><td>${safeQty.toFixed(4)}</td><td>${fmtMoney(safeRate)}</td><td class="${amtClass}"><strong>${fmtMoney(effAmt)}</strong></td><td><button class="btn-edit-tx" onclick="editOtherTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteOtherTx('${tx.id}')">Del</button></td></tr>`;
         });
-        if (pageTxs.length === 0) { ledgerJobBody = document.getElementById('other-ledger-body'); ledgerJobBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #64748b;">No transactions logged yet.</td></tr>`; }
+        if (pageTxs.length === 0) { ledgerBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #64748b;">No transactions logged yet.</td></tr>`; }
         document.getElementById('other-page-indicator').innerText = `Page ${otherCurrentPage} of ${totalPages}`;
         document.getElementById('other-btn-prev').disabled = otherCurrentPage === 1; document.getElementById('other-btn-next').disabled = otherCurrentPage === totalPages;
     }
