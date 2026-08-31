@@ -8,7 +8,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
-    <!-- Chart.js CDN for historical price chart feature -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -107,7 +106,6 @@
         button.btn-global-rename { background: var(--purple); color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; height: fit-content; cursor: pointer; transition: 0.2s; }
         button.btn-global-rename:hover { background: #7c3aed; }
         
-        /* 5) Manual Column Width Adjustment Support */
         .table-container { 
             overflow-x: auto; 
             border: 1px solid var(--border); 
@@ -328,7 +326,7 @@
                     </div>
                 </div>
                 
-                <!-- REQUIREMENT 2: HISTORICAL PRICE CHART CONTROLS -->
+                <!-- HISTORICAL PRICE CHART CONTROLS -->
                 <div class="controls-row" style="background: #ffffff; border: 1px dashed var(--border); margin-top: 10px;">
                     <div class="form-group">
                         <label>Chart Script Selection</label>
@@ -353,7 +351,7 @@
                     </div>
                 </div>
 
-                <!-- HISTORICAL CHART CONTAINER WITH PURCHASE / SALE ANNOTATION MARKERS -->
+                <!-- HISTORICAL CHART CONTAINER WITH PURCHASE/SALE MARKERS -->
                 <div id="chart-container-panel" style="margin-top: 15px; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
                     <canvas id="historicalPriceChart" style="max-height: 280px; width: 100%;"></canvas>
                 </div>
@@ -1179,7 +1177,7 @@
     }
 
     // ==========================================
-    // HISTORICAL PRICE CHART WITH TRANSACTION INDICATORS
+    // HISTORICAL PRICE CHART WITH TRANSACTION INDICATORS (NEW FEATURE)
     // ==========================================
     function toggleChartVisibility() {
         const container = document.getElementById('chart-container-panel');
@@ -1231,7 +1229,7 @@
                 labels.push(dateStr);
                 dataPoints.push(p);
 
-                // Check if a purchase or sale occurred on this exact date
+                // Map purchase and sale flags to scatter datasets matching date points
                 if (txDateMap[dateStr]) {
                     buyAnnotations.push(txDateMap[dateStr].buy ? p : null);
                     sellAnnotations.push(txDateMap[dateStr].sell ? p : null);
@@ -1724,7 +1722,7 @@
         
         if (pageTxs.length === 0) { ledgerBody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 20px; color: #64748b;">No transactions found matching your search or filters.</td></tr>`; }
         document.getElementById('page-indicator').innerText = `Page ${currentPage} of ${totalPages}`;
-        document.getElementById('btn-prev').disabled = currentPage === 1; document.getElementById('btn-next').disabled = currentPage === totalPages;
+        document.getElementById('btn-prev').disabled = currentPage === 1; document.getElementById('btn-next').disabled = totalPages;
     }
 
     // ======================================================================
@@ -1877,7 +1875,7 @@
         pageTxs.forEach(tx => {
             let badgeClass = tx.txType.toLowerCase().replace(' ', '-'); let effAmt = getOtherEffectiveAmount(tx); let amtClass = effAmt >= 0 ? 'pnl-positive' : 'pnl-negative';
             let safeQty = parseNum(tx.qty); let safeRate = parseNum(tx.rate);
-            ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td><span class="badge ${badgeClass}">${tx.txType}</span></td><td><strong>${tx.name || '-'}</strong></td><td>${tx.remark || '-'}</td><td>${safeQty.toFixed(4)}</td><td>${fmtMoney(safeRate))}</td><td class="${amtClass}"><strong>${fmtMoney(effAmt)}</strong></td><td><button class="btn-edit-tx" onclick="editOtherTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteOtherTx('${tx.id}')">Del</button></td></tr>`;
+            ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td><span class="badge ${badgeClass}">${tx.txType}</span></td><td><strong>${tx.name || '-'}</strong></td><td>${tx.remark || '-'}</td><td>${safeQty.toFixed(4)}</td><td>${fmtMoney(safeRate)}</td><td class="${amtClass}"><strong>${fmtMoney(effAmt)}</strong></td><td><button class="btn-edit-tx" onclick="editOtherTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteOtherTx('${tx.id}')">Del</button></td></tr>`;
         });
         if (pageTxs.length === 0) { ledgerBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #64748b;">No transactions logged yet.</td></tr>`; }
         document.getElementById('other-page-indicator').innerText = `Page ${otherCurrentPage} of ${totalPages}`;
