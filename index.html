@@ -87,7 +87,7 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
         .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; color: #475569; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; color: #475469; }
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; transition: border-color 0.2s; }
         .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
         select[multiple] { height: 90px; padding: 4px; }
@@ -353,7 +353,7 @@
                     </div>
                 </div>
 
-                <!-- HISTORICAL CHART CONTAINER -->
+                <!-- HISTORICAL CHART CONTAINER WITH PURCHASE / SALE ANNOTATION MARKERS -->
                 <div id="chart-container-panel" style="margin-top: 15px; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
                     <canvas id="historicalPriceChart" style="max-height: 280px; width: 100%;"></canvas>
                 </div>
@@ -372,7 +372,7 @@
                             </div>
                         </div>
 
-                        <!-- 2. Live Performance (Requirement 3: Clean single line layout) -->
+                        <!-- 2. Live Performance -->
                         <div id="container-live" style="display: none;">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Live Performance (Watchlist)</h3>
                             <div class="table-container">
@@ -406,7 +406,7 @@
                             </div>
                         </div>
                         
-                        <!-- 5. Re-entry Opportunities (Requirement 4: No existing table removed) -->
+                        <!-- 5. Re-entry Opportunities -->
                         <div id="container-reentry">
                             <h3 style="font-size: 0.95rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; color:#334155;">Re-entry Opportunities</h3>
                             <div class="table-container">
@@ -781,7 +781,7 @@
     let currentUser = null; 
     let currentTxs = [];    
     let livePrices = JSON.parse(localStorage.getItem('savedLivePrices')) || {}; 
-    let historicalPrices = {}; // Cloud Firestore loaded data
+    let historicalPrices = {}; 
     
     let currentPage = 1; 
     const pageSize = 15; 
@@ -928,7 +928,6 @@
         }
     }
 
-    // REQUIREMENT 1 & User Prompt: Save the day's last fetched price on Cloud and use it for Unrealised P&L & Re-entry calculations
     async function fetchLivePrices() {
         let inventorySymbols = new Set();
         currentTxs.forEach(tx => {
@@ -975,12 +974,10 @@
         finally { if (btn) { btn.innerText = "🔄 Fetch Live Prices"; btn.disabled = false; } renderApp(); }
     }
 
-    // Helper to get the latest available price (from live prices or the most recent historical date logged)
     function getLatestAvailablePrice(symbol) {
         if (livePrices[symbol] !== undefined && parseNum(livePrices[symbol]) > 0) {
             return parseNum(livePrices[symbol]);
         }
-        // Fallback to latest historical date logged in cloud/local history
         let sortedDates = Object.keys(historicalPrices).sort((a,b) => new Date(b) - new Date(a));
         for (let d of sortedDates) {
             if (historicalPrices[d][symbol] !== undefined && parseNum(historicalPrices[d][symbol]) > 0) {
@@ -1182,7 +1179,7 @@
     }
 
     // ==========================================
-    // HISTORICAL PRICE CHART RENDERING
+    // HISTORICAL PRICE CHART WITH TRANSACTION INDICATORS
     // ==========================================
     function toggleChartVisibility() {
         const container = document.getElementById('chart-container-panel');
@@ -1204,8 +1201,23 @@
 
         let labels = [];
         let dataPoints = [];
+        let buyAnnotations = [];
+        let sellAnnotations = [];
 
         let sortedDates = Object.keys(historicalPrices).sort((a,b) => new Date(a) - new Date(b));
+
+        // Map out transaction dates for the selected script
+        let txDateMap = {};
+        if (script) {
+            currentTxs.forEach(tx => {
+                if (tx.symbol === script) {
+                    let type = String(tx.txType || '').trim().toLowerCase();
+                    if (!txDateMap[tx.date]) txDateMap[tx.date] = { buy: false, sell: false };
+                    if (type === 'purchase') txDateMap[tx.date].buy = true;
+                    if (type === 'sale') txDateMap[tx.date].sell = true;
+                }
+            });
+        }
 
         sortedDates.forEach(dateStr => {
             let [yr, mo, dy] = dateStr.split('-');
@@ -1215,8 +1227,18 @@
 
             let dayPrices = historicalPrices[dateStr];
             if (script && dayPrices && dayPrices[script] !== undefined) {
+                let p = dayPrices[script];
                 labels.push(dateStr);
-                dataPoints.push(dayPrices[script]);
+                dataPoints.push(p);
+
+                // Check if a purchase or sale occurred on this exact date
+                if (txDateMap[dateStr]) {
+                    buyAnnotations.push(txDateMap[dateStr].buy ? p : null);
+                    sellAnnotations.push(txDateMap[dateStr].sell ? p : null);
+                } else {
+                    buyAnnotations.push(null);
+                    sellAnnotations.push(null);
+                }
             }
         });
 
@@ -1228,15 +1250,40 @@
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: script ? `${script} Historical Price (₹)` : 'Select a script',
-                    data: dataPoints,
-                    borderColor: '#2563eb',
-                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.1
-                }]
+                datasets: [
+                    {
+                        label: script ? `${script} Historical Price (₹)` : 'Select a script',
+                        data: dataPoints,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.1,
+                        order: 2
+                    },
+                    {
+                        label: '🟢 Purchase Transaction',
+                        data: buyAnnotations,
+                        borderColor: '#16a34a',
+                        backgroundColor: '#16a34a',
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        showLine: false,
+                        type: 'scatter',
+                        order: 1
+                    },
+                    {
+                        label: '🔴 Sale Transaction',
+                        data: sellAnnotations,
+                        borderColor: '#dc2626',
+                        backgroundColor: '#dc2626',
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        showLine: false,
+                        type: 'scatter',
+                        order: 1
+                    }
+                ]
             },
             options: {
                 responsive: true,
@@ -1830,10 +1877,12 @@
         pageTxs.forEach(tx => {
             let badgeClass = tx.txType.toLowerCase().replace(' ', '-'); let effAmt = getOtherEffectiveAmount(tx); let amtClass = effAmt >= 0 ? 'pnl-positive' : 'pnl-negative';
             let safeQty = parseNum(tx.qty); let safeRate = parseNum(tx.rate);
-            ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td><span class="badge ${badgeClass}">${tx.txType}</span></td><td><strong>${tx.name || '-'}</strong></td><td>${tx.remark || '-'}</td><td>${safeQty.toFixed(4)}</td><td>${fmtMoney(safeRate)}</td><td class="${amtClass}"><strong>${fmtMoney(effAmt)}</strong></td><td><button class="btn-edit-tx" onclick="editOtherTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteOtherTx('${tx.id}')">Del</button></td></tr>`;
+            ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td><span class="badge ${badgeClass}">${tx.txType}</span></td><td><strong>${tx.name || '-'}</strong></td><td>${tx.remark || '-'}</td><td>${safeQty.toFixed(4)}</td><td>${fmtMoney(safeRate))}</td><td class="${amtClass}"><strong>${fmtMoney(effAmt)}</strong></td><td><button class="btn-edit-tx" onclick="editOtherTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteOtherTx('${tx.id}')">Del</button></td></tr>`;
         });
         if (pageTxs.length === 0) { ledgerBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #64748b;">No transactions logged yet.</td></tr>`; }
         document.getElementById('other-page-indicator').innerText = `Page ${otherCurrentPage} of ${totalPages}`;
         document.getElementById('other-btn-prev').disabled = otherCurrentPage === 1; document.getElementById('other-btn-next').disabled = otherCurrentPage === totalPages;
     }
 </script>
+</body>
+</html>
