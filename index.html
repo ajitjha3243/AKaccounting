@@ -66,9 +66,8 @@
         
         .main-grid { display: grid; grid-template-columns: 1fr; gap: 25px; margin-bottom: 25px; align-items: start; }
         @media(min-width: 900px) { .main-grid { grid-template-columns: 350px 1fr; } }
-        
         .reports-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
-        @media(min-width: 900px) { .reports-grid { grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); } }
+        @media(min-width: 900px) { .reports-grid { grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); } }
         
         .panel { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 25px; }
         
@@ -134,9 +133,8 @@
         tbody tr:nth-child(even) { background-color: #fafaf9; }
         tbody tr:hover { background-color: #f1f5f9; transition: background-color 0.15s ease-in-out; }
 
-        /* Compact sizing for script analysis dashboard tables */
-        table.compact-table { width: 100%; min-width: 100%; table-layout: fixed; }
-        table.compact-table th, table.compact-table td { padding: 5px 8px; font-size: 0.78rem; text-overflow: ellipsis; }
+        table.compact-table { width: auto; min-width: 100%; }
+        table.compact-table th, table.compact-table td { padding: 6px 12px; font-size: 0.82rem; }
 
         th.sortable { cursor: pointer; transition: background 0.2s; user-select: none; }
         th.sortable:hover { background-color: #e2e8f0; }
@@ -257,29 +255,6 @@
         </div>
     </div>
 
-    <!-- LIVE MARKET INDICES -->
-    <div class="summary-container" style="margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
-    
-        <div class="card" style="padding: 0; overflow: hidden; border-left-color: var(--purple); height: 120px;">
-            <div class="tradingview-widget-container" style="height: 100%; width: 100%;">
-                <div class="tradingview-widget-container__widget" style="height: calc(100% - 32px); width: 100%;"></div>
-                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-                {
-                "symbol": "BSE:SENSEX",
-                "width": "100%",
-                "height": "100%",
-                "locale": "en",
-                "dateRange": "1D",
-                "colorTheme": "light",
-                "isTransparent": true,
-                "autosize": true,
-                "largeChartUrl": ""
-                }
-                </script>
-            </div>
-        </div>
-    </div>
-
     <!-- SUMMARY KPI CARDS -->
     <div class="summary-container">
         <div class="card equity"><h3>Equity Invested</h3><p id="equity-investment">0.00</p></div>
@@ -351,20 +326,6 @@
                     </div>
                 </div>
                 
-                <div class="controls-row" style="background: #f8fafc; border: 1px solid var(--border);">
-                    <div class="form-group">
-                        <label>📅 Filter From Date</label>
-                        <input type="date" id="dash-from-date" onchange="renderScriptDash()">
-                    </div>
-                    <div class="form-group">
-                        <label>📅 Filter To Date</label>
-                        <input type="date" id="dash-to-date" onchange="renderScriptDash()">
-                    </div>
-                    <div class="form-group" style="display:flex; align-items:flex-end;">
-                        <button type="button" class="btn-secondary" onclick="document.getElementById('dash-from-date').value=''; document.getElementById('dash-to-date').value=''; renderScriptDash();" style="width:100%;">Reset Dates</button>
-                    </div>
-                </div>
-
                 <!-- HISTORICAL PRICE CHART CONTROLS -->
                 <div class="controls-row" style="background: #ffffff; border: 1px dashed var(--border); margin-top: 10px;">
                     <div class="form-group">
@@ -793,9 +754,7 @@
       measurementId: "G-7XHQXMX6PR"
     };
 
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
 
@@ -846,10 +805,7 @@
     
     function showError(msg) { 
         const errEl = document.getElementById('auth-error'); 
-        if(errEl) {
-            errEl.innerText = msg; 
-            errEl.style.display = 'block'; 
-        }
+        errEl.innerText = msg; errEl.style.display = 'block'; 
     }
 
     // ==========================================
@@ -858,63 +814,32 @@
     auth.onAuthStateChanged(user => {
         if (user) {
             currentUser = user;
-            const overlay = document.getElementById('auth-overlay');
-            if(overlay) overlay.style.display = 'none';
+            document.getElementById('auth-overlay').style.display = 'none';
             document.querySelectorAll('.display-user-email').forEach(el => { el.innerText = user.email || "Logged in"; });
 
             if(document.getElementById('date')) document.getElementById('date').valueAsDate = new Date();
             if(document.getElementById('other-date')) document.getElementById('other-date').valueAsDate = new Date();
 
-            const selectedWorkspaceEl = document.querySelector('input[name="workspace"]:checked');
-            const selectedWorkspace = selectedWorkspaceEl ? selectedWorkspaceEl.value : 'equity';
+            const selectedWorkspace = document.querySelector('input[name="workspace"]:checked').value;
             
             if (selectedWorkspace === 'equity') {
-                const eq = document.getElementById('workspace-equity');
-                const oth = document.getElementById('workspace-other');
-                if(eq) eq.style.display = 'block'; 
-                if(oth) oth.style.display = 'none';
+                document.getElementById('workspace-equity').style.display = 'block'; document.getElementById('workspace-other').style.display = 'none';
                 loadTransactions(); 
             } else if (selectedWorkspace === 'other') {
-                const eq = document.getElementById('workspace-equity');
-                const oth = document.getElementById('workspace-other');
-                if(eq) eq.style.display = 'none'; 
-                if(oth) oth.style.display = 'block';
+                document.getElementById('workspace-equity').style.display = 'none'; document.getElementById('workspace-other').style.display = 'block';
                 loadOtherTransactions();
             }
         } else {
             currentUser = null;
-            const eq = document.getElementById('workspace-equity');
-            const oth = document.getElementById('workspace-other');
-            const overlay = document.getElementById('auth-overlay');
-            if(eq) eq.style.display = 'none'; 
-            if(oth) oth.style.display = 'none';
-            if(overlay) overlay.style.display = 'flex';
+            document.getElementById('workspace-equity').style.display = 'none'; document.getElementById('workspace-other').style.display = 'none';
+            document.getElementById('auth-overlay').style.display = 'flex';
         }
     });
 
     function signInWithGoogle() { const provider = new firebase.auth.GoogleAuthProvider(); auth.signInWithPopup(provider).catch(error => { console.error("Google Auth Error:", error); showError(error.message); }); }
-    function signInWithEmail() { 
-        const emailEl = document.getElementById('auth-email');
-        const pwdEl = document.getElementById('auth-password');
-        const email = emailEl ? emailEl.value : ''; 
-        const pwd = pwdEl ? pwdEl.value : ''; 
-        if(!email || !pwd) return showError("Please enter email and password."); 
-        auth.signInWithEmailAndPassword(email, pwd).catch(error => showError(error.message)); 
-    }
-    function signUpWithEmail() { 
-        const emailEl = document.getElementById('auth-email');
-        const pwdEl = document.getElementById('auth-password');
-        const email = emailEl ? emailEl.value : ''; 
-        const pwd = pwdEl ? pwdEl.value : ''; 
-        if(!email || !pwd) return showError("Please enter email and password."); 
-        auth.createUserWithEmailAndPassword(email, pwd).catch(error => showError(error.message)); 
-    }
-    function forgotPassword() { 
-        const emailEl = document.getElementById('auth-email');
-        const email = emailEl ? emailEl.value.trim() : ''; 
-        if (!email) return showError("Please enter your email address in the field above first, then click 'Forgot Password?'."); 
-        auth.sendPasswordResetEmail(email).then(() => { alert(`Password reset link sent to ${email}! Please check your email inbox (and spam folder).`); document.getElementById('auth-error').style.display = 'none'; }).catch(error => showError("Reset error: " + error.message)); 
-    }
+    function signInWithEmail() { const email = document.getElementById('auth-email').value; const pwd = document.getElementById('auth-password').value; if(!email || !pwd) return showError("Please enter email and password."); auth.signInWithEmailAndPassword(email, pwd).catch(error => showError(error.message)); }
+    function signUpWithEmail() { const email = document.getElementById('auth-email').value; const pwd = document.getElementById('auth-password').value; if(!email || !pwd) return showError("Please enter email and password."); auth.createUserWithEmailAndPassword(email, pwd).catch(error => showError(error.message)); }
+    function forgotPassword() { const email = document.getElementById('auth-email').value.trim(); if (!email) return showError("Please enter your email address in the field above first, then click 'Forgot Password?'."); auth.sendPasswordResetEmail(email).then(() => { alert(`Password reset link sent to ${email}! Please check your email inbox (and spam folder).`); document.getElementById('auth-error').style.display = 'none'; }).catch(error => showError("Reset error: " + error.message)); }
     function signOut() { auth.signOut(); }
 
     // ==========================================
@@ -1251,6 +1176,9 @@
         if (brokerReportFilter && currentReportBroker) brokerReportFilter.value = currentReportBroker;
     }
 
+    // ==========================================
+    // HISTORICAL PRICE CHART WITH TRANSACTION INDICATORS (NEW FEATURE)
+    // ==========================================
     function toggleChartVisibility() {
         const container = document.getElementById('chart-container-panel');
         const btn = document.getElementById('btn-toggle-chart');
@@ -1276,6 +1204,7 @@
 
         let sortedDates = Object.keys(historicalPrices).sort((a,b) => new Date(a) - new Date(b));
 
+        // Map out transaction dates for the selected script
         let txDateMap = {};
         if (script) {
             currentTxs.forEach(tx => {
@@ -1300,6 +1229,7 @@
                 labels.push(dateStr);
                 dataPoints.push(p);
 
+                // Map purchase and sale flags to scatter datasets matching date points
                 if (txDateMap[dateStr]) {
                     buyAnnotations.push(txDateMap[dateStr].buy ? p : null);
                     sellAnnotations.push(txDateMap[dateStr].sell ? p : null);
@@ -1372,20 +1302,17 @@
 
         const cInv = document.getElementById('container-inventory');
         const cLive = document.getElementById('container-live');
-        const cAvgCalc = document.getElementById('container-avg-calc');
         const cPnl = document.getElementById('container-pnl');
         const cSales = document.getElementById('container-sales');
 
         if (selectedScripts.length === 0) {
             cInv.style.display = 'none';
             cLive.style.display = 'none';
-            cAvgCalc.style.display = 'none';
             cPnl.style.display = 'none';
             cSales.style.display = 'none';
         } else {
             cInv.style.display = 'block';
             cLive.style.display = 'block';
-            cAvgCalc.style.display = 'block';
             cPnl.style.display = 'block';
             cSales.style.display = 'block';
         }
@@ -1429,37 +1356,17 @@
             }
         });
 
-        let consolidatedLiveMap = {};
-        Object.keys(inventory).forEach(key => {
-            let item = inventory[key];
-            if (item.qty < 0.001) { item.qty = 0; item.cost = 0; }
-            if (!consolidatedLiveMap[item.symbol]) {
-                consolidatedLiveMap[item.symbol] = { symbol: item.symbol, qty: 0, cost: 0, dividends: 0 };
-            }
-            consolidatedLiveMap[item.symbol].qty += item.qty;
-            consolidatedLiveMap[item.symbol].cost += item.cost;
-            consolidatedLiveMap[item.symbol].dividends += item.dividends;
-        });
-
+        // 1 & 2. Render Holdings and Live Watchlist using latest available price (Live or Historical Cloud)
         const holdingsBody = document.getElementById('dash-holdings-body');
         const liveBody = document.getElementById('dash-live-body');
-        const avgCalcBody = document.getElementById('dash-avg-calc-body');
-        holdingsBody.innerHTML = ''; liveBody.innerHTML = ''; avgCalcBody.innerHTML = '';
-
-        let desiredAvgPrice = parseNum(document.getElementById('desired-avg-price').value);
-        let hasActiveCalc = false;
+        holdingsBody.innerHTML = ''; liveBody.innerHTML = '';
 
         if (selectedScripts.length > 0) {
+            Object.keys(inventory).forEach(key => { if (inventory[key].qty < 0.001) { inventory[key].qty = 0; inventory[key].cost = 0; } });
+
             Object.keys(inventory).sort().forEach(key => {
                 let item = inventory[key];
-                if (item.qty > 0) { 
-                    holdingsBody.innerHTML += `<tr><td><strong>${item.symbol}</strong> <span style="font-size:0.75rem; color:#64748b;">(${item.broker})</span></td><td>${parseNum(item.qty).toFixed(4)}</td><td>${fmtMoney(item.cost/item.qty)}</td><td>${fmtMoney(item.cost)}</td><td style="color:var(--success); font-weight:bold;">+${fmtMoney(item.dividends)}</td></tr>`; 
-                }
-            });
-
-            Object.keys(consolidatedLiveMap).sort().forEach(sym => {
-                let item = consolidatedLiveMap[sym];
-                let latestP = getLatestAvailablePrice(sym);
+                let latestP = getLatestAvailablePrice(item.symbol);
                 let livePStr = latestP !== null ? fmtMoney(latestP) : '<span style="color:#64748b; font-weight:normal;">Click Fetch</span>';
                 let curValStr = "0.00"; let unPnlStr = "0.00"; let unClass = "pnl-neutral";
 
@@ -1469,46 +1376,18 @@
                     unClass = uPnL > 0 ? 'pnl-positive' : (uPnL < 0 ? 'pnl-negative' : 'pnl-neutral');
                 }
 
-                liveBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td style="color:#137333; font-weight:bold;">${livePStr}</td><td>${curValStr}</td><td class="${unClass}"><strong>${unPnlStr}</strong></td></tr>`;
-
-                if (item.qty > 0 && desiredAvgPrice > 0) {
-                    let currentAvg = item.cost / item.qty;
-                    if (desiredAvgPrice < currentAvg) {
-                        hasActiveCalc = true;
-                        let currentQty = item.qty;
-                        let sharesNeeded = 0;
-                        let requiredAmount = 0;
-
-                        if (latestP !== null && desiredAvgPrice > latestP) {
-                            sharesNeeded = ((currentAvg - desiredAvgPrice) * currentQty) / (desiredAvgPrice - latestP);
-                            requiredAmount = sharesNeeded * latestP;
-                        }
-
-                        let neededStr = sharesNeeded > 0 ? Math.ceil(sharesNeeded).toLocaleString() : "Not achievable at this price";
-                        let amountStr = requiredAmount > 0 ? `₹${fmtMoney(requiredAmount)}` : "-";
-
-                        avgCalcBody.innerHTML += `<tr>
-                            <td><strong>${item.symbol}</strong></td>
-                            <td>${parseNum(currentQty).toFixed(2)}</td>
-                            <td>₹${fmtMoney(currentAvg)}</td>
-                            <td>₹${fmtMoney(desiredAvgPrice)}</td>
-                            <td>${neededStr} ${sharesNeeded > 0 ? 'shares' : ''}</td>
-                            <td style="color:var(--primary); font-weight:bold;">${amountStr}</td>
-                        </tr>`;
-                    }
+                if (item.qty > 0) { 
+                    holdingsBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td>${parseNum(item.qty).toFixed(4)}</td><td>${item.qty>0?fmtMoney(item.cost/item.qty):"0.00"}</td><td>${fmtMoney(item.cost)}</td><td style="color:var(--success); font-weight:bold;">+${fmtMoney(item.dividends)}</td></tr>`; 
                 }
+
+                liveBody.innerHTML += `<tr><td><strong>${item.symbol}</strong></td><td style="color:#137333; font-weight:bold;">${livePStr}</td><td>${curValStr}</td><td class="${unClass}"><strong>${unPnlStr}</strong></td></tr>`;
             });
             
             if(holdingsBody.innerHTML === '') holdingsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b; padding: 15px;">No active holdings in selection.</td></tr>`;
             if(liveBody.innerHTML === '') liveBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No active records in selection.</td></tr>`;
         }
 
-        if (!hasActiveCalc && desiredAvgPrice > 0) {
-            avgCalcBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b; padding: 15px;">Desired average must be lower than current average, and Latest Price must be lower than Desired Average to calculate purchase requirement.</td></tr>`;
-        } else if (desiredAvgPrice <= 0) {
-            avgCalcBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b; padding: 15px;">Enter a target desired average price above.</td></tr>`;
-        }
-
+        // 3. Render Month-wise P&L
         const pnlBody = document.getElementById('dash-pnl-body');
         pnlBody.innerHTML = '';
         if (selectedScripts.length > 0) {
@@ -1524,6 +1403,7 @@
         totalEl.innerText = (totalPnL > 0 ? '+' : '') + fmtMoney(totalPnL);
         totalEl.className = totalPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
         
+        // 4. Render Last 2 Sales
         const salesBody = document.getElementById('dash-sales-body');
         salesBody.innerHTML = '';
         if (selectedScripts.length > 0) {
@@ -1533,6 +1413,7 @@
             } else { salesBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#64748b; padding: 15px;">No recent sales</td></tr>`; }
         }
 
+        // 5. Render Re-entry Opportunities using latest available price fallback
         const reentryBody = document.getElementById('dash-reentry-body');
         reentryBody.innerHTML = '';
         let dropPctThreshold = parseNum(document.getElementById('dash-drop-pct').value) || 0;
@@ -1665,6 +1546,7 @@
                 if (!brokerUnrealizedMap[item.broker]) brokerUnrealizedMap[item.broker] = { cost: 0, currentVal: 0, unrealized: 0 };
                 brokerUnrealizedMap[item.broker].cost += item.cost;
                 
+                // Using latest available price fallback for main holdings calculation
                 let latestPrice = getLatestAvailablePrice(item.symbol);
                 let currentValStr = "-"; let unrealizedPnLStr = "-"; let returnPctStr = "-"; let pnlStyleClass = "pnl-neutral";
                 
@@ -1840,7 +1722,7 @@
         
         if (pageTxs.length === 0) { ledgerBody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 20px; color: #64748b;">No transactions found matching your search or filters.</td></tr>`; }
         document.getElementById('page-indicator').innerText = `Page ${currentPage} of ${totalPages}`;
-        document.getElementById('btn-prev').disabled = currentPage === 1; document.getElementById('btn-next').disabled = currentPage === totalPages;
+        document.getElementById('btn-prev').disabled = currentPage === 1; document.getElementById('btn-next').disabled = totalPages;
     }
 
     // ======================================================================
@@ -1995,13 +1877,9 @@
             let safeQty = parseNum(tx.qty); let safeRate = parseNum(tx.rate);
             ledgerBody.innerHTML += `<tr><td>${tx.date}</td><td><span class="badge ${badgeClass}">${tx.txType}</span></td><td><strong>${tx.name || '-'}</strong></td><td>${tx.remark || '-'}</td><td>${safeQty.toFixed(4)}</td><td>${fmtMoney(safeRate)}</td><td class="${amtClass}"><strong>${fmtMoney(effAmt)}</strong></td><td><button class="btn-edit-tx" onclick="editOtherTx('${tx.id}')">Edit</button><button class="btn-delete" onclick="deleteOtherTx('${tx.id}')">Del</button></td></tr>`;
         });
-        if (pageTxs.length === 0) { const lb = document.getElementById('other-ledger-body'); if(lb) lb.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #64748b;">No transactions logged yet.</td></tr>`; }
-        const ind = document.getElementById('other-page-indicator');
-        if(ind) ind.innerText = `Page ${otherCurrentPage} of ${totalPages}`;
-        const pBtn = document.getElementById('other-btn-prev');
-        const nBtn = document.getElementById('other-btn-next');
-        if(pBtn) pBtn.disabled = otherCurrentPage === 1; 
-        if(nBtn) nBtn.disabled = otherCurrentPage === totalPages;
+        if (pageTxs.length === 0) { ledgerBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #64748b;">No transactions logged yet.</td></tr>`; }
+        document.getElementById('other-page-indicator').innerText = `Page ${otherCurrentPage} of ${totalPages}`;
+        document.getElementById('other-btn-prev').disabled = otherCurrentPage === 1; document.getElementById('other-btn-next').disabled = otherCurrentPage === totalPages;
     }
 </script>
 </body>
