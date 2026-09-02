@@ -259,24 +259,25 @@
 
     <!-- LIVE MARKET INDICES -->
     <div class="summary-container" style="margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
-        <div class="card" style="padding: 0; overflow: hidden; border-left-color: var(--primary); height: 120px;">
-            <div class="tradingview-widget-container" style="height: 100%; width: 100%;">
-                <div class="tradingview-widget-container__widget" style="height: calc(100% - 32px); width: 100%;"></div>
-                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-                {
-                "symbol": "NSE:NIFTY",
-                "width": "100%",
-                "height": "100%",
-                "locale": "en",
-                "dateRange": "1D",
-                "colorTheme": "light",
-                "isTransparent": true,
-                "autosize": true,
-                "largeChartUrl": ""
-                }
-                </script>
-            </div>
-        </div>
+       <!-- NIFTY 50 Widget -->
+<div class="card" style="padding: 0; overflow: hidden; border-left-color: var(--primary); height: 120px;">
+    <div class="tradingview-widget-container" style="height: 100%; width: 100%;">
+        <div class="tradingview-widget-container__widget" style="height: calc(100% - 32px); width: 100%;"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+        {
+        "symbol": "BSE:NIFTY50",
+        "width": "100%",
+        "height": "100%",
+        "locale": "en",
+        "dateRange": "1D",
+        "colorTheme": "light",
+        "isTransparent": true,
+        "autosize": true,
+        "largeChartUrl": ""
+        }
+        </script>
+    </div>
+</div>
         <div class="card" style="padding: 0; overflow: hidden; border-left-color: var(--purple); height: 120px;">
             <div class="tradingview-widget-container" style="height: 100%; width: 100%;">
                 <div class="tradingview-widget-container__widget" style="height: calc(100% - 32px); width: 100%;"></div>
