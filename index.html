@@ -778,7 +778,7 @@
     // ==========================================
     let currentUser = null; 
     let currentTxs = [];    
-    let livePrices = JSON.parse(localStorage.getItem('savedLivePrices')) || {}; 
+    let livePrices = {}; 
     let historicalPrices = {}; 
     
     let currentPage = 1; 
@@ -852,6 +852,7 @@
             const eqSnap = await db.collection('transactions').where("userId", "==", uid).get();
             const othSnap = await db.collection('other_transactions').where("userId", "==", uid).get();
             const histSnap = await db.collection('price_history').where("userId", "==", uid).get();
+            const latestSnap = await db.collection('latest_prices').doc(uid).get();
             
             let histDataBackup = {};
             histSnap.docs.forEach(d => {
@@ -863,7 +864,8 @@
                 format: "pro-equity-full-backup", date: new Date().toISOString(),
                 transactions: eqSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
                 other_transactions: othSnap.docs.map(d => {let data=d.data(); delete data.userId; return data;}),
-                historicalPrices: histDataBackup
+                historicalPrices: histDataBackup,
+                latestPrices: latestSnap.exists ? latestSnap.data().prices : {}
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup));
             const link = document.createElement("a"); link.setAttribute("href", dataStr); link.setAttribute("download", `Full_Backup_${new Date().toISOString().split('T')[0]}.json`);
@@ -887,6 +889,11 @@
                         }
                     }
 
+                    if(data.latestPrices) {
+                        let ref = db.collection('latest_prices').doc(currentUser.uid);
+                        batch.set(ref, { userId: currentUser.uid, prices: data.latestPrices, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+                    }
+
                     const addDocs = (collection, items) => { if(!items) return; items.forEach(item => { let ref = db.collection(collection).doc(); item.userId = currentUser.uid; batch.set(ref, item); count++; }); };
                     addDocs('transactions', data.transactions); addDocs('other_transactions', data.other_transactions);
                     
@@ -900,15 +907,29 @@
     }
 
     // ==========================================
-    // 6. WORKSPACE 1: EQUITY & MF LOGIC 
+    // 6. WORKSPACE 1: EQUITY & MF LOGIC (FIRESTORE SYNC)
     // ==========================================
     async function loadTransactions() {
         if(!currentUser) return;
         const snapshot = await db.collection('transactions').where("userId", "==", currentUser.uid).get();
         currentTxs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+        await loadLatestPricesFromCloud();
         await loadHistoricalPricesFromCloud();
         renderApp();
+    }
+
+    async function loadLatestPricesFromCloud() {
+        try {
+            const doc = await db.collection('latest_prices').doc(currentUser.uid).get();
+            if (doc.exists && doc.data().prices) {
+                livePrices = doc.data().prices;
+            } else {
+                livePrices = {};
+            }
+        } catch(e) {
+            console.error("Error loading latest prices from Firestore:", e);
+        }
     }
 
     async function loadHistoricalPricesFromCloud() {
@@ -922,7 +943,7 @@
                 }
             });
         } catch(e) {
-            console.error("Error loading price history from cloud:", e);
+            console.error("Error loading price history from Firestore:", e);
         }
     }
 
@@ -930,7 +951,9 @@
         let inventorySymbols = new Set();
         currentTxs.forEach(tx => {
             if (tx.symbol && tx.symbol.toUpperCase() !== 'CASH') { 
-                inventorySymbols.add(tx.symbol.toUpperCase().trim()); 
+                let sym = tx.symbol.toUpperCase().trim();
+                if (!sym.includes('.')) sym += '.NS';
+                inventorySymbols.add(sym); 
             }
         });
         const symbolsArray = Array.from(inventorySymbols);
@@ -946,16 +969,23 @@
             if (response.ok) {
                 const fetchedPrices = await response.json();
                 if (Object.keys(fetchedPrices).length > 0) {
-                    Object.assign(livePrices, fetchedPrices);
-                    localStorage.setItem('savedLivePrices', JSON.stringify(livePrices));
-
-                    let todayStr = new Date().toISOString().split('T')[0];
                     let cleanPrices = {};
                     Object.keys(fetchedPrices).forEach(sym => {
-                        cleanPrices[sym] = parseNum(fetchedPrices[sym]);
+                        let price = parseNum(fetchedPrices[sym]);
+                        cleanPrices[sym] = price;
+                        cleanPrices[sym.replace(/\.NS$/i, '')] = price;
                     });
 
-                    if(!historicalPrices[todayStr]) historicalPrices[todayStr] = {};
+                    Object.assign(livePrices, cleanPrices);
+
+                    await db.collection('latest_prices').doc(currentUser.uid).set({
+                        userId: currentUser.uid,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        prices: livePrices
+                    }, { merge: true });
+
+                    let todayStr = new Date().toISOString().split('T')[0];
+                    if (!historicalPrices[todayStr]) historicalPrices[todayStr] = {};
                     Object.assign(historicalPrices[todayStr], cleanPrices);
 
                     const docId = `${currentUser.uid}_${todayStr}`;
@@ -965,21 +995,33 @@
                         prices: historicalPrices[todayStr]
                     }, { merge: true });
 
-                    alert(`Successfully updated live market prices & saved daily log to Cloud for ${Object.keys(fetchedPrices).length} Equities!`);
-                } else { alert("Failed to fetch prices. Make sure your symbols are formatted correctly (e.g., RELIANCE.NS)."); }
+                    alert(`Successfully refreshed and saved market prices to Firestore for ${Object.keys(fetchedPrices).length} Equities!`);
+                } else { alert("Failed to fetch prices. Ensure your script symbols match NSE (e.g., RELIANCE.NS)."); }
             } else { throw new Error("Connection failed."); }
-        } catch (err) { console.error("Fetch error:", err); alert("Live price fetch failed. Please check your internet connection."); } 
-        finally { if (btn) { btn.innerText = "🔄 Fetch Live Prices"; btn.disabled = false; } renderApp(); }
+        } catch (err) { 
+            console.error("Fetch error:", err); 
+            alert("Live price fetch failed. Please check your internet connection."); 
+        } finally { 
+            if (btn) { btn.innerText = "🔄 Fetch Live Prices"; btn.disabled = false; } 
+            renderApp(); 
+        }
     }
 
     function getLatestAvailablePrice(symbol) {
-        if (livePrices[symbol] !== undefined && parseNum(livePrices[symbol]) > 0) {
-            return parseNum(livePrices[symbol]);
-        }
+        if (!symbol) return null;
+        let s = symbol.toUpperCase().trim();
+        let sNS = s.endsWith('.NS') ? s : `${s}.NS`;
+
+        if (livePrices[s] !== undefined && parseNum(livePrices[s]) > 0) return parseNum(livePrices[s]);
+        if (livePrices[sNS] !== undefined && parseNum(livePrices[sNS]) > 0) return parseNum(livePrices[sNS]);
+
         let sortedDates = Object.keys(historicalPrices).sort((a,b) => new Date(b) - new Date(a));
         for (let d of sortedDates) {
-            if (historicalPrices[d][symbol] !== undefined && parseNum(historicalPrices[d][symbol]) > 0) {
-                return parseNum(historicalPrices[d][symbol]);
+            if (historicalPrices[d][s] !== undefined && parseNum(historicalPrices[d][s]) > 0) {
+                return parseNum(historicalPrices[d][s]);
+            }
+            if (historicalPrices[d][sNS] !== undefined && parseNum(historicalPrices[d][sNS]) > 0) {
+                return parseNum(historicalPrices[d][sNS]);
             }
         }
         return null;
@@ -1000,10 +1042,12 @@
             snapshot.docs.forEach(doc => { batch.update(doc.ref, { symbol: newSymbol.trim().toUpperCase() }); count++; });
             if (count > 0) {
                 await batch.commit();
-                if(livePrices[oldSymbol.trim().toUpperCase()]) {
-                    livePrices[newSymbol.trim().toUpperCase()] = livePrices[oldSymbol.trim().toUpperCase()];
-                    delete livePrices[oldSymbol.trim().toUpperCase()];
-                    localStorage.setItem('savedLivePrices', JSON.stringify(livePrices));
+                let oldKey = oldSymbol.trim().toUpperCase();
+                let newKey = newSymbol.trim().toUpperCase();
+                if(livePrices[oldKey]) {
+                    livePrices[newKey] = livePrices[oldKey];
+                    delete livePrices[oldKey];
+                    await db.collection('latest_prices').doc(currentUser.uid).set({ prices: livePrices }, { merge: true });
                 }
                 alert(`Successfully Renamed! ${count} transactions were updated from '${oldSymbol}' to '${newSymbol}'.`);
                 loadTransactions(); 
@@ -1176,9 +1220,6 @@
         if (brokerReportFilter && currentReportBroker) brokerReportFilter.value = currentReportBroker;
     }
 
-    // ==========================================
-    // HISTORICAL PRICE CHART WITH TRANSACTION INDICATORS (NEW FEATURE)
-    // ==========================================
     function toggleChartVisibility() {
         const container = document.getElementById('chart-container-panel');
         const btn = document.getElementById('btn-toggle-chart');
@@ -1191,52 +1232,77 @@
         }
     }
 
+    // ==========================================
+    // HISTORICAL CHART: SHOW ALL BUYS & SELLS EVEN PRE-IMPLEMENTATION
+    // ==========================================
     function renderHistoricalChart() {
         const script = document.getElementById('chart-script-select').value;
         const yearFilter = document.getElementById('chart-year-select').value;
         const monthFilter = document.getElementById('chart-month-select').value;
         const ctx = document.getElementById('historicalPriceChart').getContext('2d');
 
-        let labels = [];
-        let dataPoints = [];
-        let buyAnnotations = [];
-        let sellAnnotations = [];
+        let scriptBase = script ? script.toUpperCase().trim() : '';
+        let scriptNS = scriptBase.endsWith('.NS') ? scriptBase : `${scriptBase}.NS`;
 
-        let sortedDates = Object.keys(historicalPrices).sort((a,b) => new Date(a) - new Date(b));
+        let allDatesSet = new Set();
+        let txMap = {};
 
-        // Map out transaction dates for the selected script
-        let txDateMap = {};
         if (script) {
             currentTxs.forEach(tx => {
-                if (tx.symbol === script) {
+                let txSym = (tx.symbol || '').toUpperCase().trim();
+                if (txSym === scriptBase || txSym === scriptNS) {
                     let type = String(tx.txType || '').trim().toLowerCase();
-                    if (!txDateMap[tx.date]) txDateMap[tx.date] = { buy: false, sell: false };
-                    if (type === 'purchase') txDateMap[tx.date].buy = true;
-                    if (type === 'sale') txDateMap[tx.date].sell = true;
+                    if (type === 'purchase' || type === 'sale') {
+                        if (!txMap[tx.date]) txMap[tx.date] = { buys: [], sells: [] };
+                        if (type === 'purchase') txMap[tx.date].buys.push(parseNum(tx.price));
+                        if (type === 'sale') txMap[tx.date].sells.push(parseNum(tx.price));
+                        allDatesSet.add(tx.date);
+                    }
                 }
             });
         }
 
+        Object.keys(historicalPrices).forEach(d => {
+            let dayQuotes = historicalPrices[d];
+            if (script && dayQuotes && (dayQuotes[scriptBase] !== undefined || dayQuotes[scriptNS] !== undefined)) {
+                allDatesSet.add(d);
+            }
+        });
+
+        let sortedDates = Array.from(allDatesSet).sort((a, b) => new Date(a) - new Date(b));
+
+        let labels = [];
+        let priceLineData = [];
+        let buyAnnotations = [];
+        let sellAnnotations = [];
+
         sortedDates.forEach(dateStr => {
-            let [yr, mo, dy] = dateStr.split('-');
-            
+            let [yr, mo] = dateStr.split('-');
             if (yearFilter !== 'All' && yr !== yearFilter) return;
             if (monthFilter !== 'All' && mo !== monthFilter) return;
 
-            let dayPrices = historicalPrices[dateStr];
-            if (script && dayPrices && dayPrices[script] !== undefined) {
-                let p = dayPrices[script];
-                labels.push(dateStr);
-                dataPoints.push(p);
+            labels.push(dateStr);
 
-                // Map purchase and sale flags to scatter datasets matching date points
-                if (txDateMap[dateStr]) {
-                    buyAnnotations.push(txDateMap[dateStr].buy ? p : null);
-                    sellAnnotations.push(txDateMap[dateStr].sell ? p : null);
-                } else {
-                    buyAnnotations.push(null);
-                    sellAnnotations.push(null);
-                }
+            let quote = null;
+            if (historicalPrices[dateStr]) {
+                if (historicalPrices[dateStr][scriptBase] !== undefined) quote = parseNum(historicalPrices[dateStr][scriptBase]);
+                else if (historicalPrices[dateStr][scriptNS] !== undefined) quote = parseNum(historicalPrices[dateStr][scriptNS]);
+            }
+            priceLineData.push(quote);
+
+            if (txMap[dateStr]) {
+                let avgBuy = txMap[dateStr].buys.length > 0 
+                    ? txMap[dateStr].buys.reduce((a, b) => a + b, 0) / txMap[dateStr].buys.length 
+                    : null;
+                let avgSell = txMap[dateStr].sells.length > 0 
+                    ? txMap[dateStr].sells.reduce((a, b) => a + b, 0) / txMap[dateStr].sells.length 
+                    : null;
+
+                buyAnnotations.push(avgBuy);
+                sellAnnotations.push(avgSell);
+            } else {
+                buyAnnotations.push(null);
+                sellAnnotations.push(null);
             }
         });
 
@@ -1250,11 +1316,12 @@
                 labels: labels,
                 datasets: [
                     {
-                        label: script ? `${script} Historical Price (₹)` : 'Select a script',
-                        data: dataPoints,
+                        label: script ? `${script} Historical Market Price (₹)` : 'Select a script',
+                        data: priceLineData,
                         borderColor: '#2563eb',
                         backgroundColor: 'rgba(37, 99, 235, 0.1)',
                         borderWidth: 2,
+                        spanGaps: true,
                         fill: true,
                         tension: 0.1,
                         order: 2
@@ -1356,7 +1423,6 @@
             }
         });
 
-        // 1 & 2. Render Holdings and Live Watchlist using latest available price (Live or Historical Cloud)
         const holdingsBody = document.getElementById('dash-holdings-body');
         const liveBody = document.getElementById('dash-live-body');
         holdingsBody.innerHTML = ''; liveBody.innerHTML = '';
@@ -1387,7 +1453,6 @@
             if(liveBody.innerHTML === '') liveBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding: 15px;">No active records in selection.</td></tr>`;
         }
 
-        // 3. Render Month-wise P&L
         const pnlBody = document.getElementById('dash-pnl-body');
         pnlBody.innerHTML = '';
         if (selectedScripts.length > 0) {
@@ -1403,7 +1468,6 @@
         totalEl.innerText = (totalPnL > 0 ? '+' : '') + fmtMoney(totalPnL);
         totalEl.className = totalPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
         
-        // 4. Render Last 2 Sales
         const salesBody = document.getElementById('dash-sales-body');
         salesBody.innerHTML = '';
         if (selectedScripts.length > 0) {
@@ -1413,7 +1477,6 @@
             } else { salesBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#64748b; padding: 15px;">No recent sales</td></tr>`; }
         }
 
-        // 5. Render Re-entry Opportunities using latest available price fallback
         const reentryBody = document.getElementById('dash-reentry-body');
         reentryBody.innerHTML = '';
         let dropPctThreshold = parseNum(document.getElementById('dash-drop-pct').value) || 0;
@@ -1546,7 +1609,6 @@
                 if (!brokerUnrealizedMap[item.broker]) brokerUnrealizedMap[item.broker] = { cost: 0, currentVal: 0, unrealized: 0 };
                 brokerUnrealizedMap[item.broker].cost += item.cost;
                 
-                // Using latest available price fallback for main holdings calculation
                 let latestPrice = getLatestAvailablePrice(item.symbol);
                 let currentValStr = "-"; let unrealizedPnLStr = "-"; let returnPctStr = "-"; let pnlStyleClass = "pnl-neutral";
                 
@@ -1671,7 +1733,6 @@
         const fColSymbol = document.getElementById('flt-col-symbol').value.toLowerCase().trim();
         const fColRemark = document.getElementById('flt-col-remark').value.toLowerCase().trim();
 
-        // Apply filters directly to raw ledger to ensure no missing rows
         let dynamicTxs = [...currentTxs].filter(tx => {
             let match = true;
             if (rBroker !== 'All' && tx.broker !== rBroker) match = false;
@@ -1726,7 +1787,7 @@
     }
 
     // ======================================================================
-    // 8. WORKSPACE 2: OTHER PURPOSE LOGIC
+    // 7. WORKSPACE 2: OTHER PURPOSE LOGIC
     // ======================================================================
     async function loadOtherTransactions() {
         if(!currentUser) return;
@@ -1770,8 +1831,9 @@
     }
 
     function cancelOtherEdit() {
-        document.getElementById('other-tx-id').value = ''; document.getElementById('other-submit-btn').innerText = 'Add Transaction'; document.getElementById('other-cancel-edit-btn').style.display = 'none';
-        document.getElementById('other-tx-form').reset(); document.getElementById('other-date').valueAsDate = new Date();
+        document.getElementById('other-tx-id').value = ''; document.getElementById('other-submit-btn').innerText = 'Add Transaction';
+        document.getElementById('other-cancel-edit-btn').style.display = 'none'; document.getElementById('other-tx-form').reset();
+        document.getElementById('other-date').valueAsDate = new Date();
     }
 
     async function deleteOtherTx(id) {
@@ -1866,7 +1928,7 @@
         dynamicTxs.sort((a, b) => {
             let valA = a[otherSortCol]; let valB = b[otherSortCol];
             if (otherSortCol === 'date') { valA = new Date(valA).getTime() || 0; valB = new Date(valB).getTime() || 0; } else if (['qty', 'rate'].includes(otherSortCol)) { valA = parseNum(valA); valB = parseNum(valB); } else if (otherSortCol === 'amount') { valA = getOtherEffectiveAmount(a); valB = getOtherEffectiveAmount(b); } else { valA = String(valA || '').toLowerCase(); valB = String(valB || '').toLowerCase(); }
-            if (valA < valB) return otherSortDesc ? 1 : -1; if (valA > valB) return otherSortDesc ? -1 : 1; return 0;
+            if (valA < valB) return otherSortDesc ? 1 : -1; if (valA > valB) return sortDesc ? -1 : 1; return 0;
         });
 
         const totalPages = Math.ceil(dynamicTxs.length / pageSize) || 1; if (otherCurrentPage > totalPages) otherCurrentPage = totalPages;
